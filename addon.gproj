@@ -1,13 +1,10 @@
-GenericProject Rebellion {
- ID "{5C77E08B3B95A5E1}"
- SourceDirectory "."
- TargetDirectory "$profile:addons/Rebellion"
- AddonGUID "5C77E08B3B95A5E1"
- AddonTitle "Project Rebellion"
- AddonDescription "Antistasi-style guerrilla warfare for Arma Reforger"
- AddonAuthor "FatihHekim0glu"
- AddonVersion "0.1.0"
- Dependencies {
-  "{591AF5BDA9F18E15}" "ArmaReforger"
- }
+{
+	"project": {
+		"GUID": "5C77E08B3B95A5E1",
+		"Name": "Rebellion",
+		"AddonTitle": "Project Rebellion",
+		"AddonDescription": "Antistasi-style guerrilla warfare for Arma Reforger",
+		"AddonAuthor": "FatihHekim0glu",
+		"AddonVersion": "0.1.0"
+	}
 }
