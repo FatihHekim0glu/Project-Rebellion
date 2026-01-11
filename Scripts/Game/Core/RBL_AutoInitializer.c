@@ -1,0 +1,193 @@
+// ============================================================================
+// PROJECT REBELLION - Auto Initializer
+// Automatically sets up the entire campaign when game starts
+// ============================================================================
+
+class RBL_AutoInitializer
+{
+	protected static ref RBL_AutoInitializer s_Instance;
+	protected bool m_bInitialized;
+	
+	static RBL_AutoInitializer GetInstance()
+	{
+		if (!s_Instance)
+			s_Instance = new RBL_AutoInitializer();
+		return s_Instance;
+	}
+	
+	void RBL_AutoInitializer()
+	{
+		m_bInitialized = false;
+	}
+	
+	void Initialize()
+	{
+		if (m_bInitialized)
+			return;
+		
+		PrintFormat("[RBL] ========================================");
+		PrintFormat("[RBL] PROJECT REBELLION - Auto Initializing");
+		PrintFormat("[RBL] ========================================");
+		
+		// Initialize all managers
+		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
+		RBL_EconomyManager econMgr = RBL_EconomyManager.GetInstance();
+		RBL_CommanderAI commanderAI = RBL_CommanderAI.GetInstance();
+		RBL_UndercoverSystem undercover = RBL_UndercoverSystem.GetInstance();
+		RBL_PersistenceManager persistence = RBL_PersistenceManager.GetInstance();
+		RBL_ZoneConfigurator zoneConfig = RBL_ZoneConfigurator.GetInstance();
+		
+		// Create virtual zones from config
+		CreateVirtualZones(zoneConfig, zoneMgr);
+		
+		// Set starting resources
+		econMgr.SetMoney(500);
+		econMgr.SetHR(10);
+		
+		// Give some starting items
+		econMgr.DepositItem("AK74", 5);
+		econMgr.DepositItem("AKM", 3);
+		econMgr.DepositItem("Makarov", 10);
+		econMgr.DepositItem("RGD5_Grenade", 10);
+		econMgr.DepositItem("Bandage", 20);
+		
+		m_bInitialized = true;
+		
+		PrintFormat("[RBL] ========================================");
+		PrintFormat("[RBL] Initialization Complete!");
+		PrintFormat("[RBL] Zones: %1", zoneMgr.GetAllZones().Count());
+		PrintFormat("[RBL] Starting Money: $%1", econMgr.GetMoney());
+		PrintFormat("[RBL] Starting HR: %1", econMgr.GetHR());
+		PrintFormat("[RBL] ========================================");
+	}
+	
+	protected void CreateVirtualZones(RBL_ZoneConfigurator config, RBL_ZoneManager zoneMgr)
+	{
+		array<ref RBL_ZoneDefinition> definitions = config.GetAllDefinitions();
+		
+		for (int i = 0; i < definitions.Count(); i++)
+		{
+			RBL_ZoneDefinition def = definitions[i];
+			
+			// Create a virtual zone object
+			RBL_VirtualZone vZone = new RBL_VirtualZone();
+			vZone.InitFromDefinition(def);
+			zoneMgr.RegisterVirtualZone(vZone);
+			
+			PrintFormat("[RBL] Created zone: %1 (%2) - Owner: %3", 
+				def.ZoneID,
+				typename.EnumToString(ERBLZoneType, def.Type),
+				typename.EnumToString(ERBLFactionKey, def.StartingOwner)
+			);
+		}
+	}
+	
+	bool IsInitialized() { return m_bInitialized; }
+}
+
+// Virtual zone that doesn't require entity placement
+class RBL_VirtualZone
+{
+	protected string m_sZoneID;
+	protected vector m_vPosition;
+	protected ERBLZoneType m_eZoneType;
+	protected ERBLFactionKey m_eOwnerFaction;
+	protected int m_iMaxGarrison;
+	protected int m_iCurrentGarrison;
+	protected int m_iCivilianSupport;
+	protected float m_fCaptureRadius;
+	protected ERBLAlertState m_eAlertState;
+	protected bool m_bIsUnderAttack;
+	
+	void RBL_VirtualZone()
+	{
+		m_eAlertState = ERBLAlertState.RELAXED;
+		m_bIsUnderAttack = false;
+		m_iCurrentGarrison = 0;
+	}
+	
+	void InitFromDefinition(RBL_ZoneDefinition def)
+	{
+		m_sZoneID = def.ZoneID;
+		m_vPosition = def.Position;
+		m_eZoneType = def.Type;
+		m_eOwnerFaction = def.StartingOwner;
+		m_iMaxGarrison = def.MaxGarrison;
+		m_iCivilianSupport = def.CivilianSupport;
+		m_fCaptureRadius = def.CaptureRadius;
+		
+		// Start with partial garrison
+		m_iCurrentGarrison = m_iMaxGarrison / 2;
+	}
+	
+	// Getters matching RBL_CampaignZone interface
+	string GetZoneID() { return m_sZoneID; }
+	vector GetZonePosition() { return m_vPosition; }
+	ERBLZoneType GetZoneType() { return m_eZoneType; }
+	ERBLFactionKey GetOwnerFaction() { return m_eOwnerFaction; }
+	int GetMaxGarrison() { return m_iMaxGarrison; }
+	int GetCurrentGarrison() { return m_iCurrentGarrison; }
+	int GetCivilianSupport() { return m_iCivilianSupport; }
+	float GetCaptureRadius() { return m_fCaptureRadius; }
+	ERBLAlertState GetAlertState() { return m_eAlertState; }
+	bool IsUnderAttack() { return m_bIsUnderAttack; }
+	
+	void SetOwnerFaction(ERBLFactionKey faction) { m_eOwnerFaction = faction; }
+	void SetUnderAttack(bool attacked) { m_bIsUnderAttack = attacked; }
+	void SetAlertState(ERBLAlertState state) { m_eAlertState = state; }
+	void SetCivilianSupport(int support) { m_iCivilianSupport = Math.Clamp(support, 0, 100); }
+	
+	float GetDistanceTo(RBL_VirtualZone other)
+	{
+		if (!other)
+			return 999999.0;
+		return vector.Distance(m_vPosition, other.GetZonePosition());
+	}
+	
+	int GetStrategicValue()
+	{
+		int value = 0;
+		switch (m_eZoneType)
+		{
+			case ERBLZoneType.HQ: value = 1000; break;
+			case ERBLZoneType.Airbase: value = 500; break;
+			case ERBLZoneType.Factory: value = 300; break;
+			case ERBLZoneType.Resource: value = 200; break;
+			case ERBLZoneType.Town: value = 150 + m_iCivilianSupport; break;
+			case ERBLZoneType.Outpost: value = 100; break;
+			case ERBLZoneType.Seaport: value = 250; break;
+			default: value = 50; break;
+		}
+		return value;
+	}
+	
+	int CalculateResourceIncome()
+	{
+		int baseIncome = 0;
+		switch (m_eZoneType)
+		{
+			case ERBLZoneType.Resource: baseIncome = 100; break;
+			case ERBLZoneType.Factory: baseIncome = 150; break;
+			case ERBLZoneType.Town: baseIncome = 50; break;
+			case ERBLZoneType.Airbase: baseIncome = 75; break;
+			case ERBLZoneType.Seaport: baseIncome = 125; break;
+			default: baseIncome = 25; break;
+		}
+		float supportMultiplier = 0.5 + (m_iCivilianSupport / 100.0);
+		return baseIncome * supportMultiplier;
+	}
+	
+	int CalculateHRIncome()
+	{
+		if (m_eZoneType != ERBLZoneType.Town)
+			return 0;
+		return m_iCivilianSupport * 0.1;
+	}
+	
+	void SpawnGarrison()
+	{
+		PrintFormat("[RBL] Would spawn garrison at %1", m_sZoneID);
+		// Actual spawning would go here
+	}
+}
+

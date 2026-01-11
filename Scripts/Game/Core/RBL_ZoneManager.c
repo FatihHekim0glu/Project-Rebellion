@@ -7,7 +7,9 @@ class RBL_ZoneManager
 	protected static ref RBL_ZoneManager s_Instance;
 	
 	protected ref array<RBL_CampaignZone> m_aAllZones;
+	protected ref array<ref RBL_VirtualZone> m_aVirtualZones;
 	protected ref map<string, RBL_CampaignZone> m_mZonesByID;
+	protected ref map<string, ref RBL_VirtualZone> m_mVirtualZonesByID;
 	
 	protected float m_fTimeSinceSimulation;
 	protected const float SIMULATION_INTERVAL = 5.0;
@@ -22,7 +24,9 @@ class RBL_ZoneManager
 	void RBL_ZoneManager()
 	{
 		m_aAllZones = new array<RBL_CampaignZone>();
+		m_aVirtualZones = new array<ref RBL_VirtualZone>();
 		m_mZonesByID = new map<string, RBL_CampaignZone>();
+		m_mVirtualZonesByID = new map<string, ref RBL_VirtualZone>();
 		m_fTimeSinceSimulation = 0;
 	}
 	
@@ -43,6 +47,23 @@ class RBL_ZoneManager
 		m_mZonesByID.Set(zoneID, zone);
 		
 		PrintFormat("[RBL_ZoneManager] Registered zone: %1", zoneID);
+	}
+	
+	void RegisterVirtualZone(RBL_VirtualZone zone)
+	{
+		if (!zone)
+			return;
+		
+		string zoneID = zone.GetZoneID();
+		
+		if (m_mVirtualZonesByID.Contains(zoneID))
+		{
+			PrintFormat("[RBL_ZoneManager] Warning: Virtual zone %1 already registered", zoneID);
+			return;
+		}
+		
+		m_aVirtualZones.Insert(zone);
+		m_mVirtualZonesByID.Set(zoneID, zone);
 	}
 	
 	void UnregisterZone(RBL_CampaignZone zone)
@@ -77,7 +98,20 @@ class RBL_ZoneManager
 		return zone;
 	}
 	
+	RBL_VirtualZone GetVirtualZoneByID(string zoneID)
+	{
+		RBL_VirtualZone zone;
+		m_mVirtualZonesByID.Find(zoneID, zone);
+		return zone;
+	}
+	
 	array<RBL_CampaignZone> GetAllZones() { return m_aAllZones; }
+	array<ref RBL_VirtualZone> GetAllVirtualZones() { return m_aVirtualZones; }
+	
+	int GetTotalZoneCount()
+	{
+		return m_aAllZones.Count() + m_aVirtualZones.Count();
+	}
 	
 	array<RBL_CampaignZone> GetZonesByFaction(ERBLFactionKey faction)
 	{
@@ -87,6 +121,19 @@ class RBL_ZoneManager
 		{
 			if (m_aAllZones[i].GetOwnerFaction() == faction)
 				result.Insert(m_aAllZones[i]);
+		}
+		
+		return result;
+	}
+	
+	array<ref RBL_VirtualZone> GetVirtualZonesByFaction(ERBLFactionKey faction)
+	{
+		array<ref RBL_VirtualZone> result = new array<ref RBL_VirtualZone>();
+		
+		for (int i = 0; i < m_aVirtualZones.Count(); i++)
+		{
+			if (m_aVirtualZones[i].GetOwnerFaction() == faction)
+				result.Insert(m_aVirtualZones[i]);
 		}
 		
 		return result;
@@ -124,12 +171,36 @@ class RBL_ZoneManager
 		return nearest;
 	}
 	
+	RBL_VirtualZone GetNearestVirtualZone(vector position)
+	{
+		RBL_VirtualZone nearest = null;
+		float nearestDist = 999999.0;
+		
+		for (int i = 0; i < m_aVirtualZones.Count(); i++)
+		{
+			RBL_VirtualZone zone = m_aVirtualZones[i];
+			float dist = vector.Distance(position, zone.GetZonePosition());
+			if (dist < nearestDist)
+			{
+				nearestDist = dist;
+				nearest = zone;
+			}
+		}
+		
+		return nearest;
+	}
+	
 	int GetZoneCountByFaction(ERBLFactionKey faction)
 	{
 		int count = 0;
 		for (int i = 0; i < m_aAllZones.Count(); i++)
 		{
 			if (m_aAllZones[i].GetOwnerFaction() == faction)
+				count++;
+		}
+		for (int i = 0; i < m_aVirtualZones.Count(); i++)
+		{
+			if (m_aVirtualZones[i].GetOwnerFaction() == faction)
 				count++;
 		}
 		return count;
@@ -140,6 +211,11 @@ class RBL_ZoneManager
 		for (int i = 0; i < m_aAllZones.Count(); i++)
 		{
 			if (m_aAllZones[i].GetOwnerFaction() != faction)
+				return false;
+		}
+		for (int i = 0; i < m_aVirtualZones.Count(); i++)
+		{
+			if (m_aVirtualZones[i].GetOwnerFaction() != faction)
 				return false;
 		}
 		return true;
@@ -153,12 +229,19 @@ class RBL_ZoneManager
 			if (zone.GetOwnerFaction() != ERBLFactionKey.FIA)
 				zone.SpawnGarrison();
 		}
+		for (int i = 0; i < m_aVirtualZones.Count(); i++)
+		{
+			RBL_VirtualZone zone = m_aVirtualZones[i];
+			if (zone.GetOwnerFaction() != ERBLFactionKey.FIA)
+				zone.SpawnGarrison();
+		}
 	}
 	
 	void PrintZoneStatus()
 	{
 		PrintFormat("[RBL_ZoneManager] === ZONE STATUS ===");
-		PrintFormat("Total zones: %1", m_aAllZones.Count());
+		PrintFormat("Entity zones: %1", m_aAllZones.Count());
+		PrintFormat("Virtual zones: %1", m_aVirtualZones.Count());
 		PrintFormat("FIA zones: %1", GetZoneCountByFaction(ERBLFactionKey.FIA));
 		PrintFormat("USSR zones: %1", GetZoneCountByFaction(ERBLFactionKey.USSR));
 		PrintFormat("US zones: %1", GetZoneCountByFaction(ERBLFactionKey.US));
