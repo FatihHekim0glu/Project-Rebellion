@@ -1,0 +1,15 @@
+RBL_GameMode {
+ ID "RBL_GAMEMODE_001"
+ components {
+  RplComponent "{RBL_RPL_001}" {
+   Streamable Disabled
+   m_pRplBehavior RplSingleForAll
+  }
+  SCR_RespawnSystemComponent "{RBL_RESPAWN_001}" {
+  }
+ }
+ m_bEnableRebellion 1
+ m_iStartingWarLevel 1
+ m_iStartingAggression 25
+}
+

@@ -1,0 +1,17 @@
+RBL_CampaignZone {
+ ID "RBL_ZONE_OUTPOST_001"
+ components {
+  RplComponent "{RBL_ZONE_RPL_001}" {
+   Streamable Enabled
+  }
+  Hierarchy "{RBL_ZONE_HIER_001}" {
+  }
+ }
+ m_sZoneID "OUTPOST_001"
+ m_eZoneType 1
+ m_eOwnerFaction 2
+ m_iCivilianSupport 50
+ m_fCaptureRadius 100
+ m_iMaxGarrison 10
+}
+

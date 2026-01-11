@@ -1,0 +1,28 @@
+{
+	"guid": "RBL_Rebellion_001",
+	"name": "Rebellion",
+	"title": "Project Rebellion - Antistasi for Reforger",
+	"description": "Dynamic guerrilla warfare gamemode with persistent campaign",
+	"author": "Your Name",
+	"version": "0.1.0",
+	"gameVersionMin": "1.0.0",
+	"dependencies": [
+		{
+			"guid": "ArmaReforger",
+			"name": "Arma Reforger"
+		}
+	],
+	"scripts": [
+		"Scripts/Game/Enums/RBL_Enums.c",
+		"Scripts/Game/Config/RBL_Config.c",
+		"Scripts/Game/Zone/RBL_CampaignZone.c",
+		"Scripts/Game/Persistence/RBL_CampaignSaveData.c",
+		"Scripts/Game/Core/RBL_EconomyManager.c",
+		"Scripts/Game/Core/RBL_ZoneManager.c",
+		"Scripts/Game/Core/RBL_CampaignManager.c",
+		"Scripts/Game/AI/RBL_CommanderAI.c",
+		"Scripts/Game/Systems/RBL_UndercoverSystem.c",
+		"Scripts/Game/Gamemode/RBL_GameMode.c"
+	]
+}
+

@@ -1,0 +1,15 @@
+RBL_CampaignManager {
+ ID "RBL_CAMPAIGN_MGR_001"
+ components {
+  RplComponent "{RBL_CM_RPL_001}" {
+   Streamable Disabled
+   m_pRplBehavior RplSingleForAll
+  }
+ }
+ m_iStartingWarLevel 1
+ m_iStartingAggression 25
+ m_iStartingMoney 500
+ m_iStartingHR 10
+ m_fResourceTickInterval 600
+}
+

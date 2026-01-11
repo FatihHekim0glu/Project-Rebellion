@@ -1,0 +1,28 @@
+# Arma Reforger / Workbench
+*.bak
+*.log
+*.tmp
+.workbench/
+.generated/
+*.dds
+*.edds
+*.pac
+
+# Build outputs
+Addons/
+.build/
+
+# IDE
+.idea/
+.vscode/
+*.suo
+*.user
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Saves (don't commit player saves)
+Saves/
+*.json.bak
+

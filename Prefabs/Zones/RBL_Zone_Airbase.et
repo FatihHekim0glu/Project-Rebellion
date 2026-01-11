@@ -1,0 +1,17 @@
+RBL_CampaignZone {
+ ID "RBL_ZONE_AIRBASE_001"
+ components {
+  RplComponent "{RBL_ZONE_RPL_003}" {
+   Streamable Enabled
+  }
+  Hierarchy "{RBL_ZONE_HIER_003}" {
+  }
+ }
+ m_sZoneID "AIRBASE_001"
+ m_eZoneType 4
+ m_eOwnerFaction 2
+ m_iCivilianSupport 0
+ m_fCaptureRadius 250
+ m_iMaxGarrison 20
+}
+

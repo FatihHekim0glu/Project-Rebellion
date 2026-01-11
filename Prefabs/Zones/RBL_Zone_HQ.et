@@ -1,0 +1,17 @@
+RBL_CampaignZone {
+ ID "RBL_ZONE_HQ_001"
+ components {
+  RplComponent "{RBL_ZONE_RPL_004}" {
+   Streamable Enabled
+  }
+  Hierarchy "{RBL_ZONE_HIER_004}" {
+  }
+ }
+ m_sZoneID "HQ_PLAYER"
+ m_eZoneType 0
+ m_eOwnerFaction 3
+ m_iCivilianSupport 100
+ m_fCaptureRadius 75
+ m_iMaxGarrison 0
+}
+
