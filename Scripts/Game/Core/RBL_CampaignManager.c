@@ -8,7 +8,7 @@ class RBL_CampaignManagerClass : GenericEntityClass
 
 class RBL_CampaignManager : GenericEntity
 {
-	protected static ref RBL_CampaignManager s_Instance;
+	protected static RBL_CampaignManager s_Instance;
 	
 	[Attribute("1", UIWidgets.Slider, "Starting War Level", "1 10 1")]
 	protected int m_iStartingWarLevel;
