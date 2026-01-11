@@ -1,96 +1,112 @@
 // ============================================================================
-// PROJECT REBELLION - Core Enumerations
+// PROJECT REBELLION - Enumerations
 // ============================================================================
 
-// Zone classification determining behavior, income, and strategic value
 enum ERBLZoneType
 {
-	HQ,           // Player headquarters - lose condition if captured
-	Outpost,      // Military garrison point
-	Resource,     // Generates supplies/income
-	Factory,      // Produces vehicles/equipment
-	Airbase,      // Air asset spawn point, high strategic value
-	Town,         // Civilian population center - affects support
-	Seaport,      // Naval assets and supply routes
-	Roadblock     // Minor checkpoint
+	Unknown = 0,
+	Town,
+	Outpost,
+	Airbase,
+	HQ,
+	Factory,
+	Resource,
+	Seaport,
+	Roadblock,
+	Watchpost
 }
 
-// Faction identifiers matching Reforger's faction system
 enum ERBLFactionKey
 {
-	NONE,         // Neutral/Unclaimed
-	US,           // Occupier faction (NATO/US)
-	USSR,         // Occupier faction (Soviet)
-	FIA,          // Player resistance faction
-	CIVILIAN      // Non-combatant
+	NONE = 0,
+	FIA,
+	USSR,
+	US
 }
 
-// War Level tiers determining available assets
-enum ERBLWarLevel
-{
-	TIER_1 = 1,   // Militia: Trucks, basic rifles
-	TIER_2,       // Light Infantry: APCs, LMGs
-	TIER_3,       // Mechanized: IFVs, AT weapons
-	TIER_4,       // Motorized Assault: Armed vehicles
-	TIER_5,       // Heavy Mechanized: Tanks appear
-	TIER_6,       // Air Support: Transport helis
-	TIER_7,       // Combined Arms: Attack helis
-	TIER_8,       // Full Mobilization: Heavy armor
-	TIER_9,       // Total War: All conventional assets
-	TIER_10       // Scorched Earth: SpecOps, unlimited
-}
-
-// QRF response types based on situation
-enum ERBLQRFType
-{
-	PATROL,       // Light patrol response
-	CONVOY,       // Ground vehicle convoy
-	INFANTRY,     // Infantry reinforcement
-	MECHANIZED,   // Armored response
-	HELICOPTER,   // Air mobile QRF
-	SPECOPS       // Elite counter-insurgency
-}
-
-// Alert states for zones and AI behavior
 enum ERBLAlertState
 {
-	RELAXED,      // Normal patrols, low vigilance
-	AWARE,        // Increased patrols
-	ALERTED,      // Active search patterns
-	COMBAT,       // Full combat engagement
-	LOCKDOWN      // Maximum security response
+	RELAXED = 0,
+	AWARE,
+	ALERTED,
+	COMBAT
 }
 
-// Undercover detection threat levels
-enum ERBLCoverStatus
+enum ERBLQRFType
 {
-	HIDDEN,       // Fully undercover
-	SUSPICIOUS,   // Being watched
-	COMPROMISED,  // Cover blown, combat imminent
-	HOSTILE       // Known enemy, shoot on sight
+	PATROL = 0,
+	CONVOY,
+	INFANTRY,
+	MECHANIZED,
+	HELICOPTER,
+	SPECOPS
 }
 
-// Arsenal item availability states
 enum ERBLItemAvailability
 {
-	LOCKED,       // Not yet discovered
-	LIMITED,      // Available but consumes stock
-	UNLIMITED     // Fully unlocked (count >= threshold)
+	LOCKED = 0,
+	LIMITED,
+	UNLIMITED
 }
 
-// Campaign event types for logging and triggers
 enum ERBLCampaignEvent
 {
+	GAME_START = 0,
+	GAME_END,
 	ZONE_CAPTURED,
 	ZONE_LOST,
-	QRF_DISPATCHED,
-	QRF_DESTROYED,
+	QRF_LAUNCHED,
+	QRF_ARRIVED,
+	WAR_LEVEL_CHANGED,
 	PLAYER_KILLED,
 	ENEMY_KILLED,
-	ITEM_DEPOSITED,
-	ITEM_UNLOCKED,
-	WAR_LEVEL_CHANGED,
-	SAVE_TRIGGERED,
-	LOAD_TRIGGERED
+	RESOURCE_TICK,
+	SAVE_COMPLETE,
+	LOAD_COMPLETE
 }
 
+enum ERBLCoverStatus
+{
+	HIDDEN = 0,
+	SUSPICIOUS,
+	COMPROMISED,
+	HOSTILE
+}
+
+enum ERBLMissionType
+{
+	NONE = 0,
+	ATTACK,
+	DEFEND,
+	PATROL,
+	RESUPPLY,
+	REINFORCE
+}
+
+enum ERBLGarrisonState
+{
+	EMPTY = 0,
+	PARTIAL,
+	FULL,
+	REINFORCED
+}
+
+enum ERBLResourceType
+{
+	MONEY = 0,
+	HUMAN_RESOURCES,
+	AMMUNITION,
+	FUEL,
+	WEAPONS,
+	VEHICLES
+}
+
+enum ERBLVehicleClass
+{
+	CIVILIAN = 0,
+	TRANSPORT,
+	ARMED,
+	ARMORED,
+	HELICOPTER,
+	BOAT
+}

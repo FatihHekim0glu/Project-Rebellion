@@ -1,6 +1,5 @@
 // ============================================================================
 // PROJECT REBELLION - Game Mode
-// Entry point that initializes all systems when the mission starts
 // ============================================================================
 
 class RBL_GameModeClass : SCR_BaseGameModeClass
@@ -24,10 +23,6 @@ class RBL_GameMode : SCR_BaseGameMode
 	protected RBL_UndercoverSystem m_UndercoverSystem;
 	protected RBL_PersistenceManager m_PersistenceManager;
 	
-	// ========================================================================
-	// INITIALIZATION
-	// ========================================================================
-	
 	override void EOnInit(IEntity owner)
 	{
 		super.EOnInit(owner);
@@ -39,10 +34,7 @@ class RBL_GameMode : SCR_BaseGameMode
 		PrintFormat("[RBL] PROJECT REBELLION - Initializing...");
 		PrintFormat("[RBL] ========================================");
 		
-		if (Replication.IsServer())
-		{
-			InitializeManagers();
-		}
+		InitializeManagers();
 	}
 	
 	protected void InitializeManagers()
@@ -59,22 +51,15 @@ class RBL_GameMode : SCR_BaseGameMode
 		PrintFormat("[RBL]   - CommanderAI: %1", m_CommanderAI != null);
 		PrintFormat("[RBL]   - UndercoverSystem: %1", m_UndercoverSystem != null);
 		PrintFormat("[RBL]   - PersistenceManager: %1", m_PersistenceManager != null);
-		
-		PrintFormat("[RBL] Waiting for CampaignManager entity...");
 	}
-	
-	// ========================================================================
-	// FRAME UPDATE
-	// ========================================================================
 	
 	override void EOnFrame(IEntity owner, float timeSlice)
 	{
 		super.EOnFrame(owner, timeSlice);
 		
-		if (!m_bEnableRebellion || !Replication.IsServer())
+		if (!m_bEnableRebellion)
 			return;
 		
-		// Update systems each frame
 		if (m_CommanderAI)
 			m_CommanderAI.Update(timeSlice);
 		
@@ -88,18 +73,10 @@ class RBL_GameMode : SCR_BaseGameMode
 			m_PersistenceManager.Update(timeSlice);
 	}
 	
-	// ========================================================================
-	// API
-	// ========================================================================
-	
 	RBL_ZoneManager GetZoneManager() { return m_ZoneManager; }
 	RBL_EconomyManager GetEconomyManager() { return m_EconomyManager; }
 	RBL_CommanderAI GetCommanderAI() { return m_CommanderAI; }
 	RBL_UndercoverSystem GetUndercoverSystem() { return m_UndercoverSystem; }
-	
-	// ========================================================================
-	// DEBUG
-	// ========================================================================
 	
 	void DebugPrintStatus()
 	{

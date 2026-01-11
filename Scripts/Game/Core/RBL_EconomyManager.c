@@ -1,23 +1,14 @@
 // ============================================================================
 // PROJECT REBELLION - Economy Manager
-// Handles Virtual Arsenal (persistent loot), faction funds (HR/Money), supplies
 // ============================================================================
 
 class RBL_EconomyManager
 {
-	protected static RBL_EconomyManager s_Instance;
-	
-	// ========================================================================
-	// CONFIGURATION
-	// ========================================================================
+	protected static ref RBL_EconomyManager s_Instance;
 	
 	protected const int UNLOCK_THRESHOLD = 25;
 	protected const int MAX_MONEY = 999999;
 	protected const int MAX_HR = 9999;
-	
-	// ========================================================================
-	// STATE
-	// ========================================================================
 	
 	protected int m_iMoney;
 	protected int m_iHumanResources;
@@ -25,18 +16,10 @@ class RBL_EconomyManager
 	protected ref map<string, int> m_mArsenalInventory;
 	protected ref set<string> m_sUnlockedItems;
 	
-	// ========================================================================
-	// SIGNALS
-	// ========================================================================
-	
 	protected ref ScriptInvoker m_OnMoneyChanged;
 	protected ref ScriptInvoker m_OnHRChanged;
 	protected ref ScriptInvoker m_OnItemDeposited;
 	protected ref ScriptInvoker m_OnItemUnlocked;
-	
-	// ========================================================================
-	// SINGLETON
-	// ========================================================================
 	
 	static RBL_EconomyManager GetInstance()
 	{
@@ -58,10 +41,6 @@ class RBL_EconomyManager
 		m_iMoney = 0;
 		m_iHumanResources = 0;
 	}
-	
-	// ========================================================================
-	// MONEY MANAGEMENT
-	// ========================================================================
 	
 	void SetMoney(int amount)
 	{
@@ -86,19 +65,9 @@ class RBL_EconomyManager
 		return true;
 	}
 	
-	int GetMoney()
-	{
-		return m_iMoney;
-	}
+	int GetMoney() { return m_iMoney; }
 	
-	bool CanAfford(int amount)
-	{
-		return m_iMoney >= amount;
-	}
-	
-	// ========================================================================
-	// HUMAN RESOURCES MANAGEMENT
-	// ========================================================================
+	bool CanAfford(int amount) { return m_iMoney >= amount; }
 	
 	void SetHR(int amount)
 	{
@@ -123,16 +92,9 @@ class RBL_EconomyManager
 		return true;
 	}
 	
-	int GetHR()
-	{
-		return m_iHumanResources;
-	}
+	int GetHR() { return m_iHumanResources; }
 	
-	// ========================================================================
-	// ARSENAL SYSTEM
-	// ========================================================================
-	
-	void DepositItem(string itemPrefab, int count = 1)
+	void DepositItem(string itemPrefab, int count)
 	{
 		int currentCount = 0;
 		m_mArsenalInventory.Find(itemPrefab, currentCount);
@@ -145,19 +107,14 @@ class RBL_EconomyManager
 		if (newCount >= UNLOCK_THRESHOLD && !m_sUnlockedItems.Contains(itemPrefab))
 		{
 			m_sUnlockedItems.Insert(itemPrefab);
-			
 			PrintFormat("[RBL_Economy] Item UNLOCKED: %1", itemPrefab);
 			m_OnItemUnlocked.Invoke(itemPrefab);
-			
-			RBL_CampaignManager campaignMgr = RBL_CampaignManager.GetInstance();
-			if (campaignMgr)
-				campaignMgr.OnCampaignEvent(ERBLCampaignEvent.ITEM_UNLOCKED, null);
 		}
 		
 		PrintFormat("[RBL_Economy] Deposited %1 x%2 (Total: %3)", itemPrefab, count, newCount);
 	}
 	
-	bool WithdrawItem(string itemPrefab, int count = 1)
+	bool WithdrawItem(string itemPrefab, int count)
 	{
 		if (m_sUnlockedItems.Contains(itemPrefab))
 			return true;
@@ -194,10 +151,7 @@ class RBL_EconomyManager
 		return ERBLItemAvailability.LOCKED;
 	}
 	
-	bool IsItemUnlocked(string itemPrefab)
-	{
-		return m_sUnlockedItems.Contains(itemPrefab);
-	}
+	bool IsItemUnlocked(string itemPrefab) { return m_sUnlockedItems.Contains(itemPrefab); }
 	
 	bool IsItemAvailable(string itemPrefab)
 	{
@@ -216,80 +170,12 @@ class RBL_EconomyManager
 			m_sUnlockedItems.Insert(itemPrefab);
 	}
 	
-	map<string, int> GetArsenalInventory()
-	{
-		return m_mArsenalInventory;
-	}
-	
-	array<string> GetAvailableItems()
-	{
-		array<string> result = new array<string>();
-		
-		// Add unlimited items
-		array<string> unlockedArray = new array<string>();
-		// Note: set doesn't have direct iteration in Enforce, using Contains checks instead
-		
-		// Add limited items
-		array<string> keys = new array<string>();
-		m_mArsenalInventory.GetKeyArray(keys);
-		
-		for (int i = 0; i < keys.Count(); i++)
-		{
-			string key = keys[i];
-			int count = m_mArsenalInventory.Get(key);
-			if (count > 0 || m_sUnlockedItems.Contains(key))
-				result.Insert(key);
-		}
-		
-		return result;
-	}
-	
-	// ========================================================================
-	// SIGNAL ACCESSORS
-	// ========================================================================
+	map<string, int> GetArsenalInventory() { return m_mArsenalInventory; }
 	
 	ScriptInvoker GetOnMoneyChanged() { return m_OnMoneyChanged; }
 	ScriptInvoker GetOnHRChanged() { return m_OnHRChanged; }
 	ScriptInvoker GetOnItemDeposited() { return m_OnItemDeposited; }
 	ScriptInvoker GetOnItemUnlocked() { return m_OnItemUnlocked; }
-	
-	// ========================================================================
-	// ITEM DEPOSIT ACTION
-	// ========================================================================
-	
-	void ProcessItemDeposit(IEntity player, IEntity item)
-	{
-		if (!player || !item)
-			return;
-		
-		EntityPrefabData prefabData = item.GetPrefabData();
-		if (!prefabData)
-			return;
-		
-		string prefabName = prefabData.GetPrefabName();
-		
-		SCR_InventoryStorageManagerComponent inventory = SCR_InventoryStorageManagerComponent.Cast(
-			player.FindComponent(SCR_InventoryStorageManagerComponent)
-		);
-		
-		if (!inventory)
-			return;
-		
-		if (inventory.TryRemoveItemFromStorage(item))
-		{
-			DepositItem(prefabName, 1);
-			
-			SCR_EntityHelper.DeleteEntityAndChildren(item);
-			
-			RBL_CampaignManager campaignMgr = RBL_CampaignManager.GetInstance();
-			if (campaignMgr)
-				campaignMgr.OnCampaignEvent(ERBLCampaignEvent.ITEM_DEPOSITED, null);
-		}
-	}
-	
-	// ========================================================================
-	// PRICING
-	// ========================================================================
 	
 	int GetVehiclePrice(string vehiclePrefab)
 	{
@@ -301,14 +187,10 @@ class RBL_EconomyManager
 			return 1000;
 		if (vehiclePrefab.Contains("UAZ") || vehiclePrefab.Contains("HMMWV"))
 			return 750;
-		
 		return 500;
 	}
 	
-	int GetRecruitPrice()
-	{
-		return 50;
-	}
+	int GetRecruitPrice() { return 50; }
 	
 	bool PurchaseVehicle(string vehiclePrefab)
 	{
@@ -326,10 +208,6 @@ class RBL_EconomyManager
 		return true;
 	}
 	
-	// ========================================================================
-	// DEBUG
-	// ========================================================================
-	
 	void PrintEconomyStatus()
 	{
 		PrintFormat("[RBL_Economy] === ECONOMY STATUS ===");
@@ -337,18 +215,5 @@ class RBL_EconomyManager
 		PrintFormat("Human Resources: %1", m_iHumanResources);
 		PrintFormat("Arsenal Items: %1", m_mArsenalInventory.Count());
 		PrintFormat("Unlocked Items: %1", m_sUnlockedItems.Count());
-		
-		array<string> keys = new array<string>();
-		m_mArsenalInventory.GetKeyArray(keys);
-		
-		for (int i = 0; i < keys.Count(); i++)
-		{
-			string key = keys[i];
-			int count = m_mArsenalInventory.Get(key);
-			string status = "[LIMITED]";
-			if (m_sUnlockedItems.Contains(key))
-				status = "[UNLIMITED]";
-			PrintFormat("  %1: %2 %3", key, count, status);
-		}
 	}
 }
