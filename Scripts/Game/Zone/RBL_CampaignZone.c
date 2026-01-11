@@ -31,7 +31,6 @@ class RBL_CampaignZone : GenericEntity
 	[Attribute("10", UIWidgets.EditBox, "Base garrison capacity")]
 	protected int m_iMaxGarrison;
 	
-	// Runtime state (replicated)
 	protected int m_iCurrentGarrison;
 	protected bool m_bIsUnderAttack;
 	protected bool m_bIsBeingCaptured;
@@ -39,13 +38,8 @@ class RBL_CampaignZone : GenericEntity
 	protected ERBLAlertState m_eAlertState;
 	protected ERBLFactionKey m_eCapturingFaction;
 	
-	// Linked zones for supply routes
 	protected ref array<RBL_CampaignZone> m_aLinkedZones;
-	
-	// Garrison composition (unit prefab names)
 	protected ref array<string> m_aGarrisonUnits;
-	
-	// Spawned entities tracked for cleanup
 	protected ref array<IEntity> m_aSpawnedEntities;
 	
 	// ========================================================================
@@ -86,7 +80,6 @@ class RBL_CampaignZone : GenericEntity
 	{
 		super.EOnInit(owner);
 		
-		// Register with ZoneManager
 		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
 		if (zoneMgr)
 			zoneMgr.RegisterZone(this);
@@ -118,14 +111,13 @@ class RBL_CampaignZone : GenericEntity
 		return m_aGarrisonUnits;
 	}
 	
-	// Signal accessors
 	ScriptInvoker GetOnZoneCaptured() { return m_OnZoneCaptured; }
 	ScriptInvoker GetOnZoneAttacked() { return m_OnZoneAttacked; }
 	ScriptInvoker GetOnGarrisonChanged() { return m_OnGarrisonChanged; }
 	ScriptInvoker GetOnSupportChanged() { return m_OnSupportChanged; }
 	
 	// ========================================================================
-	// SETTERS (Server-side authority)
+	// SETTERS
 	// ========================================================================
 	
 	void SetOwnerFaction(ERBLFactionKey newOwner)
@@ -136,7 +128,6 @@ class RBL_CampaignZone : GenericEntity
 		ERBLFactionKey previousOwner = m_eOwnerFaction;
 		m_eOwnerFaction = newOwner;
 		
-		// Broadcast ownership change
 		Replication.BumpMe();
 		
 		m_OnZoneCaptured.Invoke(this, previousOwner, newOwner);
@@ -168,7 +159,7 @@ class RBL_CampaignZone : GenericEntity
 		}
 	}
 	
-	void SetUnderAttack(bool isAttacked, ERBLFactionKey attacker = ERBLFactionKey.NONE)
+	void SetUnderAttack(bool isAttacked, ERBLFactionKey attacker)
 	{
 		if (m_bIsUnderAttack != isAttacked)
 		{
@@ -189,40 +180,48 @@ class RBL_CampaignZone : GenericEntity
 		if (!Replication.IsServer())
 			return;
 		
-		array<IEntity> nearbyEntities = {};
-		GetGame().GetWorld().QueryEntitiesBySphere(
-			GetOrigin(),
-			m_fCaptureRadius,
-			null,
-			FilterCaptureEntities,
-			EQueryEntitiesFlags.DYNAMIC
-		);
-		
 		int friendlyCount = CountUnitsOfFaction(m_eOwnerFaction);
 		int hostileCount = 0;
 		ERBLFactionKey dominantHostile = ERBLFactionKey.NONE;
 		int maxHostileCount = 0;
 		
-		// Count hostile units by faction
-		foreach (ERBLFactionKey faction : ERBLFactionKey)
+		// Check each faction
+		int usCount = CountUnitsOfFaction(ERBLFactionKey.US);
+		int ussrCount = CountUnitsOfFaction(ERBLFactionKey.USSR);
+		int fiaCount = CountUnitsOfFaction(ERBLFactionKey.FIA);
+		
+		if (m_eOwnerFaction != ERBLFactionKey.US)
 		{
-			if (faction == m_eOwnerFaction || faction == ERBLFactionKey.NONE || faction == ERBLFactionKey.CIVILIAN)
-				continue;
-			
-			int count = CountUnitsOfFaction(faction);
-			hostileCount += count;
-			
-			if (count > maxHostileCount)
+			hostileCount += usCount;
+			if (usCount > maxHostileCount)
 			{
-				maxHostileCount = count;
-				dominantHostile = faction;
+				maxHostileCount = usCount;
+				dominantHostile = ERBLFactionKey.US;
 			}
 		}
 		
-		// Determine capture state
+		if (m_eOwnerFaction != ERBLFactionKey.USSR)
+		{
+			hostileCount += ussrCount;
+			if (ussrCount > maxHostileCount)
+			{
+				maxHostileCount = ussrCount;
+				dominantHostile = ERBLFactionKey.USSR;
+			}
+		}
+		
+		if (m_eOwnerFaction != ERBLFactionKey.FIA)
+		{
+			hostileCount += fiaCount;
+			if (fiaCount > maxHostileCount)
+			{
+				maxHostileCount = fiaCount;
+				dominantHostile = ERBLFactionKey.FIA;
+			}
+		}
+		
 		if (hostileCount > 0 && friendlyCount == 0)
 		{
-			// Zone is being captured
 			m_bIsBeingCaptured = true;
 			m_eCapturingFaction = dominantHostile;
 			m_fCaptureProgress += timeSlice * CalculateCaptureRate(maxHostileCount);
@@ -236,25 +235,22 @@ class RBL_CampaignZone : GenericEntity
 		}
 		else if (friendlyCount > 0 && hostileCount == 0 && m_fCaptureProgress > 0)
 		{
-			// Reclaiming - progress decays
 			m_fCaptureProgress = Math.Max(0, m_fCaptureProgress - timeSlice * 2.0);
 			
 			if (m_fCaptureProgress == 0)
 			{
 				m_bIsBeingCaptured = false;
 				m_eCapturingFaction = ERBLFactionKey.NONE;
-				SetUnderAttack(false);
+				SetUnderAttack(false, ERBLFactionKey.NONE);
 			}
 		}
 		else if (friendlyCount > 0 && hostileCount > 0)
 		{
-			// Contested - no progress change
 			SetUnderAttack(true, dominantHostile);
 		}
 		else
 		{
-			// Empty zone
-			SetUnderAttack(false);
+			SetUnderAttack(false, ERBLFactionKey.NONE);
 		}
 		
 		Replication.BumpMe();
@@ -262,7 +258,6 @@ class RBL_CampaignZone : GenericEntity
 	
 	protected float CalculateCaptureRate(int attackerCount)
 	{
-		// Base rate: 1% per second, +0.5% per additional attacker, capped
 		float rate = 1.0 + (attackerCount - 1) * 0.5;
 		return Math.Clamp(rate, 0.5, 5.0);
 	}
@@ -275,19 +270,14 @@ class RBL_CampaignZone : GenericEntity
 		m_bIsBeingCaptured = false;
 		m_eCapturingFaction = ERBLFactionKey.NONE;
 		
-		// Clear garrison
 		ClearGarrison();
-		
-		// Transfer ownership
 		SetOwnerFaction(newOwner);
 		
-		// Affect support based on who captured
 		if (newOwner == ERBLFactionKey.FIA)
 			ModifyCivilianSupport(10);
 		else
 			ModifyCivilianSupport(-15);
 		
-		// Notify campaign manager
 		RBL_CampaignManager campaignMgr = RBL_CampaignManager.GetInstance();
 		if (campaignMgr)
 			campaignMgr.OnZoneCaptured(this, previousOwner, newOwner);
@@ -295,28 +285,17 @@ class RBL_CampaignZone : GenericEntity
 	
 	protected int CountUnitsOfFaction(ERBLFactionKey faction)
 	{
-		// Query all characters in radius and count by faction
 		int count = 0;
-		
-		array<IEntity> entities = {};
-		GetGame().GetWorld().QueryEntitiesBySphere(
-			GetOrigin(),
-			m_fCaptureRadius,
-			null,
-			null,
-			EQueryEntitiesFlags.DYNAMIC
-		);
-		
-		// Actual faction check implementation would use FactionAffiliationComponent
-		// This is a placeholder for the logic
+		// Placeholder - actual implementation would query entities
 		return count;
 	}
 	
 	protected bool FilterCaptureEntities(IEntity entity)
 	{
-		// Filter for controllable characters only
 		ChimeraCharacter character = ChimeraCharacter.Cast(entity);
-		return character != null && character.IsAlive();
+		if (character && character.IsAlive())
+			return true;
+		return false;
 	}
 	
 	// ========================================================================
@@ -330,16 +309,15 @@ class RBL_CampaignZone : GenericEntity
 		
 		ClearGarrison();
 		
-		// Get garrison template based on zone type and war level
 		RBL_CampaignManager campaignMgr = RBL_CampaignManager.GetInstance();
 		if (!campaignMgr)
 			return;
 		
 		array<string> template = campaignMgr.GetGarrisonTemplate(m_eZoneType, m_eOwnerFaction);
 		
-		foreach (string unitPrefab : template)
+		for (int i = 0; i < template.Count(); i++)
 		{
-			SpawnGarrisonUnit(unitPrefab);
+			SpawnGarrisonUnit(template[i]);
 		}
 		
 		m_OnGarrisonChanged.Invoke(this, m_iCurrentGarrison);
@@ -368,7 +346,6 @@ class RBL_CampaignZone : GenericEntity
 	
 	protected vector FindSpawnPosition()
 	{
-		// Find valid spawn position within zone
 		vector basePos = GetOrigin();
 		float randomAngle = Math.RandomFloat(0, Math.PI2);
 		float randomDist = Math.RandomFloat(5, m_fCaptureRadius * 0.5);
@@ -376,16 +353,17 @@ class RBL_CampaignZone : GenericEntity
 		vector offset = Vector(Math.Cos(randomAngle) * randomDist, 0, Math.Sin(randomAngle) * randomDist);
 		vector spawnPos = basePos + offset;
 		
-		// Snap to terrain
-		spawnPos[1] = GetGame().GetWorld().GetSurfaceY(spawnPos[0], spawnPos[2]);
+		if (GetGame() && GetGame().GetWorld())
+			spawnPos[1] = GetGame().GetWorld().GetSurfaceY(spawnPos[0], spawnPos[2]);
 		
 		return spawnPos;
 	}
 	
 	void ClearGarrison()
 	{
-		foreach (IEntity entity : m_aSpawnedEntities)
+		for (int i = 0; i < m_aSpawnedEntities.Count(); i++)
 		{
+			IEntity entity = m_aSpawnedEntities[i];
 			if (entity)
 				SCR_EntityHelper.DeleteEntityAndChildren(entity);
 		}
@@ -439,10 +417,9 @@ class RBL_CampaignZone : GenericEntity
 				break;
 		}
 		
-		// Support multiplier (0.5x to 1.5x based on civilian support)
 		float supportMultiplier = 0.5 + (m_iCivilianSupport / 100.0);
 		
-		return Math.Round(baseIncome * supportMultiplier);
+		return baseIncome * supportMultiplier;
 	}
 	
 	int CalculateHRIncome()
@@ -450,8 +427,7 @@ class RBL_CampaignZone : GenericEntity
 		if (m_eZoneType != ERBLZoneType.Town)
 			return 0;
 		
-		// HR (Human Resources) only from towns, scaled by support
-		return Math.Round(m_iCivilianSupport * 0.1);
+		return m_iCivilianSupport * 0.1;
 	}
 	
 	// ========================================================================
@@ -465,11 +441,11 @@ class RBL_CampaignZone : GenericEntity
 		data.Owner = m_eOwnerFaction;
 		data.Support = m_iCivilianSupport;
 		data.AlertState = m_eAlertState;
-		data.GarrisonUnits = {};
+		data.GarrisonUnits = new array<string>();
 		
-		foreach (string unit : m_aGarrisonUnits)
+		for (int i = 0; i < m_aGarrisonUnits.Count(); i++)
 		{
-			data.GarrisonUnits.Insert(unit);
+			data.GarrisonUnits.Insert(m_aGarrisonUnits[i]);
 		}
 	}
 	
@@ -480,12 +456,11 @@ class RBL_CampaignZone : GenericEntity
 		m_eAlertState = data.AlertState;
 		
 		m_aGarrisonUnits.Clear();
-		foreach (string unit : data.GarrisonUnits)
+		for (int i = 0; i < data.GarrisonUnits.Count(); i++)
 		{
-			m_aGarrisonUnits.Insert(unit);
+			m_aGarrisonUnits.Insert(data.GarrisonUnits[i]);
 		}
 		
-		// Respawn garrison based on loaded data
 		if (m_aGarrisonUnits.Count() > 0)
 			SpawnGarrison();
 		
@@ -493,7 +468,7 @@ class RBL_CampaignZone : GenericEntity
 	}
 	
 	// ========================================================================
-	// STRATEGIC VALUE (For AI decision making)
+	// STRATEGIC VALUE
 	// ========================================================================
 	
 	int GetStrategicValue()
@@ -503,7 +478,7 @@ class RBL_CampaignZone : GenericEntity
 		switch (m_eZoneType)
 		{
 			case ERBLZoneType.HQ:
-				value = 1000; // Highest priority
+				value = 1000;
 				break;
 			case ERBLZoneType.Airbase:
 				value = 500;
@@ -515,7 +490,7 @@ class RBL_CampaignZone : GenericEntity
 				value = 200;
 				break;
 			case ERBLZoneType.Town:
-				value = 150 + m_iCivilianSupport; // Towns with high support are valuable
+				value = 150 + m_iCivilianSupport;
 				break;
 			case ERBLZoneType.Outpost:
 				value = 100;
@@ -534,9 +509,8 @@ class RBL_CampaignZone : GenericEntity
 	float GetDistanceTo(RBL_CampaignZone otherZone)
 	{
 		if (!otherZone)
-			return float.MAX;
+			return 999999.0;
 		
 		return vector.Distance(GetOrigin(), otherZone.GetOrigin());
 	}
 }
-

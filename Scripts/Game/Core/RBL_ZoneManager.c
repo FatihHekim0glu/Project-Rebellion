@@ -35,7 +35,6 @@ class RBL_ZoneManager
 		m_mZonesByID = new map<string, RBL_CampaignZone>();
 		m_mZonesByFaction = new map<ERBLFactionKey, ref array<RBL_CampaignZone>>();
 		
-		// Initialize faction arrays
 		m_mZonesByFaction.Set(ERBLFactionKey.NONE, new array<RBL_CampaignZone>());
 		m_mZonesByFaction.Set(ERBLFactionKey.US, new array<RBL_CampaignZone>());
 		m_mZonesByFaction.Set(ERBLFactionKey.USSR, new array<RBL_CampaignZone>());
@@ -64,13 +63,11 @@ class RBL_ZoneManager
 		m_aAllZones.Insert(zone);
 		m_mZonesByID.Set(zoneID, zone);
 		
-		// Add to faction list
 		ERBLFactionKey owner = zone.GetOwnerFaction();
 		array<RBL_CampaignZone> factionZones = m_mZonesByFaction.Get(owner);
 		if (factionZones)
 			factionZones.Insert(zone);
 		
-		// Subscribe to zone events
 		zone.GetOnZoneCaptured().Insert(OnZoneOwnershipChanged);
 		
 		PrintFormat("[RBL_ZoneManager] Registered zone: %1 (%2)", zoneID, typename.EnumToString(ERBLZoneType, zone.GetZoneType()));
@@ -86,7 +83,6 @@ class RBL_ZoneManager
 		m_aAllZones.RemoveItem(zone);
 		m_mZonesByID.Remove(zoneID);
 		
-		// Remove from faction list
 		ERBLFactionKey owner = zone.GetOwnerFaction();
 		array<RBL_CampaignZone> factionZones = m_mZonesByFaction.Get(owner);
 		if (factionZones)
@@ -104,13 +100,11 @@ class RBL_ZoneManager
 		if (!Replication.IsServer())
 			return;
 		
-		// Update capture states
-		foreach (RBL_CampaignZone zone : m_aAllZones)
+		for (int i = 0; i < m_aAllZones.Count(); i++)
 		{
-			zone.UpdateCaptureState(timeSlice);
+			m_aAllZones[i].UpdateCaptureState(timeSlice);
 		}
 		
-		// Simulation tick for distant zones
 		m_fTimeSinceSimulation += timeSlice;
 		if (m_fTimeSinceSimulation >= SIMULATION_INTERVAL)
 		{
@@ -121,24 +115,23 @@ class RBL_ZoneManager
 	
 	protected void SimulateDistantZones()
 	{
-		// Get player positions
 		array<vector> playerPositions = GetAllPlayerPositions();
 		
-		foreach (RBL_CampaignZone zone : m_aAllZones)
+		for (int i = 0; i < m_aAllZones.Count(); i++)
 		{
+			RBL_CampaignZone zone = m_aAllZones[i];
 			bool isNearPlayer = false;
 			vector zonePos = zone.GetZonePosition();
 			
-			foreach (vector playerPos : playerPositions)
+			for (int j = 0; j < playerPositions.Count(); j++)
 			{
-				if (vector.Distance(zonePos, playerPos) < 1000)
+				if (vector.Distance(zonePos, playerPositions[j]) < 1000)
 				{
 					isNearPlayer = true;
 					break;
 				}
 			}
 			
-			// Zones far from players get simplified simulation
 			if (!isNearPlayer)
 			{
 				SimulateZone(zone);
@@ -148,26 +141,22 @@ class RBL_ZoneManager
 	
 	protected void SimulateZone(RBL_CampaignZone zone)
 	{
-		// Simplified garrison regeneration for distant zones
-		// Prevents "empty" zones when players aren't looking
-		
 		if (zone.GetCurrentGarrison() < zone.GetMaxGarrison() * 0.5)
 		{
-			// Slowly regenerate garrison over time
-			// This represents reinforcements arriving
+			// Placeholder for garrison regeneration
 		}
 	}
 	
 	protected array<vector> GetAllPlayerPositions()
 	{
-		array<vector> positions = {};
+		array<vector> positions = new array<vector>();
 		
-		array<int> playerIDs = {};
+		array<int> playerIDs = new array<int>();
 		GetGame().GetPlayerManager().GetPlayers(playerIDs);
 		
-		foreach (int playerID : playerIDs)
+		for (int i = 0; i < playerIDs.Count(); i++)
 		{
-			IEntity playerEntity = GetGame().GetPlayerManager().GetPlayerControlledEntity(playerID);
+			IEntity playerEntity = GetGame().GetPlayerManager().GetPlayerControlledEntity(playerIDs[i]);
 			if (playerEntity)
 				positions.Insert(playerEntity.GetOrigin());
 		}
@@ -201,12 +190,12 @@ class RBL_ZoneManager
 	
 	array<RBL_CampaignZone> GetZonesByType(ERBLZoneType type)
 	{
-		array<RBL_CampaignZone> result = {};
+		array<RBL_CampaignZone> result = new array<RBL_CampaignZone>();
 		
-		foreach (RBL_CampaignZone zone : m_aAllZones)
+		for (int i = 0; i < m_aAllZones.Count(); i++)
 		{
-			if (zone.GetZoneType() == type)
-				result.Insert(zone);
+			if (m_aAllZones[i].GetZoneType() == type)
+				result.Insert(m_aAllZones[i]);
 		}
 		
 		return result;
@@ -215,10 +204,11 @@ class RBL_ZoneManager
 	RBL_CampaignZone GetNearestZone(vector position)
 	{
 		RBL_CampaignZone nearest = null;
-		float nearestDist = float.MAX;
+		float nearestDist = 999999.0;
 		
-		foreach (RBL_CampaignZone zone : m_aAllZones)
+		for (int i = 0; i < m_aAllZones.Count(); i++)
 		{
+			RBL_CampaignZone zone = m_aAllZones[i];
 			float dist = vector.Distance(position, zone.GetZonePosition());
 			if (dist < nearestDist)
 			{
@@ -233,12 +223,13 @@ class RBL_ZoneManager
 	RBL_CampaignZone GetNearestFriendlyZone(vector position, ERBLFactionKey faction)
 	{
 		RBL_CampaignZone nearest = null;
-		float nearestDist = float.MAX;
+		float nearestDist = 999999.0;
 		
 		array<RBL_CampaignZone> factionZones = GetZonesByFaction(faction);
 		
-		foreach (RBL_CampaignZone zone : factionZones)
+		for (int i = 0; i < factionZones.Count(); i++)
 		{
+			RBL_CampaignZone zone = factionZones[i];
 			float dist = vector.Distance(position, zone.GetZonePosition());
 			if (dist < nearestDist)
 			{
@@ -252,10 +243,11 @@ class RBL_ZoneManager
 	
 	array<RBL_CampaignZone> GetZonesInRadius(vector position, float radius)
 	{
-		array<RBL_CampaignZone> result = {};
+		array<RBL_CampaignZone> result = new array<RBL_CampaignZone>();
 		
-		foreach (RBL_CampaignZone zone : m_aAllZones)
+		for (int i = 0; i < m_aAllZones.Count(); i++)
 		{
+			RBL_CampaignZone zone = m_aAllZones[i];
 			if (vector.Distance(position, zone.GetZonePosition()) <= radius)
 				result.Insert(zone);
 		}
@@ -267,10 +259,10 @@ class RBL_ZoneManager
 	{
 		array<RBL_CampaignZone> fiaZones = GetZonesByFaction(ERBLFactionKey.FIA);
 		
-		foreach (RBL_CampaignZone zone : fiaZones)
+		for (int i = 0; i < fiaZones.Count(); i++)
 		{
-			if (zone.GetZoneType() == ERBLZoneType.HQ)
-				return zone;
+			if (fiaZones[i].GetZoneType() == ERBLZoneType.HQ)
+				return fiaZones[i];
 		}
 		
 		return null;
@@ -291,9 +283,9 @@ class RBL_ZoneManager
 		int total = 0;
 		array<RBL_CampaignZone> factionZones = GetZonesByFaction(faction);
 		
-		foreach (RBL_CampaignZone zone : factionZones)
+		for (int i = 0; i < factionZones.Count(); i++)
 		{
-			total += zone.GetCurrentGarrison();
+			total += factionZones[i].GetCurrentGarrison();
 		}
 		
 		return total;
@@ -307,19 +299,19 @@ class RBL_ZoneManager
 			return 0;
 		
 		int totalSupport = 0;
-		foreach (RBL_CampaignZone zone : factionZones)
+		for (int i = 0; i < factionZones.Count(); i++)
 		{
-			totalSupport += zone.GetCivilianSupport();
+			totalSupport += factionZones[i].GetCivilianSupport();
 		}
 		
-		return totalSupport / (float)factionZones.Count();
+		return totalSupport / factionZones.Count();
 	}
 	
 	bool AreAllZonesCapturedByFaction(ERBLFactionKey faction)
 	{
-		foreach (RBL_CampaignZone zone : m_aAllZones)
+		for (int i = 0; i < m_aAllZones.Count(); i++)
 		{
-			if (zone.GetOwnerFaction() != faction)
+			if (m_aAllZones[i].GetOwnerFaction() != faction)
 				return false;
 		}
 		return true;
@@ -331,9 +323,9 @@ class RBL_ZoneManager
 	
 	void SpawnAllGarrisons()
 	{
-		foreach (RBL_CampaignZone zone : m_aAllZones)
+		for (int i = 0; i < m_aAllZones.Count(); i++)
 		{
-			// Only spawn for enemy-controlled zones
+			RBL_CampaignZone zone = m_aAllZones[i];
 			if (zone.GetOwnerFaction() != ERBLFactionKey.FIA)
 				zone.SpawnGarrison();
 		}
@@ -341,9 +333,9 @@ class RBL_ZoneManager
 	
 	void ClearAllGarrisons()
 	{
-		foreach (RBL_CampaignZone zone : m_aAllZones)
+		for (int i = 0; i < m_aAllZones.Count(); i++)
 		{
-			zone.ClearGarrison();
+			m_aAllZones[i].ClearGarrison();
 		}
 	}
 	
@@ -353,7 +345,6 @@ class RBL_ZoneManager
 	
 	protected void OnZoneOwnershipChanged(RBL_CampaignZone zone, ERBLFactionKey previousOwner, ERBLFactionKey newOwner)
 	{
-		// Update faction lists
 		array<RBL_CampaignZone> oldFactionZones = m_mZonesByFaction.Get(previousOwner);
 		if (oldFactionZones)
 			oldFactionZones.RemoveItem(zone);
@@ -381,8 +372,9 @@ class RBL_ZoneManager
 		PrintFormat("USSR zones: %1", GetZoneCountByFaction(ERBLFactionKey.USSR));
 		PrintFormat("US zones: %1", GetZoneCountByFaction(ERBLFactionKey.US));
 		
-		foreach (RBL_CampaignZone zone : m_aAllZones)
+		for (int i = 0; i < m_aAllZones.Count(); i++)
 		{
+			RBL_CampaignZone zone = m_aAllZones[i];
 			PrintFormat("  %1 [%2] - Owner: %3, Support: %4%, Garrison: %5",
 				zone.GetZoneID(),
 				typename.EnumToString(ERBLZoneType, zone.GetZoneType()),
@@ -393,4 +385,3 @@ class RBL_ZoneManager
 		}
 	}
 }
-

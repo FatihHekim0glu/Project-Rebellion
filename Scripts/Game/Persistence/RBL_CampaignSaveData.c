@@ -3,7 +3,6 @@
 // JSON-serializable structures for saving/loading campaign state
 // ============================================================================
 
-// Individual zone save data
 class RBL_ZoneSaveData : JsonApiStruct
 {
 	string ZoneID;
@@ -23,7 +22,6 @@ class RBL_ZoneSaveData : JsonApiStruct
 	}
 }
 
-// Arsenal item entry
 class RBL_ArsenalItemData : JsonApiStruct
 {
 	string ItemPrefab;
@@ -38,7 +36,6 @@ class RBL_ArsenalItemData : JsonApiStruct
 	}
 }
 
-// Player persistent data
 class RBL_PlayerSaveData : JsonApiStruct
 {
 	string PlayerUID;
@@ -64,7 +61,6 @@ class RBL_PlayerSaveData : JsonApiStruct
 	}
 }
 
-// Campaign global state
 class RBL_CampaignInfoData : JsonApiStruct
 {
 	int WarLevel;
@@ -92,7 +88,6 @@ class RBL_CampaignInfoData : JsonApiStruct
 	}
 }
 
-// Active QRF/Mission data
 class RBL_ActiveMissionData : JsonApiStruct
 {
 	string MissionID;
@@ -153,22 +148,17 @@ class RBL_CampaignSaveData : JsonApiStruct
 
 // ============================================================================
 // PERSISTENCE MANAGER
-// Handles save/load operations using SCR_JsonSaveContext
 // ============================================================================
 class RBL_PersistenceManager
 {
 	protected static RBL_PersistenceManager s_Instance;
 	
 	protected const string SAVE_FILE_NAME = "RBL_Campaign_Save";
-	protected const int AUTO_SAVE_INTERVAL = 300; // 5 minutes
+	protected const int AUTO_SAVE_INTERVAL = 300;
 	
 	protected ref RBL_CampaignSaveData m_CurrentSaveData;
 	protected float m_fTimeSinceLastSave;
 	protected bool m_bSaveInProgress;
-	
-	// ========================================================================
-	// SINGLETON
-	// ========================================================================
 	
 	static RBL_PersistenceManager GetInstance()
 	{
@@ -184,10 +174,6 @@ class RBL_PersistenceManager
 		m_bSaveInProgress = false;
 	}
 	
-	// ========================================================================
-	// SAVE OPERATIONS
-	// ========================================================================
-	
 	bool SaveCampaign()
 	{
 		if (m_bSaveInProgress)
@@ -198,10 +184,8 @@ class RBL_PersistenceManager
 		
 		m_bSaveInProgress = true;
 		
-		// Collect current state
 		CollectCampaignState();
 		
-		// Write to JSON
 		SCR_JsonSaveContext saveContext = new SCR_JsonSaveContext();
 		
 		if (!saveContext.WriteValue("", m_CurrentSaveData))
@@ -213,7 +197,6 @@ class RBL_PersistenceManager
 		
 		string jsonData = saveContext.ExportToString();
 		
-		// Save to file
 		FileHandle file = FileIO.OpenFile(GetSavePath(), FileMode.WRITE);
 		if (!file)
 		{
@@ -233,7 +216,6 @@ class RBL_PersistenceManager
 			m_CurrentSaveData.Arsenal.Count()
 		);
 		
-		// Notify systems
 		RBL_CampaignManager campaignMgr = RBL_CampaignManager.GetInstance();
 		if (campaignMgr)
 			campaignMgr.OnCampaignEvent(ERBLCampaignEvent.SAVE_TRIGGERED, null);
@@ -245,7 +227,6 @@ class RBL_PersistenceManager
 	{
 		m_CurrentSaveData.ClearAll();
 		
-		// Campaign Info
 		RBL_CampaignManager campaignMgr = RBL_CampaignManager.GetInstance();
 		if (campaignMgr)
 		{
@@ -255,17 +236,20 @@ class RBL_PersistenceManager
 			m_CurrentSaveData.CampaignInfo.TotalPlayTime = campaignMgr.GetTotalPlayTime();
 		}
 		
-		// Economy
 		RBL_EconomyManager econMgr = RBL_EconomyManager.GetInstance();
 		if (econMgr)
 		{
 			m_CurrentSaveData.CampaignInfo.Money = econMgr.GetMoney();
 			m_CurrentSaveData.CampaignInfo.HumanResources = econMgr.GetHR();
 			
-			// Arsenal items
 			map<string, int> arsenalItems = econMgr.GetArsenalInventory();
-			foreach (string prefab, int count : arsenalItems)
+			array<string> keys = new array<string>();
+			arsenalItems.GetKeyArray(keys);
+			
+			for (int i = 0; i < keys.Count(); i++)
 			{
+				string prefab = keys[i];
+				int count = arsenalItems.Get(prefab);
 				RBL_ArsenalItemData itemData = new RBL_ArsenalItemData();
 				itemData.ItemPrefab = prefab;
 				itemData.Count = count;
@@ -274,41 +258,34 @@ class RBL_PersistenceManager
 			}
 		}
 		
-		// Time of Day
 		TimeAndWeatherManagerEntity timeManager = GetGame().GetTimeAndWeatherManager();
 		if (timeManager)
 		{
 			m_CurrentSaveData.CampaignInfo.TimeOfDay = timeManager.GetTime().GetHours() * 100 + timeManager.GetTime().GetMinutes();
 		}
 		
-		// Zones
 		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
 		if (zoneMgr)
 		{
 			array<RBL_CampaignZone> allZones = zoneMgr.GetAllZones();
-			foreach (RBL_CampaignZone zone : allZones)
+			for (int i = 0; i < allZones.Count(); i++)
 			{
 				RBL_ZoneSaveData zoneData;
-				zone.SerializeToStruct(zoneData);
+				allZones[i].SerializeToStruct(zoneData);
 				m_CurrentSaveData.Zones.Insert(zoneData);
 			}
 		}
 		
-		// Active Missions
 		RBL_CommanderAI commanderAI = RBL_CommanderAI.GetInstance();
 		if (commanderAI)
 		{
 			array<ref RBL_ActiveMissionData> missions = commanderAI.GetActiveMissionData();
-			foreach (RBL_ActiveMissionData mission : missions)
+			for (int i = 0; i < missions.Count(); i++)
 			{
-				m_CurrentSaveData.ActiveMissions.Insert(mission);
+				m_CurrentSaveData.ActiveMissions.Insert(missions[i]);
 			}
 		}
 	}
-	
-	// ========================================================================
-	// LOAD OPERATIONS
-	// ========================================================================
 	
 	bool LoadCampaign()
 	{
@@ -323,7 +300,6 @@ class RBL_PersistenceManager
 			return false;
 		}
 		
-		// Read file
 		FileHandle file = FileIO.OpenFile(savePath, FileMode.READ);
 		if (!file)
 		{
@@ -335,7 +311,6 @@ class RBL_PersistenceManager
 		file.Read(jsonData, file.GetLength());
 		file.Close();
 		
-		// Parse JSON
 		SCR_JsonLoadContext loadContext = new SCR_JsonLoadContext();
 		if (!loadContext.ImportFromString(jsonData))
 		{
@@ -350,7 +325,6 @@ class RBL_PersistenceManager
 			return false;
 		}
 		
-		// Apply loaded state
 		ApplyCampaignState();
 		
 		PrintFormat("[RBL] Campaign loaded successfully. Zones: %1, Arsenal Items: %2",
@@ -358,7 +332,6 @@ class RBL_PersistenceManager
 			m_CurrentSaveData.Arsenal.Count()
 		);
 		
-		// Notify systems
 		RBL_CampaignManager campaignMgr = RBL_CampaignManager.GetInstance();
 		if (campaignMgr)
 			campaignMgr.OnCampaignEvent(ERBLCampaignEvent.LOAD_TRIGGERED, null);
@@ -368,7 +341,6 @@ class RBL_PersistenceManager
 	
 	protected void ApplyCampaignState()
 	{
-		// Campaign Info
 		RBL_CampaignManager campaignMgr = RBL_CampaignManager.GetInstance();
 		if (campaignMgr)
 		{
@@ -377,33 +349,31 @@ class RBL_PersistenceManager
 			campaignMgr.SetDayNumber(m_CurrentSaveData.CampaignInfo.DayNumber);
 		}
 		
-		// Economy
 		RBL_EconomyManager econMgr = RBL_EconomyManager.GetInstance();
 		if (econMgr)
 		{
 			econMgr.SetMoney(m_CurrentSaveData.CampaignInfo.Money);
 			econMgr.SetHR(m_CurrentSaveData.CampaignInfo.HumanResources);
 			
-			// Arsenal items
-			foreach (RBL_ArsenalItemData itemData : m_CurrentSaveData.Arsenal)
+			for (int i = 0; i < m_CurrentSaveData.Arsenal.Count(); i++)
 			{
+				RBL_ArsenalItemData itemData = m_CurrentSaveData.Arsenal[i];
 				econMgr.SetArsenalItemCount(itemData.ItemPrefab, itemData.Count);
 			}
 		}
 		
-		// Zones
 		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
 		if (zoneMgr)
 		{
-			foreach (RBL_ZoneSaveData zoneData : m_CurrentSaveData.Zones)
+			for (int i = 0; i < m_CurrentSaveData.Zones.Count(); i++)
 			{
+				RBL_ZoneSaveData zoneData = m_CurrentSaveData.Zones[i];
 				RBL_CampaignZone zone = zoneMgr.GetZoneByID(zoneData.ZoneID);
 				if (zone)
 					zone.DeserializeFromStruct(zoneData);
 			}
 		}
 		
-		// Time of Day
 		TimeAndWeatherManagerEntity timeManager = GetGame().GetTimeAndWeatherManager();
 		if (timeManager)
 		{
@@ -412,10 +382,6 @@ class RBL_PersistenceManager
 			timeManager.SetTime(new TimeContainer(hours, minutes, 0));
 		}
 	}
-	
-	// ========================================================================
-	// AUTO-SAVE LOGIC
-	// ========================================================================
 	
 	void Update(float timeSlice)
 	{
@@ -434,10 +400,6 @@ class RBL_PersistenceManager
 	{
 		SaveCampaign();
 	}
-	
-	// ========================================================================
-	// UTILITY
-	// ========================================================================
 	
 	protected string GetSavePath()
 	{
@@ -460,4 +422,3 @@ class RBL_PersistenceManager
 		return m_CurrentSaveData;
 	}
 }
-

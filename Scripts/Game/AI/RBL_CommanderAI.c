@@ -12,13 +12,12 @@ class RBL_CommanderAI
 	// CONFIGURATION
 	// ========================================================================
 	
-	protected const float DECISION_INTERVAL = 30.0;       // Think every 30s
-	protected const float QRF_COOLDOWN = 180.0;           // 3 min between QRFs
-	protected const int MAX_CONCURRENT_QRFS = 3;          // Max simultaneous QRFs
-	protected const float INTEL_DECAY_RATE = 0.01;        // Intel degrades over time
-	protected const int UNLOCK_THRESHOLD = 25;            // Items needed for unlimited
+	protected const float DECISION_INTERVAL = 30.0;
+	protected const float QRF_COOLDOWN = 180.0;
+	protected const int MAX_CONCURRENT_QRFS = 3;
+	protected const float INTEL_DECAY_RATE = 0.01;
+	protected const int UNLOCK_THRESHOLD = 25;
 	
-	// Resource costs per QRF type (subtracted from faction reserves)
 	protected const int COST_QRF_PATROL = 50;
 	protected const int COST_QRF_CONVOY = 150;
 	protected const int COST_QRF_INFANTRY = 100;
@@ -30,17 +29,15 @@ class RBL_CommanderAI
 	// STATE
 	// ========================================================================
 	
-	protected ERBLFactionKey m_eControlledFaction;        // Which faction this AI controls
-	protected int m_iFactionResources;                    // Resource pool for spawning
+	protected ERBLFactionKey m_eControlledFaction;
+	protected int m_iFactionResources;
 	protected float m_fTimeSinceLastDecision;
 	protected float m_fTimeSinceLastQRF;
 	
-	// Known information (simulated fog of war)
-	protected ref map<string, float> m_mZoneIntelAge;     // How old is our intel on each zone
+	protected ref map<string, float> m_mZoneIntelAge;
 	protected ref map<string, ERBLFactionKey> m_mKnownZoneOwners;
 	protected ref map<string, int> m_mKnownGarrisons;
 	
-	// Active operations
 	protected ref array<ref RBL_QRFOperation> m_aActiveQRFs;
 	protected ref array<ref RBL_PatrolRoute> m_aActivePatrols;
 	
@@ -81,14 +78,10 @@ class RBL_CommanderAI
 		m_fTimeSinceLastDecision += timeSlice;
 		m_fTimeSinceLastQRF += timeSlice;
 		
-		// Update active operations
 		UpdateActiveQRFs(timeSlice);
 		UpdatePatrols(timeSlice);
-		
-		// Decay intel
 		UpdateIntelDecay(timeSlice);
 		
-		// Strategic decision making
 		if (m_fTimeSinceLastDecision >= DECISION_INTERVAL)
 		{
 			m_fTimeSinceLastDecision = 0;
@@ -102,14 +95,12 @@ class RBL_CommanderAI
 	
 	protected void MakeStrategicDecision()
 	{
-		// Priority 1: Respond to zones under attack
 		array<RBL_CampaignZone> threatenedZones = GetThreatenedZones();
-		foreach (RBL_CampaignZone zone : threatenedZones)
+		for (int i = 0; i < threatenedZones.Count(); i++)
 		{
-			ConsiderQRFResponse(zone);
+			ConsiderQRFResponse(threatenedZones[i]);
 		}
 		
-		// Priority 2: Recapture lost zones (if resources permit)
 		if (m_iFactionResources > 500)
 		{
 			RBL_CampaignZone targetZone = FindRecaptureTarget();
@@ -117,18 +108,15 @@ class RBL_CommanderAI
 				ConsiderOffensiveOperation(targetZone);
 		}
 		
-		// Priority 3: Reinforce weak garrisons
 		RBL_CampaignZone weakZone = FindWeakestGarrison();
 		if (weakZone)
 			ConsiderReinforcement(weakZone);
 		
-		// Regenerate resources based on controlled zones
 		RegenerateResources();
 	}
 	
 	// ========================================================================
 	// QRF DECISION ALGORITHM
-	// The core logic for deciding whether/how to send a Quick Reaction Force
 	// ========================================================================
 	
 	bool ConsiderQRFResponse(RBL_CampaignZone targetZone)
@@ -136,34 +124,32 @@ class RBL_CommanderAI
 		if (!targetZone)
 			return false;
 		
-		// Check cooldown
 		if (m_fTimeSinceLastQRF < QRF_COOLDOWN)
 		{
 			PrintFormat("[RBL_AI] QRF on cooldown. Time remaining: %1s", QRF_COOLDOWN - m_fTimeSinceLastQRF);
 			return false;
 		}
 		
-		// Check concurrent limit
 		if (m_aActiveQRFs.Count() >= MAX_CONCURRENT_QRFS)
 		{
 			PrintFormat("[RBL_AI] Max concurrent QRFs reached (%1)", MAX_CONCURRENT_QRFS);
 			return false;
 		}
 		
-		// Check if we own the target zone
 		if (targetZone.GetOwnerFaction() != m_eControlledFaction)
 			return false;
 		
-		// Calculate threat level
 		int threatLevel = CalculateThreatLevel(targetZone);
 		
-		// Get campaign aggression and war level
 		RBL_CampaignManager campaignMgr = RBL_CampaignManager.GetInstance();
-		int aggression = campaignMgr ? campaignMgr.GetAggression() : 50;
-		int warLevel = campaignMgr ? campaignMgr.GetWarLevel() : 1;
+		int aggression = 50;
+		int warLevel = 1;
+		if (campaignMgr)
+		{
+			aggression = campaignMgr.GetAggression();
+			warLevel = campaignMgr.GetWarLevel();
+		}
 		
-		// Decision: Should we respond?
-		// Higher aggression = lower threshold to respond
 		int responseThreshold = 100 - aggression;
 		if (threatLevel < responseThreshold)
 		{
@@ -171,7 +157,6 @@ class RBL_CommanderAI
 			return false;
 		}
 		
-		// Find source base for QRF
 		RBL_CampaignZone sourceBase = FindNearestFriendlyBase(targetZone);
 		if (!sourceBase)
 		{
@@ -179,14 +164,11 @@ class RBL_CommanderAI
 			return false;
 		}
 		
-		// Determine QRF type based on threat, distance, and war level
 		ERBLQRFType qrfType = DetermineQRFType(targetZone, sourceBase, threatLevel, warLevel);
 		
-		// Check if we can afford it
 		int cost = GetQRFCost(qrfType);
 		if (m_iFactionResources < cost)
 		{
-			// Try to downgrade
 			qrfType = DowngradeQRFType(qrfType);
 			cost = GetQRFCost(qrfType);
 			
@@ -197,7 +179,6 @@ class RBL_CommanderAI
 			}
 		}
 		
-		// Execute QRF
 		return LaunchQRF(qrfType, sourceBase, targetZone, cost);
 	}
 	
@@ -210,43 +191,31 @@ class RBL_CommanderAI
 		float distance = target.GetDistanceTo(source);
 		int zoneValue = target.GetStrategicValue();
 		
-		// Distance thresholds
-		bool isClose = distance < 1000;     // < 1km
-		bool isMedium = distance < 3000;    // < 3km
-		bool isFar = distance >= 3000;      // 3km+
+		bool isClose = distance < 1000;
+		bool isMedium = distance < 3000;
+		bool isFar = distance >= 3000;
 		
-		// High-value target modifiers
 		bool isHighValue = zoneValue >= 300;
 		bool isCritical = zoneValue >= 500;
 		
-		// ----------------------------------------------------------------
-		// DECISION MATRIX
-		// ----------------------------------------------------------------
-		
-		// Critical targets (HQ, Airbase) always get strong response
 		if (isCritical && warLevel >= 5)
 			return ERBLQRFType.SPECOPS;
 		
 		if (isCritical && warLevel >= 3)
 			return ERBLQRFType.MECHANIZED;
 		
-		// Far targets need air mobility (if unlocked)
 		if (isFar && warLevel >= 6)
 			return ERBLQRFType.HELICOPTER;
 		
-		// High threat + medium distance = convoy
 		if (threatLevel > 70 && isMedium)
 			return ERBLQRFType.CONVOY;
 		
-		// Mechanized available at war level 4+
 		if (warLevel >= 4 && threatLevel > 50)
 			return ERBLQRFType.MECHANIZED;
 		
-		// Medium threat = infantry response
 		if (threatLevel > 30)
 			return ERBLQRFType.INFANTRY;
 		
-		// Low threat = patrol
 		return ERBLQRFType.PATROL;
 	}
 	
@@ -264,9 +233,8 @@ class RBL_CommanderAI
 				return ERBLQRFType.INFANTRY;
 			case ERBLQRFType.INFANTRY:
 				return ERBLQRFType.PATROL;
-			default:
-				return ERBLQRFType.PATROL;
 		}
+		return ERBLQRFType.PATROL;
 	}
 	
 	protected int GetQRFCost(ERBLQRFType type)
@@ -295,28 +263,23 @@ class RBL_CommanderAI
 	
 	protected bool LaunchQRF(ERBLQRFType type, RBL_CampaignZone source, RBL_CampaignZone target, int cost)
 	{
-		// Deduct resources
 		m_iFactionResources -= cost;
 		m_fTimeSinceLastQRF = 0;
 		
-		// Create QRF operation
 		RBL_QRFOperation qrf = new RBL_QRFOperation();
 		qrf.Initialize(type, source, target, m_eControlledFaction);
 		
-		// Get unit composition based on type and war level
 		RBL_CampaignManager campaignMgr = RBL_CampaignManager.GetInstance();
-		int warLevel = campaignMgr ? campaignMgr.GetWarLevel() : 1;
+		int warLevel = 1;
+		if (campaignMgr)
+			warLevel = campaignMgr.GetWarLevel();
 		
 		array<string> unitPrefabs = GetQRFComposition(type, warLevel);
 		qrf.SetUnitComposition(unitPrefabs);
 		
-		// Spawn at source base
 		qrf.SpawnUnits();
-		
-		// Issue movement order (A* pathfinding handled by AI)
 		qrf.SetMoveOrder(target.GetZonePosition());
 		
-		// Track operation
 		m_aActiveQRFs.Insert(qrf);
 		
 		PrintFormat("[RBL_AI] QRF Launched! Type: %1, From: %2, To: %3, Cost: %4",
@@ -326,7 +289,6 @@ class RBL_CommanderAI
 			cost
 		);
 		
-		// Notify campaign
 		if (campaignMgr)
 			campaignMgr.OnCampaignEvent(ERBLCampaignEvent.QRF_DISPATCHED, target);
 		
@@ -335,9 +297,8 @@ class RBL_CommanderAI
 	
 	protected array<string> GetQRFComposition(ERBLQRFType type, int warLevel)
 	{
-		array<string> units = {};
+		array<string> units = new array<string>();
 		
-		// Base infantry prefabs (would be actual resource paths)
 		string rifleman = "{ABC123}Prefabs/Characters/OPFOR/Rifleman.et";
 		string grenadier = "{ABC124}Prefabs/Characters/OPFOR/Grenadier.et";
 		string medic = "{ABC125}Prefabs/Characters/OPFOR/Medic.et";
@@ -347,7 +308,6 @@ class RBL_CommanderAI
 		string officer = "{ABC129}Prefabs/Characters/OPFOR/Officer.et";
 		string specops = "{ABC130}Prefabs/Characters/OPFOR/SpecOps.et";
 		
-		// Vehicle prefabs
 		string truck = "{VEH001}Prefabs/Vehicles/OPFOR/Truck_Transport.et";
 		string apc = "{VEH002}Prefabs/Vehicles/OPFOR/BTR70.et";
 		string ifv = "{VEH003}Prefabs/Vehicles/OPFOR/BMP1.et";
@@ -389,7 +349,7 @@ class RBL_CommanderAI
 			case ERBLQRFType.MECHANIZED:
 				units.Insert(apc);
 				units.Insert(officer);
-				for (int i = 0; i < 4; i++)
+				for (int j = 0; j < 4; j++)
 					units.Insert(rifleman);
 				units.Insert(mg);
 				units.Insert(at);
@@ -401,7 +361,7 @@ class RBL_CommanderAI
 			case ERBLQRFType.HELICOPTER:
 				units.Insert(heli);
 				units.Insert(officer);
-				for (int i = 0; i < 8; i++)
+				for (int k = 0; k < 8; k++)
 					units.Insert(rifleman);
 				units.Insert(mg);
 				units.Insert(mg);
@@ -410,7 +370,7 @@ class RBL_CommanderAI
 				break;
 				
 			case ERBLQRFType.SPECOPS:
-				for (int i = 0; i < 6; i++)
+				for (int l = 0; l < 6; l++)
 					units.Insert(specops);
 				units.Insert(sniper);
 				units.Insert(sniper);
@@ -428,24 +388,18 @@ class RBL_CommanderAI
 	{
 		int threat = 0;
 		
-		// Base threat from being under attack
 		if (zone.IsUnderAttack())
 			threat += 50;
 		
-		// Zone value contributes to threat priority
 		threat += zone.GetStrategicValue() / 20;
 		
-		// Low garrison = higher threat
-		float garrisonRatio = zone.GetCurrentGarrison() / (float)Math.Max(zone.GetMaxGarrison(), 1);
-		threat += (int)((1.0 - garrisonRatio) * 30);
+		float garrisonRatio = zone.GetCurrentGarrison() / Math.Max(zone.GetMaxGarrison(), 1);
+		threat += (1.0 - garrisonRatio) * 30;
 		
-		// Recent intel increases accuracy
 		string zoneID = zone.GetZoneID();
 		float intelAge = 0;
 		if (m_mZoneIntelAge.Find(zoneID, intelAge))
 		{
-			// Fresh intel (< 60s) = accurate threat assessment
-			// Old intel (> 300s) = reduced confidence
 			if (intelAge < 60)
 				threat += 10;
 			else if (intelAge > 300)
@@ -461,15 +415,16 @@ class RBL_CommanderAI
 	
 	protected array<RBL_CampaignZone> GetThreatenedZones()
 	{
-		array<RBL_CampaignZone> result = {};
+		array<RBL_CampaignZone> result = new array<RBL_CampaignZone>();
 		
 		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
 		if (!zoneMgr)
 			return result;
 		
 		array<RBL_CampaignZone> allZones = zoneMgr.GetAllZones();
-		foreach (RBL_CampaignZone zone : allZones)
+		for (int i = 0; i < allZones.Count(); i++)
 		{
+			RBL_CampaignZone zone = allZones[i];
 			if (zone.GetOwnerFaction() == m_eControlledFaction && zone.IsUnderAttack())
 				result.Insert(zone);
 		}
@@ -484,28 +439,25 @@ class RBL_CommanderAI
 			return null;
 		
 		RBL_CampaignZone nearest = null;
-		float nearestDist = float.MAX;
+		float nearestDist = 999999.0;
 		
 		array<RBL_CampaignZone> allZones = zoneMgr.GetAllZones();
-		foreach (RBL_CampaignZone zone : allZones)
+		for (int i = 0; i < allZones.Count(); i++)
 		{
-			// Must be our zone
+			RBL_CampaignZone zone = allZones[i];
+			
 			if (zone.GetOwnerFaction() != m_eControlledFaction)
 				continue;
 			
-			// Must be a base type (not the target itself)
 			if (zone == targetZone)
 				continue;
 			
 			ERBLZoneType type = zone.GetZoneType();
-			bool isBase = (type == ERBLZoneType.Airbase || 
-			               type == ERBLZoneType.Outpost || 
-			               type == ERBLZoneType.HQ);
+			bool isBase = (type == ERBLZoneType.Airbase || type == ERBLZoneType.Outpost || type == ERBLZoneType.HQ);
 			
 			if (!isBase)
 				continue;
 			
-			// Check distance
 			float dist = targetZone.GetDistanceTo(zone);
 			if (dist < nearestDist)
 			{
@@ -527,15 +479,15 @@ class RBL_CommanderAI
 		int highestPriority = 0;
 		
 		array<RBL_CampaignZone> allZones = zoneMgr.GetAllZones();
-		foreach (RBL_CampaignZone zone : allZones)
+		for (int i = 0; i < allZones.Count(); i++)
 		{
-			// Look for zones owned by enemy (player faction)
+			RBL_CampaignZone zone = allZones[i];
+			
 			if (zone.GetOwnerFaction() != ERBLFactionKey.FIA)
 				continue;
 			
-			// Calculate priority based on value and garrison
 			int priority = zone.GetStrategicValue();
-			priority -= zone.GetCurrentGarrison() * 10; // Strong garrisons are less attractive
+			priority -= zone.GetCurrentGarrison() * 10;
 			
 			if (priority > highestPriority)
 			{
@@ -557,13 +509,15 @@ class RBL_CommanderAI
 		float lowestRatio = 1.0;
 		
 		array<RBL_CampaignZone> allZones = zoneMgr.GetAllZones();
-		foreach (RBL_CampaignZone zone : allZones)
+		for (int i = 0; i < allZones.Count(); i++)
 		{
+			RBL_CampaignZone zone = allZones[i];
+			
 			if (zone.GetOwnerFaction() != m_eControlledFaction)
 				continue;
 			
-			float ratio = zone.GetCurrentGarrison() / (float)Math.Max(zone.GetMaxGarrison(), 1);
-			if (ratio < lowestRatio && ratio < 0.5) // Below 50% strength
+			float ratio = zone.GetCurrentGarrison() / Math.Max(zone.GetMaxGarrison(), 1);
+			if (ratio < lowestRatio && ratio < 0.5)
 			{
 				lowestRatio = ratio;
 				weakest = zone;
@@ -579,18 +533,19 @@ class RBL_CommanderAI
 	
 	void UpdateIntel(string zoneID, ERBLFactionKey observedOwner, int observedGarrison)
 	{
-		m_mZoneIntelAge.Set(zoneID, 0); // Reset age
+		m_mZoneIntelAge.Set(zoneID, 0);
 		m_mKnownZoneOwners.Set(zoneID, observedOwner);
 		m_mKnownGarrisons.Set(zoneID, observedGarrison);
 	}
 	
 	protected void UpdateIntelDecay(float timeSlice)
 	{
-		array<string> keys = {};
+		array<string> keys = new array<string>();
 		m_mZoneIntelAge.GetKeyArray(keys);
 		
-		foreach (string key : keys)
+		for (int i = 0; i < keys.Count(); i++)
 		{
+			string key = keys[i];
 			float age = m_mZoneIntelAge.Get(key);
 			m_mZoneIntelAge.Set(key, age + timeSlice);
 		}
@@ -633,17 +588,14 @@ class RBL_CommanderAI
 	
 	protected void UpdatePatrols(float timeSlice)
 	{
-		// Patrol management - simplified
-		foreach (RBL_PatrolRoute patrol : m_aActivePatrols)
+		for (int i = 0; i < m_aActivePatrols.Count(); i++)
 		{
-			patrol.Update(timeSlice);
+			m_aActivePatrols[i].Update(timeSlice);
 		}
 	}
 	
 	protected void ConsiderOffensiveOperation(RBL_CampaignZone target)
 	{
-		// Offensive operations use same QRF system but with stronger composition
-		// and no cooldown restrictions
 		if (m_aActiveQRFs.Count() >= MAX_CONCURRENT_QRFS)
 			return;
 		
@@ -652,10 +604,15 @@ class RBL_CommanderAI
 			return;
 		
 		RBL_CampaignManager campaignMgr = RBL_CampaignManager.GetInstance();
-		int warLevel = campaignMgr ? campaignMgr.GetWarLevel() : 1;
+		int warLevel = 1;
+		if (campaignMgr)
+			warLevel = campaignMgr.GetWarLevel();
 		
-		ERBLQRFType attackType = (warLevel >= 6) ? ERBLQRFType.MECHANIZED : ERBLQRFType.CONVOY;
-		int cost = GetQRFCost(attackType) * 2; // Offensive ops cost more
+		ERBLQRFType attackType = ERBLQRFType.CONVOY;
+		if (warLevel >= 6)
+			attackType = ERBLQRFType.MECHANIZED;
+		
+		int cost = GetQRFCost(attackType) * 2;
 		
 		if (m_iFactionResources >= cost)
 			LaunchQRF(attackType, source, target, cost);
@@ -663,7 +620,6 @@ class RBL_CommanderAI
 	
 	protected void ConsiderReinforcement(RBL_CampaignZone zone)
 	{
-		// Send small patrol to reinforce weak garrison
 		if (m_iFactionResources < COST_QRF_PATROL * 2)
 			return;
 		
@@ -685,15 +641,14 @@ class RBL_CommanderAI
 		int income = 0;
 		array<RBL_CampaignZone> allZones = zoneMgr.GetAllZones();
 		
-		foreach (RBL_CampaignZone zone : allZones)
+		for (int i = 0; i < allZones.Count(); i++)
 		{
+			RBL_CampaignZone zone = allZones[i];
 			if (zone.GetOwnerFaction() == m_eControlledFaction)
-				income += zone.CalculateResourceIncome() / 10; // Scaled down for tick rate
+				income += zone.CalculateResourceIncome() / 10;
 		}
 		
 		m_iFactionResources += income;
-		
-		// Cap resources
 		m_iFactionResources = Math.Min(m_iFactionResources, 10000);
 	}
 	
@@ -703,10 +658,11 @@ class RBL_CommanderAI
 	
 	array<ref RBL_ActiveMissionData> GetActiveMissionData()
 	{
-		array<ref RBL_ActiveMissionData> result = {};
+		array<ref RBL_ActiveMissionData> result = new array<ref RBL_ActiveMissionData>();
 		
-		foreach (RBL_QRFOperation qrf : m_aActiveQRFs)
+		for (int i = 0; i < m_aActiveQRFs.Count(); i++)
 		{
+			RBL_QRFOperation qrf = m_aActiveQRFs[i];
 			RBL_ActiveMissionData data = new RBL_ActiveMissionData();
 			data.MissionID = qrf.GetOperationID();
 			data.MissionType = qrf.GetQRFType();
@@ -731,7 +687,6 @@ class RBL_CommanderAI
 
 // ============================================================================
 // QRF OPERATION CLASS
-// Tracks individual QRF missions from spawn to completion
 // ============================================================================
 class RBL_QRFOperation
 {
@@ -754,7 +709,7 @@ class RBL_QRFOperation
 	{
 		m_aSpawnedUnits = new array<IEntity>();
 		m_aUnitPrefabs = new array<string>();
-		m_sOperationID = "QRF_" + System.GetTickCount().ToString();
+		m_sOperationID = "QRF_" + Math.RandomInt(0, 99999).ToString();
 		m_bComplete = false;
 		m_bSuccessful = false;
 	}
@@ -767,23 +722,28 @@ class RBL_QRFOperation
 		m_sSourceZoneID = source.GetZoneID();
 		m_vTargetPosition = target.GetZonePosition();
 		m_vCurrentPosition = source.GetZonePosition();
-		m_fTimeStarted = GetGame().GetWorld().GetWorldTime();
+		m_fTimeStarted = 0;
+		if (GetGame() && GetGame().GetWorld())
+			m_fTimeStarted = GetGame().GetWorld().GetWorldTime();
 	}
 	
 	void SetUnitComposition(array<string> prefabs)
 	{
 		m_aUnitPrefabs.Clear();
-		foreach (string prefab : prefabs)
-			m_aUnitPrefabs.Insert(prefab);
+		for (int i = 0; i < prefabs.Count(); i++)
+			m_aUnitPrefabs.Insert(prefabs[i]);
 	}
 	
 	void SpawnUnits()
 	{
-		// Create AI group
+		if (!GetGame() || !GetGame().GetAIWorld())
+			return;
+			
 		m_Group = GetGame().GetAIWorld().CreateGroup();
 		
-		foreach (string prefabName : m_aUnitPrefabs)
+		for (int i = 0; i < m_aUnitPrefabs.Count(); i++)
 		{
+			string prefabName = m_aUnitPrefabs[i];
 			Resource prefab = Resource.Load(prefabName);
 			if (!prefab || !prefab.IsValid())
 				continue;
@@ -791,12 +751,7 @@ class RBL_QRFOperation
 			EntitySpawnParams params = new EntitySpawnParams();
 			params.TransformMode = ETransformMode.WORLD;
 			
-			// Spread spawn positions
-			vector offset = Vector(
-				Math.RandomFloat(-5, 5),
-				0,
-				Math.RandomFloat(-5, 5)
-			);
+			vector offset = Vector(Math.RandomFloat(-5, 5), 0, Math.RandomFloat(-5, 5));
 			params.Transform[3] = m_vCurrentPosition + offset;
 			
 			IEntity unit = GetGame().SpawnEntityPrefab(prefab, GetGame().GetWorld(), params);
@@ -804,7 +759,6 @@ class RBL_QRFOperation
 			{
 				m_aSpawnedUnits.Insert(unit);
 				
-				// Add to group
 				AIControlComponent aiCtrl = AIControlComponent.Cast(unit.FindComponent(AIControlComponent));
 				if (aiCtrl && m_Group)
 					aiCtrl.JoinGroup(m_Group);
@@ -816,10 +770,8 @@ class RBL_QRFOperation
 	{
 		m_vTargetPosition = destination;
 		
-		if (m_Group)
+		if (m_Group && GetGame())
 		{
-			// Issue waypoint through AI system
-			// Actual implementation would use SCR_AIWaypoint
 			AIWaypoint wp = AIWaypoint.Cast(GetGame().SpawnEntity(AIWaypoint));
 			if (wp)
 			{
@@ -834,20 +786,18 @@ class RBL_QRFOperation
 		if (m_bComplete)
 			return;
 		
-		// Update position tracking
 		if (m_aSpawnedUnits.Count() > 0 && m_aSpawnedUnits[0])
 			m_vCurrentPosition = m_aSpawnedUnits[0].GetOrigin();
 		
-		// Check completion conditions
 		CheckCompletion();
 	}
 	
 	protected void CheckCompletion()
 	{
-		// Count alive units
 		int aliveCount = 0;
-		foreach (IEntity unit : m_aSpawnedUnits)
+		for (int i = 0; i < m_aSpawnedUnits.Count(); i++)
 		{
+			IEntity unit = m_aSpawnedUnits[i];
 			if (!unit)
 				continue;
 			
@@ -856,7 +806,6 @@ class RBL_QRFOperation
 				aliveCount++;
 		}
 		
-		// All units dead = failed
 		if (aliveCount == 0)
 		{
 			m_bComplete = true;
@@ -864,7 +813,6 @@ class RBL_QRFOperation
 			return;
 		}
 		
-		// Check if reached target
 		float distToTarget = vector.Distance(m_vCurrentPosition, m_vTargetPosition);
 		if (distToTarget < 50)
 		{
@@ -874,7 +822,6 @@ class RBL_QRFOperation
 		}
 	}
 	
-	// Getters
 	string GetOperationID() { return m_sOperationID; }
 	ERBLQRFType GetQRFType() { return m_eType; }
 	string GetTargetZoneID() { return m_sTargetZoneID; }
@@ -887,7 +834,7 @@ class RBL_QRFOperation
 }
 
 // ============================================================================
-// PATROL ROUTE CLASS (Simplified)
+// PATROL ROUTE CLASS
 // ============================================================================
 class RBL_PatrolRoute
 {
@@ -904,7 +851,5 @@ class RBL_PatrolRoute
 	
 	void Update(float timeSlice)
 	{
-		// Patrol logic
 	}
 }
-
