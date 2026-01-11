@@ -15,6 +15,9 @@ class RBL_GameMode : SCR_BaseGameMode
 	[Attribute("1", UIWidgets.CheckBox, "Auto-initialize zones from config")]
 	protected bool m_bAutoInitialize;
 	
+	[Attribute("1", UIWidgets.CheckBox, "Show debug HUD")]
+	protected bool m_bShowDebugHUD;
+	
 	protected bool m_bSystemsInitialized;
 	protected float m_fInitDelay;
 	protected const float INIT_DELAY_TIME = 2.0;
@@ -55,22 +58,8 @@ class RBL_GameMode : SCR_BaseGameMode
 			return;
 		}
 		
-		// Update systems
-		RBL_CommanderAI commanderAI = RBL_CommanderAI.GetInstance();
-		if (commanderAI)
-			commanderAI.Update(timeSlice);
-		
-		RBL_UndercoverSystem undercover = RBL_UndercoverSystem.GetInstance();
-		if (undercover)
-			undercover.Update(timeSlice);
-		
-		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
-		if (zoneMgr)
-			zoneMgr.Update(timeSlice);
-		
-		RBL_PersistenceManager persistence = RBL_PersistenceManager.GetInstance();
-		if (persistence)
-			persistence.Update(timeSlice);
+		// Update all systems
+		UpdateAllSystems(timeSlice);
 	}
 	
 	protected void InitializeSystems()
@@ -79,21 +68,52 @@ class RBL_GameMode : SCR_BaseGameMode
 		
 		if (m_bAutoInitialize)
 		{
-			// Use auto-initializer for plug-and-play
 			RBL_AutoInitializer autoInit = RBL_AutoInitializer.GetInstance();
 			autoInit.Initialize();
 		}
-		else
-		{
-			// Manual mode - just create managers
-			RBL_ZoneManager.GetInstance();
-			RBL_EconomyManager.GetInstance();
-			RBL_CommanderAI.GetInstance();
-			RBL_UndercoverSystem.GetInstance();
-			RBL_PersistenceManager.GetInstance();
-		}
+		
+		// Initialize new systems
+		RBL_CaptureManager.GetInstance();
+		RBL_ShopManager.GetInstance();
+		RBL_ScreenHUD.GetInstance();
+		RBL_InputHandler.GetInstance();
 		
 		PrintZoneInfo();
+		PrintHelp();
+	}
+	
+	protected void UpdateAllSystems(float timeSlice)
+	{
+		// Core systems
+		RBL_CommanderAI commanderAI = RBL_CommanderAI.GetInstance();
+		if (commanderAI)
+			commanderAI.Update(timeSlice);
+		
+		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
+		if (zoneMgr)
+			zoneMgr.Update(timeSlice);
+		
+		RBL_PersistenceManager persistence = RBL_PersistenceManager.GetInstance();
+		if (persistence)
+			persistence.Update(timeSlice);
+		
+		// Capture system
+		RBL_CaptureManager captureMgr = RBL_CaptureManager.GetInstance();
+		if (captureMgr)
+			captureMgr.Update(timeSlice);
+		
+		// HUD system
+		if (m_bShowDebugHUD)
+		{
+			RBL_ScreenHUD hud = RBL_ScreenHUD.GetInstance();
+			if (hud)
+				hud.Update(timeSlice);
+		}
+		
+		// Input
+		RBL_InputHandler input = RBL_InputHandler.GetInstance();
+		if (input)
+			input.Update();
 	}
 	
 	protected void PrintZoneInfo()
@@ -108,20 +128,24 @@ class RBL_GameMode : SCR_BaseGameMode
 		PrintFormat("[RBL] FIA Controls: %1", zoneMgr.GetZoneCountByFaction(ERBLFactionKey.FIA));
 		PrintFormat("[RBL] Enemy Controls: %1", zoneMgr.GetZoneCountByFaction(ERBLFactionKey.USSR));
 		PrintFormat("[RBL] ========================================");
-		PrintFormat("[RBL] Your mission: Liberate all zones!");
+	}
+	
+	protected void PrintHelp()
+	{
+		PrintFormat("[RBL] ========================================");
+		PrintFormat("[RBL] CONSOLE COMMANDS:");
+		PrintFormat("[RBL]   RBL_DebugCommands.PrintStatus()");
+		PrintFormat("[RBL]   RBL_DebugCommands.OpenShop()");
+		PrintFormat("[RBL]   RBL_DebugCommands.Buy(\"akm\")");
+		PrintFormat("[RBL]   RBL_DebugCommands.AddMoney(1000)");
+		PrintFormat("[RBL]   RBL_DebugCommands.ListZones()");
+		PrintFormat("[RBL]   RBL_DebugCommands.CaptureZone(\"zoneid\")");
 		PrintFormat("[RBL] ========================================");
 	}
 	
-	// Debug command to print status
 	void DebugPrintStatus()
 	{
-		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
-		if (zoneMgr)
-			zoneMgr.PrintZoneStatus();
-		
-		RBL_EconomyManager econMgr = RBL_EconomyManager.GetInstance();
-		if (econMgr)
-			econMgr.PrintEconomyStatus();
+		RBL_DebugCommands.PrintStatus();
 	}
 }
 
@@ -189,12 +213,33 @@ class RBL_GameModeAddon
 		PrintFormat("[RBL] PROJECT REBELLION - ACTIVE");
 		PrintFormat("[RBL] ========================================");
 		
+		// Core initialization
 		RBL_AutoInitializer autoInit = RBL_AutoInitializer.GetInstance();
 		autoInit.Initialize();
+		
+		// New systems
+		RBL_CaptureManager.GetInstance();
+		RBL_ShopManager.GetInstance();
+		RBL_ScreenHUD.GetInstance();
+		RBL_InputHandler.GetInstance();
+		
+		PrintHelp();
+	}
+	
+	protected void PrintHelp()
+	{
+		PrintFormat("[RBL] ========================================");
+		PrintFormat("[RBL] Open console (~) and type:");
+		PrintFormat("[RBL]   RBL_DebugCommands.PrintStatus()");
+		PrintFormat("[RBL]   RBL_DebugCommands.OpenShop()");
+		PrintFormat("[RBL]   RBL_DebugCommands.Buy(\"akm\")");
+		PrintFormat("[RBL]   RBL_DebugCommands.AddMoney(1000)");
+		PrintFormat("[RBL] ========================================");
 	}
 	
 	protected void UpdateSystems(float timeSlice)
 	{
+		// Core
 		RBL_CommanderAI commanderAI = RBL_CommanderAI.GetInstance();
 		if (commanderAI)
 			commanderAI.Update(timeSlice);
@@ -206,5 +251,20 @@ class RBL_GameModeAddon
 		RBL_PersistenceManager persistence = RBL_PersistenceManager.GetInstance();
 		if (persistence)
 			persistence.Update(timeSlice);
+		
+		// Capture
+		RBL_CaptureManager captureMgr = RBL_CaptureManager.GetInstance();
+		if (captureMgr)
+			captureMgr.Update(timeSlice);
+		
+		// HUD
+		RBL_ScreenHUD hud = RBL_ScreenHUD.GetInstance();
+		if (hud)
+			hud.Update(timeSlice);
+		
+		// Input
+		RBL_InputHandler input = RBL_InputHandler.GetInstance();
+		if (input)
+			input.Update();
 	}
 }
