@@ -11,41 +11,41 @@ class RBL_GameMode : SCR_BaseGameMode
 {
 	[Attribute("1", UIWidgets.CheckBox, "Enable Rebellion systems")]
 	protected bool m_bEnableRebellion;
-	
+
 	[Attribute("1", UIWidgets.CheckBox, "Auto-initialize zones from config")]
 	protected bool m_bAutoInitialize;
-	
+
 	[Attribute("1", UIWidgets.CheckBox, "Show debug HUD")]
 	protected bool m_bShowDebugHUD;
-	
+
 	protected bool m_bSystemsInitialized;
 	protected float m_fInitDelay;
 	protected const float INIT_DELAY_TIME = 2.0;
-	
+
 	override void EOnInit(IEntity owner)
 	{
 		super.EOnInit(owner);
-		
+
 		if (!m_bEnableRebellion)
 			return;
-		
+
 		m_bSystemsInitialized = false;
 		m_fInitDelay = 0;
-		
+
 		PrintFormat("[RBL] ========================================");
 		PrintFormat("[RBL] PROJECT REBELLION");
 		PrintFormat("[RBL] Guerrilla Warfare for Arma Reforger");
 		PrintFormat("[RBL] ========================================");
 		PrintFormat("[RBL] Waiting for world to load...");
 	}
-	
+
 	override void EOnFrame(IEntity owner, float timeSlice)
 	{
 		super.EOnFrame(owner, timeSlice);
-		
+
 		if (!m_bEnableRebellion)
 			return;
-		
+
 		// Delayed initialization to ensure world is ready
 		if (!m_bSystemsInitialized)
 		{
@@ -57,51 +57,51 @@ class RBL_GameMode : SCR_BaseGameMode
 			}
 			return;
 		}
-		
+
 		// Update all systems
 		UpdateAllSystems(timeSlice);
 	}
-	
+
 	protected void InitializeSystems()
 	{
 		PrintFormat("[RBL] Initializing Rebellion systems...");
-		
+
 		if (m_bAutoInitialize)
 		{
 			RBL_AutoInitializer autoInit = RBL_AutoInitializer.GetInstance();
 			autoInit.Initialize();
 		}
-		
+
 		// Initialize new systems
 		RBL_CaptureManager.GetInstance();
 		RBL_ShopManager.GetInstance();
 		RBL_ScreenHUD.GetInstance();
 		RBL_InputHandler.GetInstance();
-		
+
 		PrintZoneInfo();
 		PrintHelp();
 	}
-	
+
 	protected void UpdateAllSystems(float timeSlice)
 	{
 		// Core systems
 		RBL_CommanderAI commanderAI = RBL_CommanderAI.GetInstance();
 		if (commanderAI)
 			commanderAI.Update(timeSlice);
-		
+
 		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
 		if (zoneMgr)
 			zoneMgr.Update(timeSlice);
-		
+
 		RBL_PersistenceManager persistence = RBL_PersistenceManager.GetInstance();
 		if (persistence)
 			persistence.Update(timeSlice);
-		
+
 		// Capture system
 		RBL_CaptureManager captureMgr = RBL_CaptureManager.GetInstance();
 		if (captureMgr)
 			captureMgr.Update(timeSlice);
-		
+
 		// HUD system
 		if (m_bShowDebugHUD)
 		{
@@ -109,19 +109,19 @@ class RBL_GameMode : SCR_BaseGameMode
 			if (hud)
 				hud.Update(timeSlice);
 		}
-		
+
 		// Input
 		RBL_InputHandler input = RBL_InputHandler.GetInstance();
 		if (input)
 			input.Update();
 	}
-	
+
 	protected void PrintZoneInfo()
 	{
 		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
 		if (!zoneMgr)
 			return;
-		
+
 		PrintFormat("[RBL] ========================================");
 		PrintFormat("[RBL] CAMPAIGN READY!");
 		PrintFormat("[RBL] Total Zones: %1", zoneMgr.GetTotalZoneCount());
@@ -129,7 +129,7 @@ class RBL_GameMode : SCR_BaseGameMode
 		PrintFormat("[RBL] Enemy Controls: %1", zoneMgr.GetZoneCountByFaction(ERBLFactionKey.USSR));
 		PrintFormat("[RBL] ========================================");
 	}
-	
+
 	protected void PrintHelp()
 	{
 		PrintFormat("[RBL] ========================================");
@@ -140,9 +140,10 @@ class RBL_GameMode : SCR_BaseGameMode
 		PrintFormat("[RBL]   RBL_DebugCommands.AddMoney(1000)");
 		PrintFormat("[RBL]   RBL_DebugCommands.ListZones()");
 		PrintFormat("[RBL]   RBL_DebugCommands.CaptureZone(\"zoneid\")");
+		PrintFormat("[RBL]   RBL_DebugCommands.TeleportToZone(\"zoneid\")");
 		PrintFormat("[RBL] ========================================");
 	}
-	
+
 	void DebugPrintStatus()
 	{
 		RBL_DebugCommands.PrintStatus();
@@ -155,20 +156,20 @@ class RBL_GameMode : SCR_BaseGameMode
 modded class SCR_BaseGameMode
 {
 	protected ref RBL_GameModeAddon m_RBLAddon;
-	
+
 	override void EOnInit(IEntity owner)
 	{
 		super.EOnInit(owner);
-		
+
 		// Auto-attach Rebellion to any game mode
 		m_RBLAddon = new RBL_GameModeAddon();
 		m_RBLAddon.OnGameModeInit(this);
 	}
-	
+
 	override void EOnFrame(IEntity owner, float timeSlice)
 	{
 		super.EOnFrame(owner, timeSlice);
-		
+
 		if (m_RBLAddon)
 			m_RBLAddon.OnGameModeFrame(timeSlice);
 	}
@@ -179,18 +180,18 @@ class RBL_GameModeAddon
 	protected bool m_bInitialized;
 	protected float m_fInitDelay;
 	protected const float INIT_DELAY = 3.0;
-	
+
 	void RBL_GameModeAddon()
 	{
 		m_bInitialized = false;
 		m_fInitDelay = 0;
 	}
-	
+
 	void OnGameModeInit(SCR_BaseGameMode gameMode)
 	{
 		PrintFormat("[RBL] Rebellion addon attached to game mode");
 	}
-	
+
 	void OnGameModeFrame(float timeSlice)
 	{
 		if (m_bInitialized)
@@ -198,7 +199,7 @@ class RBL_GameModeAddon
 			UpdateSystems(timeSlice);
 			return;
 		}
-		
+
 		m_fInitDelay += timeSlice;
 		if (m_fInitDelay >= INIT_DELAY)
 		{
@@ -206,26 +207,26 @@ class RBL_GameModeAddon
 			m_bInitialized = true;
 		}
 	}
-	
+
 	protected void Initialize()
 	{
 		PrintFormat("[RBL] ========================================");
 		PrintFormat("[RBL] PROJECT REBELLION - ACTIVE");
 		PrintFormat("[RBL] ========================================");
-		
+
 		// Core initialization
 		RBL_AutoInitializer autoInit = RBL_AutoInitializer.GetInstance();
 		autoInit.Initialize();
-		
+
 		// New systems
 		RBL_CaptureManager.GetInstance();
 		RBL_ShopManager.GetInstance();
 		RBL_ScreenHUD.GetInstance();
 		RBL_InputHandler.GetInstance();
-		
+
 		PrintHelp();
 	}
-	
+
 	protected void PrintHelp()
 	{
 		PrintFormat("[RBL] ========================================");
@@ -234,34 +235,35 @@ class RBL_GameModeAddon
 		PrintFormat("[RBL]   RBL_DebugCommands.OpenShop()");
 		PrintFormat("[RBL]   RBL_DebugCommands.Buy(\"akm\")");
 		PrintFormat("[RBL]   RBL_DebugCommands.AddMoney(1000)");
+		PrintFormat("[RBL]   RBL_DebugCommands.TeleportToZone(\"Town_LePort\")");
 		PrintFormat("[RBL] ========================================");
 	}
-	
+
 	protected void UpdateSystems(float timeSlice)
 	{
 		// Core
 		RBL_CommanderAI commanderAI = RBL_CommanderAI.GetInstance();
 		if (commanderAI)
 			commanderAI.Update(timeSlice);
-		
+
 		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
 		if (zoneMgr)
 			zoneMgr.Update(timeSlice);
-		
+
 		RBL_PersistenceManager persistence = RBL_PersistenceManager.GetInstance();
 		if (persistence)
 			persistence.Update(timeSlice);
-		
+
 		// Capture
 		RBL_CaptureManager captureMgr = RBL_CaptureManager.GetInstance();
 		if (captureMgr)
 			captureMgr.Update(timeSlice);
-		
+
 		// HUD
 		RBL_ScreenHUD hud = RBL_ScreenHUD.GetInstance();
 		if (hud)
 			hud.Update(timeSlice);
-		
+
 		// Input
 		RBL_InputHandler input = RBL_InputHandler.GetInstance();
 		if (input)
