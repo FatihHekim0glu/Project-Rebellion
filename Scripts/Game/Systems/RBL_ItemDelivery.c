@@ -696,29 +696,143 @@ class RBL_ItemDelivery
 		// Get AI control of recruit
 		AIControlComponent aiControl = AIControlComponent.Cast(recruitEntity.FindComponent(AIControlComponent));
 		if (!aiControl)
+		{
+			PrintFormat("[RBL_Delivery] Recruit has no AIControlComponent");
 			return;
+		}
 		
 		AIAgent recruitAgent = aiControl.GetAIAgent();
 		if (!recruitAgent)
-			return;
-		
-		// Get player's group or create one
-		SCR_PlayerControllerGroupComponent groupComp = SCR_PlayerControllerGroupComponent.Cast(
-			GetGame().GetPlayerController().FindComponent(SCR_PlayerControllerGroupComponent));
-		
-		if (groupComp)
 		{
-			SCR_AIGroup playerGroup = groupComp.GetPlayersGroup();
-			if (playerGroup)
+			PrintFormat("[RBL_Delivery] Recruit has no AIAgent");
+			return;
+		}
+		
+		// Try multiple methods to add to player's group
+		bool addedToGroup = false;
+		
+		// Method 1: Try SCR_PlayerControllerGroupComponent
+		PlayerController pc = GetGame().GetPlayerController();
+		if (pc)
+		{
+			SCR_PlayerControllerGroupComponent groupComp = SCR_PlayerControllerGroupComponent.Cast(
+				pc.FindComponent(SCR_PlayerControllerGroupComponent));
+			
+			if (groupComp)
 			{
-				playerGroup.AddAgent(recruitAgent);
-				PrintFormat("[RBL_Delivery] Recruit added to player's group");
-				return;
+				SCR_AIGroup playerGroup = groupComp.GetPlayersGroup();
+				if (playerGroup)
+				{
+					playerGroup.AddAgent(recruitAgent);
+					addedToGroup = true;
+					PrintFormat("[RBL_Delivery] Recruit added via SCR_PlayerControllerGroupComponent");
+				}
 			}
 		}
 		
-		// Fallback: Just make recruit follow player via waypoint
-		PrintFormat("[RBL_Delivery] Recruit spawned (no group system available)");
+		// Method 2: Try to find/create AI group
+		if (!addedToGroup)
+		{
+			AIGroup group = GetOrCreatePlayerAIGroup(playerEntity);
+			if (group)
+			{
+				group.AddAgent(recruitAgent);
+				addedToGroup = true;
+				PrintFormat("[RBL_Delivery] Recruit added to created AI group");
+			}
+		}
+		
+		// Method 3: Create follow waypoint as fallback
+		if (!addedToGroup)
+		{
+			CreateFollowWaypoint(recruitEntity, playerEntity);
+			PrintFormat("[RBL_Delivery] Recruit set to follow player via waypoint");
+		}
+		
+		// Set recruit faction to FIA
+		SetRecruitFaction(recruitEntity);
+	}
+	
+	// Get or create an AI group for the player
+	protected AIGroup GetOrCreatePlayerAIGroup(IEntity playerEntity)
+	{
+		AIWorld aiWorld = GetGame().GetAIWorld();
+		if (!aiWorld)
+			return null;
+		
+		// Create a new group
+		AIGroup group = aiWorld.CreateGroup();
+		return group;
+	}
+	
+	// Create a waypoint for recruit to follow player
+	protected void CreateFollowWaypoint(IEntity recruitEntity, IEntity playerEntity)
+	{
+		if (!recruitEntity || !playerEntity)
+			return;
+		
+		AIControlComponent aiControl = AIControlComponent.Cast(recruitEntity.FindComponent(AIControlComponent));
+		if (!aiControl)
+			return;
+		
+		AIAgent agent = aiControl.GetAIAgent();
+		if (!agent)
+			return;
+		
+		// Get agent's group
+		AIGroup group = agent.GetParentGroup();
+		if (!group)
+		{
+			// Create group for this agent
+			AIWorld aiWorld = GetGame().GetAIWorld();
+			if (aiWorld)
+			{
+				group = aiWorld.CreateGroup();
+				group.AddAgent(agent);
+			}
+		}
+		
+		if (!group)
+			return;
+		
+		// Create follow waypoint
+		BaseWorld world = GetGame().GetWorld();
+		vector playerPos = playerEntity.GetOrigin();
+		
+		EntitySpawnParams params = new EntitySpawnParams();
+		params.TransformMode = ETransformMode.WORLD;
+		params.Transform[3] = playerPos;
+		
+		string wpPrefab = "{93291E72AC23930F}Prefabs/AI/Waypoints/AIWaypoint_Move.et";
+		Resource resource = Resource.Load(wpPrefab);
+		if (resource.IsValid())
+		{
+			IEntity wpEntity = GetGame().SpawnEntityPrefab(resource, world, params);
+			AIWaypoint wp = AIWaypoint.Cast(wpEntity);
+			if (wp)
+			{
+				group.AddWaypoint(wp);
+			}
+		}
+	}
+	
+	// Set recruit to FIA faction
+	protected void SetRecruitFaction(IEntity recruitEntity)
+	{
+		if (!recruitEntity)
+			return;
+		
+		FactionAffiliationComponent factionComp = FactionAffiliationComponent.Cast(
+			recruitEntity.FindComponent(FactionAffiliationComponent));
+		
+		if (factionComp)
+		{
+			Faction fiaFaction = GetGame().GetFactionManager().GetFactionByKey("FIA");
+			if (fiaFaction)
+			{
+				factionComp.SetAffiliatedFaction(fiaFaction);
+			}
+		}
 	}
 	
 	// ========================================================================
