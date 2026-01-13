@@ -1,6 +1,6 @@
 // ============================================================================
 // PROJECT REBELLION - Keybind Hints Widget
-// Bottom-right contextual keybind hints
+// Bottom-right contextual keybind hints with dynamic key lookup
 // ============================================================================
 
 // Single keybind hint entry
@@ -8,17 +8,39 @@ class RBL_KeybindHint
 {
 	string m_sKey;        // Display key (e.g., "F", "ESC", "TAB")
 	string m_sAction;     // Action description
+	string m_sActionName; // Internal action name for dynamic key lookup
 	int m_iPriority;      // Display priority (higher = more important)
 	bool m_bVisible;      // Currently visible
 	float m_fAlpha;       // Current alpha (for fade)
+	bool m_bDynamic;      // If true, key is looked up dynamically
 	
-	void RBL_KeybindHint(string key, string action, int priority)
+	void RBL_KeybindHint(string key, string action, int priority, string actionName = "")
 	{
 		m_sKey = key;
 		m_sAction = action;
+		m_sActionName = actionName;
 		m_iPriority = priority;
 		m_bVisible = true;
 		m_fAlpha = 0;
+		m_bDynamic = (actionName.Length() > 0);
+	}
+	
+	string GetDisplayKey()
+	{
+		if (!m_bDynamic)
+			return m_sKey;
+		
+		// Look up current key from input system
+		RBL_InputBindingRegistry registry = RBL_InputBindingRegistry.GetInstance();
+		if (registry && registry.IsInitialized())
+		{
+			string dynamicKey = registry.GetKeyDisplayForAction(m_sActionName);
+			if (dynamicKey != "?")
+				return dynamicKey;
+		}
+		
+		// Fallback to static key
+		return m_sKey;
 	}
 }
 
@@ -26,8 +48,9 @@ class RBL_KeybindHint
 class RBL_KeybindHintsWidgetImpl : RBL_BaseWidget
 {
 	protected ref array<ref RBL_KeybindHint> m_aHints;
-	protected ref array<ref RBL_KeybindHint> m_aContextHints;  // Temporary context-sensitive hints
+	protected ref array<ref RBL_KeybindHint> m_aContextHints;
 	protected int m_iMaxVisible;
+	protected bool m_bInputSystemReady;
 	
 	void RBL_KeybindHintsWidgetImpl()
 	{
@@ -40,6 +63,7 @@ class RBL_KeybindHintsWidgetImpl : RBL_BaseWidget
 		m_aHints = new array<ref RBL_KeybindHint>();
 		m_aContextHints = new array<ref RBL_KeybindHint>();
 		m_iMaxVisible = 5;
+		m_bInputSystemReady = false;
 		
 		m_fUpdateInterval = 0.1;
 		
@@ -49,14 +73,33 @@ class RBL_KeybindHintsWidgetImpl : RBL_BaseWidget
 	
 	protected void InitializeDefaultHints()
 	{
-		// Always visible hints
-		m_aHints.Insert(new RBL_KeybindHint("B", "Shop", 10));
-		m_aHints.Insert(new RBL_KeybindHint("M", "Map", 9));
-		m_aHints.Insert(new RBL_KeybindHint("H", "Toggle HUD", 5));
+		// Use dynamic hints that look up keys from the input system
+		// Format: RBL_KeybindHint(fallbackKey, description, priority, actionName)
+		
+		m_aHints.Insert(new RBL_KeybindHint("J", "Shop", 10, RBL_InputActions.TOGGLE_SHOP));
+		m_aHints.Insert(new RBL_KeybindHint("M", "Map", 9, RBL_InputActions.TOGGLE_MAP));
+		m_aHints.Insert(new RBL_KeybindHint("H", "Toggle HUD", 5, RBL_InputActions.TOGGLE_HUD));
+		m_aHints.Insert(new RBL_KeybindHint("L", "Missions", 6, RBL_InputActions.TOGGLE_MISSIONS));
+	}
+	
+	protected void CheckInputSystemReady()
+	{
+		if (m_bInputSystemReady)
+			return;
+		
+		RBL_InputBindingRegistry registry = RBL_InputBindingRegistry.GetInstance();
+		if (registry && registry.IsInitialized())
+		{
+			m_bInputSystemReady = true;
+			PrintFormat("[RBL_KeybindHints] Input system ready, using dynamic keys");
+		}
 	}
 	
 	override void OnUpdate()
 	{
+		// Check if input system is available
+		CheckInputSystemReady();
+		
 		// Clear and rebuild context hints based on player state
 		m_aContextHints.Clear();
 		
@@ -92,7 +135,8 @@ class RBL_KeybindHintsWidgetImpl : RBL_BaseWidget
 					}
 					else
 					{
-						m_aContextHints.Insert(new RBL_KeybindHint("E", "Zone Actions", 15));
+						// Dynamic interact key
+						m_aContextHints.Insert(new RBL_KeybindHint("F", "Zone Actions", 15, RBL_InputActions.INTERACT));
 					}
 				}
 			}
@@ -118,6 +162,13 @@ class RBL_KeybindHintsWidgetImpl : RBL_BaseWidget
 			}
 		}
 		
+		// Check if menu is open - show close hint
+		RBL_InputManager inputMgr = RBL_InputManager.GetInstance();
+		if (inputMgr && inputMgr.IsMenuOpen())
+		{
+			m_aContextHints.Insert(new RBL_KeybindHint("ESC", "Close Menu", 25, RBL_InputActions.CLOSE_MENU));
+		}
+		
 		// Check if in combat (high aggression)
 		RBL_CampaignManager campaignMgr = RBL_CampaignManager.GetInstance();
 		if (campaignMgr && campaignMgr.GetAggression() > 50)
@@ -125,11 +176,11 @@ class RBL_KeybindHintsWidgetImpl : RBL_BaseWidget
 			m_aContextHints.Insert(new RBL_KeybindHint("T", "Tactical View", 12));
 		}
 		
-		// Check if shop is available
-		RBL_EconomyManager econMgr = RBL_EconomyManager.GetInstance();
-		if (econMgr && econMgr.GetMoney() > 0)
+		// Show save/load hints when appropriate
+		if (campaignMgr && campaignMgr.GetAggression() < 25)
 		{
-			// Shop is available
+			// Safe to save
+			m_aContextHints.Insert(new RBL_KeybindHint("F5", "Quick Save", 8, RBL_InputActions.QUICK_SAVE));
 		}
 	}
 	
@@ -207,6 +258,15 @@ class RBL_KeybindHintsWidgetImpl : RBL_BaseWidget
 		float keyBoxWidth = 50;
 		float keyBoxHeight = 20;
 		
+		// Get dynamic key display
+		string displayKey = hint.GetDisplayKey();
+		
+		// Adjust box width for longer key names
+		if (displayKey.Length() > 3)
+			keyBoxWidth = 60;
+		if (displayKey.Length() > 5)
+			keyBoxWidth = 80;
+		
 		// Key box background
 		int keyBgColor = ApplyAlpha(RBL_UIColors.COLOR_BG_MEDIUM, alpha);
 		DrawRect(x, y, keyBoxWidth, keyBoxHeight, keyBgColor);
@@ -217,16 +277,16 @@ class RBL_KeybindHintsWidgetImpl : RBL_BaseWidget
 		
 		// Key text (centered)
 		int keyColor = ApplyAlpha(RBL_UIColors.COLOR_TEXT_BRIGHT, alpha);
-		float keyTextX = x + (keyBoxWidth - hint.m_sKey.Length() * 6) / 2;
+		float keyTextX = x + (keyBoxWidth - displayKey.Length() * 6) / 2;
 		
-		DbgUI.Begin("Hint_Key_" + hint.m_sKey, keyTextX, y + 3);
-		DbgUI.Text(hint.m_sKey);
+		DbgUI.Begin("Hint_Key_" + displayKey + hint.m_sAction, keyTextX, y + 3);
+		DbgUI.Text(displayKey);
 		DbgUI.End();
 		
 		// Action text
 		int actionColor = ApplyAlpha(RBL_UIColors.COLOR_TEXT_SECONDARY, alpha);
 		
-		DbgUI.Begin("Hint_Action_" + hint.m_sKey, x + keyBoxWidth + 10, y + 3);
+		DbgUI.Begin("Hint_Action_" + displayKey + hint.m_sAction, x + keyBoxWidth + 10, y + 3);
 		DbgUI.Text(hint.m_sAction);
 		DbgUI.End();
 	}
@@ -248,29 +308,42 @@ class RBL_KeybindHintsWidgetImpl : RBL_BaseWidget
 		}
 	}
 	
-	// Manual hint management
-	void AddHint(string key, string action, int priority)
+	// Manual hint management with action support
+	void AddHint(string key, string action, int priority, string actionName = "")
 	{
 		// Check if already exists
 		for (int i = 0; i < m_aHints.Count(); i++)
 		{
-			if (m_aHints[i].m_sKey == key)
+			if (m_aHints[i].m_sAction == action)
 			{
-				m_aHints[i].m_sAction = action;
+				m_aHints[i].m_sKey = key;
+				m_aHints[i].m_sActionName = actionName;
 				m_aHints[i].m_iPriority = priority;
 				m_aHints[i].m_bVisible = true;
+				m_aHints[i].m_bDynamic = (actionName.Length() > 0);
 				return;
 			}
 		}
 		
-		m_aHints.Insert(new RBL_KeybindHint(key, action, priority));
+		m_aHints.Insert(new RBL_KeybindHint(key, action, priority, actionName));
 	}
 	
-	void RemoveHint(string key)
+	void AddDynamicHint(string actionName, string description, int priority)
+	{
+		// Get current key from registry
+		string key = "?";
+		RBL_InputBindingRegistry registry = RBL_InputBindingRegistry.GetInstance();
+		if (registry)
+			key = registry.GetKeyDisplayForAction(actionName);
+		
+		AddHint(key, description, priority, actionName);
+	}
+	
+	void RemoveHint(string action)
 	{
 		for (int i = m_aHints.Count() - 1; i >= 0; i--)
 		{
-			if (m_aHints[i].m_sKey == key)
+			if (m_aHints[i].m_sAction == action)
 			{
 				m_aHints[i].m_bVisible = false;
 				return;
@@ -278,9 +351,9 @@ class RBL_KeybindHintsWidgetImpl : RBL_BaseWidget
 		}
 	}
 	
-	void ShowContextHint(string key, string action, int priority)
+	void ShowContextHint(string key, string action, int priority, string actionName = "")
 	{
-		RBL_KeybindHint hint = new RBL_KeybindHint(key, action, priority);
+		RBL_KeybindHint hint = new RBL_KeybindHint(key, action, priority, actionName);
 		hint.m_fAlpha = 1.0; // Immediately visible
 		m_aContextHints.Insert(hint);
 	}
@@ -288,6 +361,19 @@ class RBL_KeybindHintsWidgetImpl : RBL_BaseWidget
 	void ClearContextHints()
 	{
 		m_aContextHints.Clear();
+	}
+	
+	// Refresh all hints from input system
+	void RefreshDynamicHints()
+	{
+		for (int i = 0; i < m_aHints.Count(); i++)
+		{
+			if (m_aHints[i].m_bDynamic)
+			{
+				// Key will be looked up next time GetDisplayKey is called
+				m_aHints[i].m_bVisible = true;
+			}
+		}
 	}
 	
 	// Helpers
@@ -298,5 +384,15 @@ class RBL_KeybindHintsWidgetImpl : RBL_BaseWidget
 			return null;
 		return pc.GetControlledEntity();
 	}
+	
+	// Get formatted keybind string for external use
+	static string GetKeybindString(string actionName, string description)
+	{
+		string key = "?";
+		RBL_InputBindingRegistry registry = RBL_InputBindingRegistry.GetInstance();
+		if (registry)
+			key = registry.GetKeyDisplayForAction(actionName);
+		
+		return string.Format("[%1] %2", key, description);
+	}
 }
-
