@@ -100,6 +100,11 @@ class RBL_ZoneManager
 		return zone;
 	}
 
+	RBL_CampaignZone GetZone(string zoneID)
+	{
+		return GetZoneByID(zoneID);
+	}
+
 	RBL_VirtualZone GetVirtualZoneByID(string zoneID)
 	{
 		RBL_VirtualZone zone;
@@ -107,8 +112,47 @@ class RBL_ZoneManager
 		return zone;
 	}
 
+	RBL_VirtualZone GetVirtualZone(string zoneID)
+	{
+		return GetVirtualZoneByID(zoneID);
+	}
+
 	array<RBL_CampaignZone> GetAllZones() { return m_aAllZones; }
 	array<ref RBL_VirtualZone> GetAllVirtualZones() { return m_aVirtualZones; }
+
+	void GetAllZoneIDs(out array<string> outIDs)
+	{
+		if (!outIDs)
+			outIDs = new array<string>();
+		
+		outIDs.Clear();
+		
+		for (int i = 0; i < m_aAllZones.Count(); i++)
+		{
+			if (m_aAllZones[i])
+				outIDs.Insert(m_aAllZones[i].GetZoneID());
+		}
+		
+		for (int i = 0; i < m_aVirtualZones.Count(); i++)
+		{
+			if (m_aVirtualZones[i])
+				outIDs.Insert(m_aVirtualZones[i].GetZoneID());
+		}
+	}
+
+	void GetAllVirtualZoneIDs(out array<string> outIDs)
+	{
+		if (!outIDs)
+			outIDs = new array<string>();
+		
+		outIDs.Clear();
+		
+		for (int i = 0; i < m_aVirtualZones.Count(); i++)
+		{
+			if (m_aVirtualZones[i])
+				outIDs.Insert(m_aVirtualZones[i].GetZoneID());
+		}
+	}
 
 	int GetTotalZoneCount()
 	{
