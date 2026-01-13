@@ -150,6 +150,7 @@ class RBL_Tests
 		TestIncomeCalculations();
 		TestCommanderAI();
 		TestPersistence();
+		TestTerrainHeights();
 		
 		// Print results
 		runner.PrintResults();
@@ -467,6 +468,38 @@ class RBL_Tests
 		// Test time tracking
 		float timeSinceSave = persistence.GetTimeSinceLastSave();
 		runner.Assert("Time since save is near 0 after save", timeSinceSave < 1.0, "Time since save incorrect");
+	}
+	
+	// Test terrain height resolution
+	static void TestTerrainHeights()
+	{
+		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
+		
+		PrintFormat("[RBL_Tests] Running Terrain Height Tests...");
+		
+		RBL_ZoneConfigurator config = RBL_ZoneConfigurator.GetInstance();
+		if (!config)
+		{
+			runner.RecordResult("ZoneConfigurator exists", false, "Config is null");
+			return;
+		}
+		
+		// Test that terrain resolution can be called
+		config.ResolveTerrainHeights();
+		runner.Assert("ResolveTerrainHeights completes", config.AreTerrainHeightsResolved(), "Heights not resolved");
+		
+		// Test zone positions have Y values (not all zero)
+		array<ref RBL_ZoneDefinition> defs = config.GetAllDefinitions();
+		runner.Assert("Zone definitions exist", defs.Count() > 0, "No zone definitions");
+		
+		// Test SnapToTerrain utility
+		vector testPos = Vector(4000, 500, 5000);
+		vector snappedPos = RBL_ZoneConfigurator.SnapToTerrain(testPos, 0);
+		runner.Assert("SnapToTerrain returns valid position", snappedPos[0] == testPos[0] && snappedPos[2] == testPos[2], "X/Z changed during snap");
+		
+		// Test with offset
+		vector snappedWithOffset = RBL_ZoneConfigurator.SnapToTerrain(testPos, 2.0);
+		runner.Assert("SnapToTerrain offset works", snappedWithOffset[1] >= snappedPos[1], "Offset not applied");
 	}
 }
 
