@@ -1,5 +1,6 @@
 // ============================================================================
 // PROJECT REBELLION - Economy Manager
+// With multiplayer support - server authoritative
 // ============================================================================
 
 class RBL_EconomyManager
@@ -20,6 +21,9 @@ class RBL_EconomyManager
 	protected ref ScriptInvoker m_OnHRChanged;
 	protected ref ScriptInvoker m_OnItemDeposited;
 	protected ref ScriptInvoker m_OnItemUnlocked;
+	
+	// Network: flag to allow local-only updates without authority check
+	protected bool m_bAllowLocalUpdate;
 
 	static RBL_EconomyManager GetInstance()
 	{
@@ -40,24 +44,68 @@ class RBL_EconomyManager
 
 		m_iMoney = 0;
 		m_iHumanResources = 0;
+		m_bAllowLocalUpdate = false;
+	}
+	
+	// ========================================================================
+	// NETWORK AUTHORITY HELPERS
+	// ========================================================================
+	
+	protected bool CanModifyState()
+	{
+		if (m_bAllowLocalUpdate)
+			return true;
+		
+		return RBL_NetworkUtils.IsSinglePlayer() || RBL_NetworkUtils.IsServer();
+	}
+	
+	void AllowLocalUpdate(bool allow)
+	{
+		m_bAllowLocalUpdate = allow;
 	}
 
 	void SetMoney(int amount)
 	{
+		if (!CanModifyState())
+		{
+			PrintFormat("[RBL_Economy] SetMoney blocked - not server");
+			return;
+		}
+		
 		int previous = m_iMoney;
 		m_iMoney = Math.Clamp(amount, 0, MAX_MONEY);
 
 		if (previous != m_iMoney)
 			m_OnMoneyChanged.Invoke(m_iMoney);
 	}
+	
+	void SetMoneyLocal(int amount)
+	{
+		int previous = m_iMoney;
+		m_iMoney = Math.Clamp(amount, 0, MAX_MONEY);
+		
+		if (previous != m_iMoney)
+			m_OnMoneyChanged.Invoke(m_iMoney);
+	}
 
 	void AddMoney(int amount)
 	{
+		if (!CanModifyState())
+		{
+			PrintFormat("[RBL_Economy] AddMoney blocked - not server");
+			return;
+		}
 		SetMoney(m_iMoney + amount);
 	}
 
 	bool SpendMoney(int amount)
 	{
+		if (!CanModifyState())
+		{
+			PrintFormat("[RBL_Economy] SpendMoney blocked - not server");
+			return false;
+		}
+		
 		if (m_iMoney < amount)
 			return false;
 
@@ -71,20 +119,46 @@ class RBL_EconomyManager
 
 	void SetHR(int amount)
 	{
+		if (!CanModifyState())
+		{
+			PrintFormat("[RBL_Economy] SetHR blocked - not server");
+			return;
+		}
+		
 		int previous = m_iHumanResources;
 		m_iHumanResources = Math.Clamp(amount, 0, MAX_HR);
 
 		if (previous != m_iHumanResources)
 			m_OnHRChanged.Invoke(m_iHumanResources);
 	}
+	
+	void SetHRLocal(int amount)
+	{
+		int previous = m_iHumanResources;
+		m_iHumanResources = Math.Clamp(amount, 0, MAX_HR);
+		
+		if (previous != m_iHumanResources)
+			m_OnHRChanged.Invoke(m_iHumanResources);
+	}
 
 	void AddHR(int amount)
 	{
+		if (!CanModifyState())
+		{
+			PrintFormat("[RBL_Economy] AddHR blocked - not server");
+			return;
+		}
 		SetHR(m_iHumanResources + amount);
 	}
 
 	bool SpendHR(int amount)
 	{
+		if (!CanModifyState())
+		{
+			PrintFormat("[RBL_Economy] SpendHR blocked - not server");
+			return false;
+		}
+		
 		if (m_iHumanResources < amount)
 			return false;
 
@@ -210,6 +284,12 @@ class RBL_EconomyManager
 
 	bool TryPurchase(string itemID, int moneyCost, int hrCost)
 	{
+		if (!CanModifyState())
+		{
+			PrintFormat("[RBL_Economy] TryPurchase must be called on server");
+			return false;
+		}
+		
 		if (m_iMoney < moneyCost)
 		{
 			PrintFormat("[RBL_Economy] TryPurchase failed: Not enough money ($%1 < $%2)", m_iMoney, moneyCost);
@@ -229,6 +309,20 @@ class RBL_EconomyManager
 		PrintFormat("[RBL_Economy] Purchase successful: %1 ($%2, %3 HR)", itemID, moneyCost, hrCost);
 		return true;
 	}
+	
+	void RequestPurchase(string itemID, int moneyCost, int hrCost)
+	{
+		RBL_NetworkManager netMgr = RBL_NetworkManager.GetInstance();
+		if (netMgr)
+		{
+			int playerID = RBL_NetworkUtils.GetLocalPlayerID();
+			netMgr.RequestPurchase(playerID, itemID, moneyCost, hrCost);
+		}
+		else if (RBL_NetworkUtils.IsSinglePlayer())
+		{
+			TryPurchase(itemID, moneyCost, hrCost);
+		}
+	}
 
 	bool CanAffordPurchase(int moneyCost, int hrCost)
 	{
@@ -242,5 +336,72 @@ class RBL_EconomyManager
 		PrintFormat("Human Resources: %1", m_iHumanResources);
 		PrintFormat("Arsenal Items: %1", m_mArsenalInventory.Count());
 		PrintFormat("Unlocked Items: %1", m_sUnlockedItems.Count());
+		PrintFormat("Is Server: %1", RBL_NetworkUtils.IsServer());
+		PrintFormat("Is Singleplayer: %1", RBL_NetworkUtils.IsSinglePlayer());
+		PrintFormat("Can Modify: %1", CanModifyState());
+	}
+	
+	// ========================================================================
+	// NETWORK SERIALIZATION
+	// ========================================================================
+	
+	void SerializeToNetwork(out int money, out int hr)
+	{
+		money = m_iMoney;
+		hr = m_iHumanResources;
+	}
+	
+	void DeserializeFromNetwork(int money, int hr)
+	{
+		m_bAllowLocalUpdate = true;
+		SetMoneyLocal(money);
+		SetHRLocal(hr);
+		m_bAllowLocalUpdate = false;
+	}
+	
+	string SerializeArsenalToString()
+	{
+		string result = "";
+		
+		array<string> keys = new array<string>();
+		m_mArsenalInventory.GetKeyArray(keys);
+		
+		for (int i = 0; i < keys.Count(); i++)
+		{
+			int count;
+			m_mArsenalInventory.Find(keys[i], count);
+			
+			if (result.Length() > 0)
+				result += ";";
+			
+			result += keys[i] + ":" + count.ToString();
+		}
+		
+		return result;
+	}
+	
+	void DeserializeArsenalFromString(string data)
+	{
+		m_mArsenalInventory.Clear();
+		
+		if (data.IsEmpty())
+			return;
+		
+		array<string> entries = new array<string>();
+		data.Split(";", entries, false);
+		
+		for (int i = 0; i < entries.Count(); i++)
+		{
+			array<string> parts = new array<string>();
+			entries[i].Split(":", parts, false);
+			
+			if (parts.Count() != 2)
+				continue;
+			
+			string itemID = parts[0];
+			int count = parts[1].ToInt();
+			
+			m_mArsenalInventory.Set(itemID, count);
+		}
 	}
 }
