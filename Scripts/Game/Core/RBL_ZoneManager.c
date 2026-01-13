@@ -1,5 +1,6 @@
 // ============================================================================
 // PROJECT REBELLION - Zone Manager
+// With multiplayer support - server authoritative zone changes
 // ============================================================================
 
 class RBL_ZoneManager
@@ -13,6 +14,10 @@ class RBL_ZoneManager
 
 	protected float m_fTimeSinceSimulation;
 	protected const float SIMULATION_INTERVAL = 5.0;
+	
+	// Network events
+	protected ref ScriptInvoker m_OnZoneOwnershipChanged;
+	protected ref ScriptInvoker m_OnZoneSupportChanged;
 
 	static RBL_ZoneManager GetInstance()
 	{
@@ -28,7 +33,22 @@ class RBL_ZoneManager
 		m_mZonesByID = new map<string, RBL_CampaignZone>();
 		m_mVirtualZonesByID = new map<string, ref RBL_VirtualZone>();
 		m_fTimeSinceSimulation = 0;
+		
+		m_OnZoneOwnershipChanged = new ScriptInvoker();
+		m_OnZoneSupportChanged = new ScriptInvoker();
 	}
+	
+	// ========================================================================
+	// NETWORK HELPERS
+	// ========================================================================
+	
+	protected bool CanModifyState()
+	{
+		return RBL_NetworkUtils.IsSinglePlayer() || RBL_NetworkUtils.IsServer();
+	}
+	
+	ScriptInvoker GetOnZoneOwnershipChanged() { return m_OnZoneOwnershipChanged; }
+	ScriptInvoker GetOnZoneSupportChanged() { return m_OnZoneSupportChanged; }
 
 	void RegisterZone(RBL_CampaignZone zone)
 	{
@@ -361,5 +381,208 @@ class RBL_ZoneManager
 		PrintFormat("FIA zones: %1", GetZoneCountByFaction(ERBLFactionKey.FIA));
 		PrintFormat("USSR zones: %1", GetZoneCountByFaction(ERBLFactionKey.USSR));
 		PrintFormat("US zones: %1", GetZoneCountByFaction(ERBLFactionKey.US));
+		PrintFormat("Is Server: %1", RBL_NetworkUtils.IsServer());
+		PrintFormat("Can Modify: %1", CanModifyState());
+	}
+	
+	// ========================================================================
+	// NETWORK: ZONE STATE CHANGES (Server authoritative)
+	// ========================================================================
+	
+	void SetZoneOwner(string zoneID, ERBLFactionKey newOwner)
+	{
+		if (!CanModifyState())
+		{
+			PrintFormat("[RBL_ZoneManager] SetZoneOwner blocked - not server");
+			return;
+		}
+		
+		RBL_VirtualZone vZone = GetVirtualZoneByID(zoneID);
+		if (vZone)
+		{
+			ERBLFactionKey previousOwner = vZone.GetOwnerFaction();
+			vZone.SetOwnerFaction(newOwner);
+			
+			m_OnZoneOwnershipChanged.Invoke(zoneID, previousOwner, newOwner);
+			
+			// Broadcast to all clients
+			RBL_NetworkManager netMgr = RBL_NetworkManager.GetInstance();
+			if (netMgr)
+				netMgr.BroadcastZoneCapture(zoneID, previousOwner, newOwner);
+			
+			return;
+		}
+		
+		RBL_CampaignZone eZone = GetZoneByID(zoneID);
+		if (eZone)
+		{
+			ERBLFactionKey previousOwner = eZone.GetOwnerFaction();
+			eZone.SetOwnerFaction(newOwner);
+			
+			m_OnZoneOwnershipChanged.Invoke(zoneID, previousOwner, newOwner);
+			
+			RBL_NetworkManager netMgr = RBL_NetworkManager.GetInstance();
+			if (netMgr)
+				netMgr.BroadcastZoneCapture(zoneID, previousOwner, newOwner);
+		}
+	}
+	
+	void SetZoneOwnerLocal(string zoneID, ERBLFactionKey newOwner)
+	{
+		RBL_VirtualZone vZone = GetVirtualZoneByID(zoneID);
+		if (vZone)
+		{
+			vZone.SetOwnerFaction(newOwner);
+			return;
+		}
+		
+		RBL_CampaignZone eZone = GetZoneByID(zoneID);
+		if (eZone)
+			eZone.SetOwnerFaction(newOwner);
+	}
+	
+	// ========================================================================
+	// NETWORK: SERIALIZATION
+	// ========================================================================
+	
+	string SerializeZoneOwnership()
+	{
+		string result = "";
+		
+		for (int i = 0; i < m_aVirtualZones.Count(); i++)
+		{
+			RBL_VirtualZone zone = m_aVirtualZones[i];
+			if (!zone)
+				continue;
+			
+			if (result.Length() > 0)
+				result += ";";
+			
+			result += zone.GetZoneID() + ":" + zone.GetOwnerFaction().ToString();
+		}
+		
+		return result;
+	}
+	
+	void DeserializeZoneOwnership(string data)
+	{
+		if (data.IsEmpty())
+			return;
+		
+		array<string> entries = new array<string>();
+		data.Split(";", entries, false);
+		
+		for (int i = 0; i < entries.Count(); i++)
+		{
+			array<string> parts = new array<string>();
+			entries[i].Split(":", parts, false);
+			
+			if (parts.Count() != 2)
+				continue;
+			
+			string zoneID = parts[0];
+			int owner = parts[1].ToInt();
+			
+			SetZoneOwnerLocal(zoneID, owner);
+		}
+	}
+	
+	string SerializeZoneSupport()
+	{
+		string result = "";
+		
+		for (int i = 0; i < m_aVirtualZones.Count(); i++)
+		{
+			RBL_VirtualZone zone = m_aVirtualZones[i];
+			if (!zone)
+				continue;
+			
+			if (result.Length() > 0)
+				result += ";";
+			
+			result += zone.GetZoneID() + ":" + zone.GetCivilianSupport().ToString();
+		}
+		
+		return result;
+	}
+	
+	void DeserializeZoneSupport(string data)
+	{
+		if (data.IsEmpty())
+			return;
+		
+		array<string> entries = new array<string>();
+		data.Split(";", entries, false);
+		
+		for (int i = 0; i < entries.Count(); i++)
+		{
+			array<string> parts = new array<string>();
+			entries[i].Split(":", parts, false);
+			
+			if (parts.Count() != 2)
+				continue;
+			
+			string zoneID = parts[0];
+			int support = parts[1].ToInt();
+			
+			RBL_VirtualZone zone = GetVirtualZoneByID(zoneID);
+			if (zone)
+				zone.SetCivilianSupport(support);
+		}
+	}
+	
+	string SerializeFullZoneState()
+	{
+		string result = "";
+		
+		for (int i = 0; i < m_aVirtualZones.Count(); i++)
+		{
+			RBL_VirtualZone zone = m_aVirtualZones[i];
+			if (!zone)
+				continue;
+			
+			if (result.Length() > 0)
+				result += "|";
+			
+			result += string.Format("%1,%2,%3,%4",
+				zone.GetZoneID(),
+				zone.GetOwnerFaction(),
+				zone.GetCivilianSupport(),
+				zone.GetAlertState()
+			);
+		}
+		
+		return result;
+	}
+	
+	void DeserializeFullZoneState(string data)
+	{
+		if (data.IsEmpty())
+			return;
+		
+		array<string> entries = new array<string>();
+		data.Split("|", entries, false);
+		
+		for (int i = 0; i < entries.Count(); i++)
+		{
+			array<string> parts = new array<string>();
+			entries[i].Split(",", parts, false);
+			
+			if (parts.Count() != 4)
+				continue;
+			
+			string zoneID = parts[0];
+			int owner = parts[1].ToInt();
+			int support = parts[2].ToInt();
+			int alertState = parts[3].ToInt();
+			
+			RBL_VirtualZone zone = GetVirtualZoneByID(zoneID);
+			if (zone)
+			{
+				zone.SetOwnerFaction(owner);
+				zone.SetCivilianSupport(support);
+				zone.SetAlertState(alertState);
+			}
+		}
 	}
 }
