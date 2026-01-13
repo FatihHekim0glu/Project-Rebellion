@@ -410,43 +410,122 @@ class RBL_ItemDelivery
 		if (!playerEntity)
 			return ERBLDeliveryResult.FAILED_NO_PLAYER;
 		
-		// Get recruit prefab
-		string prefab;
-		if (!m_mRecruitPrefabs.Find(item.ID, prefab))
-		{
-			// Use default rifleman
-			prefab = m_mRecruitPrefabs.Get("rifleman");
-		}
+		// Check if valid target
+		if (!IsValidDeliveryTarget(playerEntity))
+			return ERBLDeliveryResult.FAILED_NO_PLAYER;
 		
+		// Get recruit prefab
+		string prefab = GetRecruitPrefab(item.ID);
 		if (prefab.IsEmpty())
 			return ERBLDeliveryResult.FAILED_NO_PREFAB;
 		
 		// Calculate spawn position behind player
-		vector spawnPos = GetRecruitSpawnPosition(playerEntity);
+		vector baseSpawnPos = GetRecruitSpawnPosition(playerEntity);
 		
 		// Spawn recruit(s) based on HR cost
 		int recruitCount = item.HRCost;
 		if (recruitCount <= 0)
 			recruitCount = 1;
 		
+		int successCount = 0;
+		ref array<IEntity> spawnedRecruits = new array<IEntity>();
+		
 		for (int i = 0; i < recruitCount; i++)
 		{
-			// Offset each recruit slightly
-			vector offsetPos = spawnPos + Vector(Math.RandomFloat(-2, 2), 0, Math.RandomFloat(-2, 2));
-			BaseWorld world = GetGame().GetWorld();
-			if (world)
-				offsetPos[1] = world.GetSurfaceY(offsetPos[0], offsetPos[2]);
+			// Calculate formation position
+			vector offsetPos = GetRecruitFormationPosition(baseSpawnPos, i, recruitCount);
 			
-			IEntity recruitEntity = SpawnEntity(prefab, offsetPos);
+			IEntity recruitEntity = SpawnRecruit(prefab, offsetPos, playerEntity.GetAngles()[1]);
 			if (recruitEntity)
 			{
-				// Add to player's group
-				AddRecruitToPlayerGroup(playerEntity, recruitEntity);
-				PrintFormat("[RBL_Delivery] Recruit spawned at %1", offsetPos.ToString());
+				spawnedRecruits.Insert(recruitEntity);
+				successCount++;
+				PrintFormat("[RBL_Delivery] Recruit %1/%2 spawned", successCount, recruitCount);
 			}
 		}
 		
-		return ERBLDeliveryResult.SUCCESS;
+		// Add all recruits to player's group
+		if (successCount > 0)
+		{
+			for (int i = 0; i < spawnedRecruits.Count(); i++)
+			{
+				AddRecruitToPlayerGroup(playerEntity, spawnedRecruits[i]);
+			}
+			PrintFormat("[RBL_Delivery] %1 recruits added to player's group", successCount);
+		}
+		
+		return (successCount > 0) ? ERBLDeliveryResult.SUCCESS : ERBLDeliveryResult.FAILED_SPAWN_ERROR;
+	}
+	
+	// Get prefab for recruit type
+	protected string GetRecruitPrefab(string recruitID)
+	{
+		string prefab;
+		if (m_mRecruitPrefabs.Find(recruitID, prefab))
+			return prefab;
+		
+		// Default to rifleman
+		m_mRecruitPrefabs.Find("rifleman", prefab);
+		return prefab;
+	}
+	
+	// Spawn a single recruit with proper orientation
+	protected IEntity SpawnRecruit(string prefab, vector position, float yaw)
+	{
+		if (prefab.IsEmpty())
+			return null;
+		
+		BaseWorld world = GetGame().GetWorld();
+		if (!world)
+			return null;
+		
+		// Ensure on terrain
+		position[1] = world.GetSurfaceY(position[0], position[2]);
+		
+		EntitySpawnParams params = new EntitySpawnParams();
+		params.TransformMode = ETransformMode.WORLD;
+		
+		// Face same direction as player
+		vector angles = Vector(0, yaw, 0);
+		Math3D.AnglesToMatrix(angles, params.Transform);
+		params.Transform[3] = position;
+		
+		Resource resource = Resource.Load(prefab);
+		if (!resource.IsValid())
+		{
+			PrintFormat("[RBL_Delivery] Invalid recruit prefab: %1", prefab);
+			return null;
+		}
+		
+		return GetGame().SpawnEntityPrefab(resource, world, params);
+	}
+	
+	// Calculate formation position for multiple recruits
+	protected vector GetRecruitFormationPosition(vector basePos, int index, int totalCount)
+	{
+		BaseWorld world = GetGame().GetWorld();
+		
+		if (totalCount == 1)
+		{
+			if (world)
+				basePos[1] = world.GetSurfaceY(basePos[0], basePos[2]);
+			return basePos;
+		}
+		
+		// Create a line formation behind player
+		float spacing = 2.0;
+		int row = index / 3;
+		int col = index % 3;
+		
+		float offsetX = (col - 1) * spacing;
+		float offsetZ = -row * spacing;
+		
+		vector formationPos = basePos + Vector(offsetX, 0, offsetZ);
+		
+		if (world)
+			formationPos[1] = world.GetSurfaceY(formationPos[0], formationPos[2]);
+		
+		return formationPos;
 	}
 	
 	// ========================================================================
