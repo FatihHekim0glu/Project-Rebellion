@@ -230,6 +230,137 @@ class RBL_ItemDelivery
 	// MAIN DELIVERY METHODS
 	// ========================================================================
 	
+	// Deliver using new unified RBL_ShopItem from Shop folder
+	ERBLDeliveryResult DeliverShopItem(RBL_ShopItem item, int playerID)
+	{
+		if (!m_bInitialized)
+			Initialize();
+		
+		m_iDeliveriesTotal++;
+		
+		if (!item)
+		{
+			m_iDeliveriesFailed++;
+			return ERBLDeliveryResult.FAILED_NO_PREFAB;
+		}
+		
+		IEntity playerEntity = GetPlayerEntity(playerID);
+		if (!playerEntity)
+		{
+			m_iDeliveriesFailed++;
+			return ERBLDeliveryResult.FAILED_NO_PLAYER;
+		}
+		
+		ERBLDeliveryResult result;
+		string category = item.GetCategory();
+		
+		// Route to appropriate delivery method based on category
+		if (category == "Weapons")
+			result = DeliverWeaponByPrefab(playerEntity, item.GetPrefabPath(), item.GetDisplayName());
+		else if (category == "Equipment")
+			result = DeliverEquipmentByPrefab(playerEntity, item.GetPrefabPath(), item.GetDisplayName());
+		else if (category == "Vehicles")
+			result = DeliverVehicleByPrefab(playerEntity, item.GetPrefabPath(), item.GetDisplayName());
+		else if (category == "Recruitment")
+			result = DeliverRecruitByPrefab(playerEntity, item.GetPrefabPath(), item.GetDisplayName(), playerID, item.GetHRCost());
+		else if (category == "Supplies")
+			result = DeliverSupplyByPrefab(playerEntity, item.GetPrefabPath(), item.GetDisplayName());
+		else
+			result = ERBLDeliveryResult.FAILED_NO_PREFAB;
+		
+		// Track statistics
+		if (result == ERBLDeliveryResult.SUCCESS)
+			m_iDeliveriesSuccessful++;
+		else
+			m_iDeliveriesFailed++;
+		
+		// Fire events
+		RBL_DeliveryEventData eventData = new RBL_DeliveryEventData();
+		eventData.PlayerID = playerID;
+		eventData.ItemID = item.GetID();
+		eventData.Category = category;
+		eventData.Result = result;
+		
+		if (result == ERBLDeliveryResult.SUCCESS)
+		{
+			m_OnItemDelivered.Invoke(eventData);
+			PrintFormat("[RBL_Delivery] Delivered %1 to player %2", item.GetDisplayName(), playerID);
+			NotifyDeliverySuccess(item.GetDisplayName(), category);
+		}
+		else
+		{
+			m_OnDeliveryFailed.Invoke(eventData);
+			PrintFormat("[RBL_Delivery] Failed to deliver %1: %2", item.GetDisplayName(), typename.EnumToString(ERBLDeliveryResult, result));
+			RBL_Notifications.DeliveryFailed(item.GetDisplayName());
+		}
+		
+		return result;
+	}
+	
+	// Helper delivery methods for DeliverShopItem
+	protected ERBLDeliveryResult DeliverWeaponByPrefab(IEntity playerEntity, string prefab, string name)
+	{
+		if (!playerEntity || prefab.IsEmpty())
+			return ERBLDeliveryResult.FAILED_NO_PREFAB;
+		
+		vector spawnPos = playerEntity.GetOrigin() + Vector(0, 1, 0);
+		IEntity weaponEntity = SpawnEntity(prefab, spawnPos);
+		if (!weaponEntity)
+			return ERBLDeliveryResult.FAILED_SPAWN_ERROR;
+		
+		AddToPlayerInventory(playerEntity, weaponEntity);
+		TryEquipWeapon(playerEntity, weaponEntity);
+		return ERBLDeliveryResult.SUCCESS;
+	}
+	
+	protected ERBLDeliveryResult DeliverEquipmentByPrefab(IEntity playerEntity, string prefab, string name)
+	{
+		if (!playerEntity || prefab.IsEmpty())
+			return ERBLDeliveryResult.FAILED_NO_PREFAB;
+		
+		vector spawnPos = playerEntity.GetOrigin() + Vector(0, 1, 0);
+		IEntity equipEntity = SpawnEntity(prefab, spawnPos);
+		if (!equipEntity)
+			return ERBLDeliveryResult.FAILED_SPAWN_ERROR;
+		
+		AddToPlayerInventory(playerEntity, equipEntity);
+		return ERBLDeliveryResult.SUCCESS;
+	}
+	
+	protected ERBLDeliveryResult DeliverVehicleByPrefab(IEntity playerEntity, string prefab, string name)
+	{
+		if (!playerEntity || prefab.IsEmpty())
+			return ERBLDeliveryResult.FAILED_NO_PREFAB;
+		
+		vector spawnPos = GetVehicleSpawnPosition(playerEntity);
+		IEntity vehicleEntity = SpawnEntity(prefab, spawnPos);
+		if (!vehicleEntity)
+			return ERBLDeliveryResult.FAILED_SPAWN_ERROR;
+		
+		return ERBLDeliveryResult.SUCCESS;
+	}
+	
+	protected ERBLDeliveryResult DeliverRecruitByPrefab(IEntity playerEntity, string prefab, string name, int playerID, int count)
+	{
+		if (!playerEntity || prefab.IsEmpty())
+			return ERBLDeliveryResult.FAILED_NO_PREFAB;
+		
+		int spawnCount = Math.Max(1, count);
+		for (int i = 0; i < spawnCount; i++)
+		{
+			vector spawnPos = GetRecruitSpawnPosition(playerEntity, i);
+			IEntity recruitEntity = SpawnEntity(prefab, spawnPos);
+		}
+		
+		return ERBLDeliveryResult.SUCCESS;
+	}
+	
+	protected ERBLDeliveryResult DeliverSupplyByPrefab(IEntity playerEntity, string prefab, string name)
+	{
+		return DeliverEquipmentByPrefab(playerEntity, prefab, name);
+	}
+	
+	// Legacy delivery method (for backwards compatibility)
 	ERBLDeliveryResult DeliverItem(RBL_ShopItem item, int playerID)
 	{
 		// Ensure initialized
