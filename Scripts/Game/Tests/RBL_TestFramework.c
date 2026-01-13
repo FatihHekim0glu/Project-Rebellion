@@ -164,6 +164,9 @@ class RBL_Tests
 		// Capture Progress UI Tests
 		RBL_CaptureProgressTests.RunAll();
 		
+		// Critical Tests (naming conventions, API parity, etc.)
+		RBL_CriticalTests.RunAll();
+		
 		// Print results
 		runner.PrintResults();
 		
