@@ -283,6 +283,76 @@ class RBL_ZoneManager
 		}
 	}
 
+	// Get player (FIA) HQ zone
+	RBL_CampaignZone GetPlayerHQ()
+	{
+		// Check entity zones
+		for (int i = 0; i < m_aAllZones.Count(); i++)
+		{
+			RBL_CampaignZone zone = m_aAllZones[i];
+			if (zone && zone.GetZoneType() == ERBLZoneType.HQ && zone.GetOwnerFaction() == ERBLFactionKey.FIA)
+				return zone;
+		}
+		return null;
+	}
+	
+	// Get enemy HQ zone
+	RBL_CampaignZone GetEnemyHQ()
+	{
+		// Check entity zones
+		for (int i = 0; i < m_aAllZones.Count(); i++)
+		{
+			RBL_CampaignZone zone = m_aAllZones[i];
+			if (zone && zone.GetZoneType() == ERBLZoneType.HQ && zone.GetOwnerFaction() != ERBLFactionKey.FIA)
+				return zone;
+		}
+		return null;
+	}
+	
+	// Get virtual player HQ
+	RBL_VirtualZone GetPlayerHQVirtual()
+	{
+		for (int i = 0; i < m_aVirtualZones.Count(); i++)
+		{
+			RBL_VirtualZone zone = m_aVirtualZones[i];
+			if (zone && zone.GetZoneType() == ERBLZoneType.HQ && zone.GetOwnerFaction() == ERBLFactionKey.FIA)
+				return zone;
+		}
+		return null;
+	}
+	
+	// Get virtual enemy HQ
+	RBL_VirtualZone GetEnemyHQVirtual()
+	{
+		for (int i = 0; i < m_aVirtualZones.Count(); i++)
+		{
+			RBL_VirtualZone zone = m_aVirtualZones[i];
+			if (zone && zone.GetZoneType() == ERBLZoneType.HQ && zone.GetOwnerFaction() != ERBLFactionKey.FIA)
+				return zone;
+		}
+		return null;
+	}
+	
+	// Check if FIA still has any HQ
+	bool PlayerHasHQ()
+	{
+		if (GetPlayerHQ())
+			return true;
+		if (GetPlayerHQVirtual())
+			return true;
+		return false;
+	}
+	
+	// Check if enemy still has any HQ
+	bool EnemyHasHQ()
+	{
+		if (GetEnemyHQ())
+			return true;
+		if (GetEnemyHQVirtual())
+			return true;
+		return false;
+	}
+
 	void PrintZoneStatus()
 	{
 		PrintFormat("[RBL_ZoneManager] === ZONE STATUS ===");
