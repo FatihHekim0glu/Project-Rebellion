@@ -77,8 +77,12 @@ class RBL_HUDManager
 			m_iFIAZones = zoneMgr.GetZoneCountByFaction(ERBLFactionKey.FIA);
 			m_iEnemyZones = zoneMgr.GetZoneCountByFaction(ERBLFactionKey.USSR);
 			
-			// Find nearest zone to player
-			IEntity player = GetGame().GetPlayerController().GetControlledEntity();
+			// Find nearest zone to player (with null safety)
+			IEntity player = null;
+			PlayerController playerController = GetGame().GetPlayerController();
+			if (playerController)
+				player = playerController.GetControlledEntity();
+			
 			if (player)
 			{
 				vector playerPos = player.GetOrigin();
