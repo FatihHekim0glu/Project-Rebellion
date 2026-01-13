@@ -161,6 +161,9 @@ class RBL_Tests
 		// Input System Tests
 		RBL_InputTests.RunAll();
 		
+		// Capture Progress UI Tests
+		RBL_CaptureProgressTests.RunAll();
+		
 		// Print results
 		runner.PrintResults();
 		
