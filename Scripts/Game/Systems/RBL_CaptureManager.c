@@ -1,5 +1,5 @@
 // ============================================================================
-// PROJECT REBELLION - Capture System
+// PROJECT REBELLION - Capture Manager
 // Handles zone capture when players stand in zones
 // Server-authoritative capture calculations with progress broadcast
 // ============================================================================
