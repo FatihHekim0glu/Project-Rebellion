@@ -1,6 +1,7 @@
 // ============================================================================
-// PROJECT REBELLION - On-Screen HUD (Debug Text)
-// Shows status info on screen using DbgUI
+// PROJECT REBELLION - Debug HUD (DbgUI Text)
+// Shows detailed debug info - disabled by default
+// Enable with console: RBL_ScreenHUD.GetInstance().SetEnabled(true)
 // ============================================================================
 
 class RBL_ScreenHUD
@@ -19,7 +20,7 @@ class RBL_ScreenHUD
 
 	void RBL_ScreenHUD()
 	{
-		m_bEnabled = true;
+		m_bEnabled = false;
 		m_fUpdateTimer = 0;
 	}
 

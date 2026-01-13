@@ -1,27 +1,13 @@
 // ============================================================================
-// PROJECT REBELLION - HUD System
-// Unified HUD - delegates to RBL_ScreenHUD for display
-// Widget support preserved for future proper UI implementation
+// PROJECT REBELLION - HUD System (Legacy Compatibility Layer)
+// Delegates to RBL_UIManager for actual display
+// Use RBL_UIManager directly for new code
 // ============================================================================
 
 class RBL_HUDManager
 {
 	protected static ref RBL_HUDManager s_Instance;
-	
 	protected bool m_bVisible;
-	protected float m_fUpdateInterval;
-	protected float m_fTimeSinceUpdate;
-	
-	// Cached display values (for widget access)
-	protected int m_iDisplayMoney;
-	protected int m_iDisplayHR;
-	protected int m_iDisplayWarLevel;
-	protected int m_iDisplayAggression;
-	protected string m_sNearestZoneName;
-	protected string m_sNearestZoneOwner;
-	protected float m_fNearestZoneDistance;
-	protected int m_iFIAZones;
-	protected int m_iEnemyZones;
 	
 	static RBL_HUDManager GetInstance()
 	{
@@ -33,90 +19,37 @@ class RBL_HUDManager
 	void RBL_HUDManager()
 	{
 		m_bVisible = true;
-		m_fUpdateInterval = 0.5;
-		m_fTimeSinceUpdate = 0;
-		m_sNearestZoneName = "None";
-		m_sNearestZoneOwner = "Unknown";
 	}
 	
 	void Update(float timeSlice)
 	{
-		if (!m_bVisible)
-			return;
+		// Delegate to new UI system
+		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+		if (uiMgr)
+			uiMgr.Update(timeSlice);
 		
-		m_fTimeSinceUpdate += timeSlice;
-		if (m_fTimeSinceUpdate >= m_fUpdateInterval)
-		{
-			m_fTimeSinceUpdate = 0;
-			RefreshData();
-		}
-		
-		// Delegate display to ScreenHUD (uses DbgUI)
-		// Widget-based UI will be added in future
+		// Also update legacy ScreenHUD if enabled
+		RBL_ScreenHUD screenHUD = RBL_ScreenHUD.GetInstance();
+		if (screenHUD && screenHUD.IsEnabled())
+			screenHUD.Update(timeSlice);
 	}
 	
-	protected void RefreshData()
+	void Draw()
 	{
-		// Get economy data
-		RBL_EconomyManager econMgr = RBL_EconomyManager.GetInstance();
-		if (econMgr)
-		{
-			m_iDisplayMoney = econMgr.GetMoney();
-			m_iDisplayHR = econMgr.GetHR();
-		}
-		
-		// Get campaign data
-		RBL_CampaignManager campaignMgr = RBL_CampaignManager.GetInstance();
-		if (campaignMgr)
-		{
-			m_iDisplayWarLevel = campaignMgr.GetWarLevel();
-			m_iDisplayAggression = campaignMgr.GetAggression();
-		}
-		
-		// Get zone data
-		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
-		if (zoneMgr)
-		{
-			m_iFIAZones = zoneMgr.GetZoneCountByFaction(ERBLFactionKey.FIA);
-			m_iEnemyZones = zoneMgr.GetZoneCountByFaction(ERBLFactionKey.USSR);
-			
-			// Find nearest zone to player (with null safety)
-			IEntity player = null;
-			if (GetGame())
-			{
-				PlayerController playerController = GetGame().GetPlayerController();
-				if (playerController)
-					player = playerController.GetControlledEntity();
-			}
-			
-			if (player)
-			{
-				vector playerPos = player.GetOrigin();
-				RBL_VirtualZone nearestZone = zoneMgr.GetNearestVirtualZone(playerPos);
-				if (nearestZone)
-				{
-					m_sNearestZoneName = nearestZone.GetZoneID();
-					m_fNearestZoneDistance = vector.Distance(playerPos, nearestZone.GetZonePosition());
-					
-					ERBLFactionKey owner = nearestZone.GetOwnerFaction();
-					if (owner == ERBLFactionKey.FIA)
-						m_sNearestZoneOwner = "FIA";
-					else if (owner == ERBLFactionKey.USSR)
-						m_sNearestZoneOwner = "USSR";
-					else if (owner == ERBLFactionKey.US)
-						m_sNearestZoneOwner = "US";
-					else
-						m_sNearestZoneOwner = "Neutral";
-				}
-			}
-		}
+		// Delegate to new UI system
+		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+		if (uiMgr)
+			uiMgr.Draw();
 	}
 	
 	void ToggleVisibility()
 	{
 		m_bVisible = !m_bVisible;
 		
-		// Also toggle ScreenHUD
+		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+		if (uiMgr)
+			uiMgr.SetVisible(m_bVisible);
+		
 		RBL_ScreenHUD screenHUD = RBL_ScreenHUD.GetInstance();
 		if (screenHUD)
 			screenHUD.SetEnabled(m_bVisible);
@@ -126,6 +59,10 @@ class RBL_HUDManager
 	{
 		m_bVisible = visible;
 		
+		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+		if (uiMgr)
+			uiMgr.SetVisible(visible);
+		
 		RBL_ScreenHUD screenHUD = RBL_ScreenHUD.GetInstance();
 		if (screenHUD)
 			screenHUD.SetEnabled(visible);
@@ -133,16 +70,38 @@ class RBL_HUDManager
 	
 	bool IsVisible() { return m_bVisible; }
 	
-	// Getters for UI widgets (future proper UI implementation)
-	int GetDisplayMoney() { return m_iDisplayMoney; }
-	int GetDisplayHR() { return m_iDisplayHR; }
-	int GetDisplayWarLevel() { return m_iDisplayWarLevel; }
-	int GetDisplayAggression() { return m_iDisplayAggression; }
-	string GetNearestZoneName() { return m_sNearestZoneName; }
-	string GetNearestZoneOwner() { return m_sNearestZoneOwner; }
-	float GetNearestZoneDistance() { return m_fNearestZoneDistance; }
-	int GetFIAZoneCount() { return m_iFIAZones; }
-	int GetEnemyZoneCount() { return m_iEnemyZones; }
+	// Legacy getters - delegate to MainHUD widget
+	int GetDisplayMoney()
+	{
+		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+		if (uiMgr && uiMgr.GetMainHUD())
+			return uiMgr.GetMainHUD().GetDisplayMoney();
+		return 0;
+	}
+	
+	int GetDisplayHR()
+	{
+		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+		if (uiMgr && uiMgr.GetMainHUD())
+			return uiMgr.GetMainHUD().GetDisplayHR();
+		return 0;
+	}
+	
+	int GetDisplayWarLevel()
+	{
+		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+		if (uiMgr && uiMgr.GetMainHUD())
+			return uiMgr.GetMainHUD().GetDisplayWarLevel();
+		return 1;
+	}
+	
+	int GetDisplayAggression()
+	{
+		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+		if (uiMgr && uiMgr.GetMainHUD())
+			return uiMgr.GetMainHUD().GetDisplayAggression();
+		return 0;
+	}
 }
 
 // ============================================================================
