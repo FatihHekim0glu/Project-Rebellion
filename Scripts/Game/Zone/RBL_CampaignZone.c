@@ -71,6 +71,7 @@ class RBL_CampaignZone : GenericEntity
 	}
 	
 	string GetZoneID() { return m_sZoneID; }
+	string GetZoneName() { return m_sZoneID; }
 	ERBLZoneType GetZoneType() { return m_eZoneType; }
 	ERBLFactionKey GetOwnerFaction() { return m_eOwnerFaction; }
 	int GetCivilianSupport() { return m_iCivilianSupport; }
