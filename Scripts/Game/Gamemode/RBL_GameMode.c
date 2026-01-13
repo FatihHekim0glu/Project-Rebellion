@@ -77,6 +77,14 @@ class RBL_GameMode : SCR_BaseGameMode
 		RBL_ShopManager.GetInstance();
 		RBL_GarrisonManager.GetInstance();
 		
+		// Initialize Mission System
+		RBL_MissionManager missionMgr = RBL_MissionManager.GetInstance();
+		if (missionMgr)
+			missionMgr.Initialize();
+		
+		// Wire campaign events to missions
+		WireCampaignEventsToMissions();
+		
 		// Initialize NEW UI System
 		if (m_bShowHUD)
 		{
@@ -128,6 +136,38 @@ class RBL_GameMode : SCR_BaseGameMode
 		
 		uiMgr.ShowNotification("Press [B] to open Shop", RBL_UIColors.COLOR_TEXT_SECONDARY, 3.0);
 	}
+	
+	protected void WireCampaignEventsToMissions()
+	{
+		RBL_CampaignManager campMgr = RBL_CampaignManager.GetInstance();
+		if (!campMgr)
+			return;
+		
+		campMgr.GetOnCampaignEvent().Insert(OnCampaignEventForMissions);
+		PrintFormat("[RBL] Campaign events wired to Mission System");
+	}
+	
+	protected void OnCampaignEventForMissions(ERBLCampaignEvent eventType, RBL_CampaignZone relatedZone)
+	{
+		RBL_MissionManager missionMgr = RBL_MissionManager.GetInstance();
+		if (!missionMgr)
+			return;
+		
+		switch (eventType)
+		{
+			case ERBLCampaignEvent.ZONE_CAPTURED:
+				if (relatedZone)
+					missionMgr.OnZoneCaptured(relatedZone.GetZoneID(), relatedZone.GetOwnerFaction());
+				break;
+			case ERBLCampaignEvent.ZONE_LOST:
+				if (relatedZone)
+					missionMgr.OnZoneCaptured(relatedZone.GetZoneID(), relatedZone.GetOwnerFaction());
+				break;
+			case ERBLCampaignEvent.ENEMY_KILLED:
+				missionMgr.OnEnemyKilled();
+				break;
+		}
+	}
 
 	protected void UpdateAllSystems(float timeSlice)
 	{
@@ -158,6 +198,11 @@ class RBL_GameMode : SCR_BaseGameMode
 		RBL_UndercoverSystem undercover = RBL_UndercoverSystem.GetInstance();
 		if (undercover)
 			undercover.Update(timeSlice);
+		
+		// Mission system
+		RBL_MissionManager missionMgr = RBL_MissionManager.GetInstance();
+		if (missionMgr)
+			missionMgr.Update(timeSlice);
 		
 		// NEW UI System
 		if (m_bShowHUD)
@@ -293,6 +338,14 @@ class RBL_GameModeAddon
 		RBL_ShopManager.GetInstance();
 		RBL_GarrisonManager.GetInstance();
 		
+		// Mission System
+		RBL_MissionManager missionMgr = RBL_MissionManager.GetInstance();
+		if (missionMgr)
+			missionMgr.Initialize();
+		
+		// Wire campaign events
+		WireCampaignEvents();
+		
 		// NEW UI System
 		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
 		uiMgr.Initialize();
@@ -308,6 +361,38 @@ class RBL_GameModeAddon
 		GetGame().GetCallqueue().CallLater(ShowWelcome, 1000, false);
 		
 		PrintHelp();
+	}
+	
+	protected void WireCampaignEvents()
+	{
+		RBL_CampaignManager campMgr = RBL_CampaignManager.GetInstance();
+		if (!campMgr)
+			return;
+		
+		campMgr.GetOnCampaignEvent().Insert(OnCampaignEvent);
+		PrintFormat("[RBL] Campaign events wired to Mission System");
+	}
+	
+	protected void OnCampaignEvent(ERBLCampaignEvent eventType, RBL_CampaignZone relatedZone)
+	{
+		RBL_MissionManager missionMgr = RBL_MissionManager.GetInstance();
+		if (!missionMgr)
+			return;
+		
+		switch (eventType)
+		{
+			case ERBLCampaignEvent.ZONE_CAPTURED:
+				if (relatedZone)
+					missionMgr.OnZoneCaptured(relatedZone.GetZoneID(), relatedZone.GetOwnerFaction());
+				break;
+			case ERBLCampaignEvent.ZONE_LOST:
+				if (relatedZone)
+					missionMgr.OnZoneCaptured(relatedZone.GetZoneID(), relatedZone.GetOwnerFaction());
+				break;
+			case ERBLCampaignEvent.ENEMY_KILLED:
+				missionMgr.OnEnemyKilled();
+				break;
+		}
 	}
 	
 	protected void SpawnGarrisons()
@@ -380,6 +465,11 @@ class RBL_GameModeAddon
 		RBL_UndercoverSystem undercover = RBL_UndercoverSystem.GetInstance();
 		if (undercover)
 			undercover.Update(timeSlice);
+		
+		// Mission system
+		RBL_MissionManager missionMgr = RBL_MissionManager.GetInstance();
+		if (missionMgr)
+			missionMgr.Update(timeSlice);
 		
 		// NEW UI System
 		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
@@ -481,5 +571,35 @@ class RBL_UIDebugCommands
 	static void RunUITests()
 	{
 		RBL_UITests.RunAllTests();
+	}
+}
+
+// ============================================================================
+// DEBUG COMMANDS - Mission System
+// ============================================================================
+class RBL_MissionDebugCommands
+{
+	[ConsoleCmd("rbl_missions", "List all available and active missions")]
+	static void ListMissions()
+	{
+		RBL_MissionCommands.ListMissions();
+	}
+	
+	[ConsoleCmd("rbl_mission_status", "Print mission system status")]
+	static void PrintMissionStatus()
+	{
+		RBL_MissionCommands.PrintStatus();
+	}
+	
+	[ConsoleCmd("rbl_mission_start", "Start a mission by ID")]
+	static void StartMission(string missionID)
+	{
+		RBL_MissionCommands.StartMission(missionID);
+	}
+	
+	[ConsoleCmd("rbl_mission_refresh", "Refresh available missions")]
+	static void RefreshMissions()
+	{
+		RBL_MissionCommands.RefreshMissions();
 	}
 }
