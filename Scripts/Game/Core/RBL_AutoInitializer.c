@@ -34,7 +34,7 @@ class RBL_AutoInitializer
 		RBL_EconomyManager econMgr = RBL_EconomyManager.GetInstance();
 		RBL_CommanderAI commanderAI = RBL_CommanderAI.GetInstance();
 		RBL_UndercoverSystem undercover = RBL_UndercoverSystem.GetInstance();
-		RBL_PersistenceManager persistence = RBL_PersistenceManager.GetInstance();
+		RBL_PersistenceIntegration persistence = RBL_PersistenceIntegration.GetInstance();
 		RBL_ZoneConfigurator zoneConfig = RBL_ZoneConfigurator.GetInstance();
 
 		// Create virtual zones from config
@@ -138,7 +138,9 @@ class RBL_VirtualZone
 
 	// Getters matching RBL_CampaignZone interface
 	string GetZoneID() { return m_sZoneID; }
+	string GetZoneName() { return m_sZoneID; }
 	vector GetZonePosition() { return m_vPosition; }
+	vector GetOrigin() { return m_vPosition; }
 	ERBLZoneType GetZoneType() { return m_eZoneType; }
 	ERBLFactionKey GetOwnerFaction() { return m_eOwnerFaction; }
 	int GetMaxGarrison() { return m_iMaxGarrison; }
