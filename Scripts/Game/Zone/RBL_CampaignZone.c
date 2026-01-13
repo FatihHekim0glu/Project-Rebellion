@@ -156,17 +156,18 @@ class RBL_CampaignZone : GenericEntity
 		
 		switch (m_eZoneType)
 		{
-			case ERBLZoneType.Resource: baseIncome = 100; break;
-			case ERBLZoneType.Factory: baseIncome = 150; break;
-			case ERBLZoneType.Town: baseIncome = 50; break;
-			case ERBLZoneType.Airbase: baseIncome = 75; break;
-			case ERBLZoneType.Seaport: baseIncome = 125; break;
-			default: baseIncome = 25; break;
+			case ERBLZoneType.Resource: baseIncome = RBL_Config.INCOME_RESOURCE_BASE; break;
+			case ERBLZoneType.Factory: baseIncome = RBL_Config.INCOME_FACTORY_BASE; break;
+			case ERBLZoneType.Town: baseIncome = RBL_Config.INCOME_TOWN_BASE; break;
+			case ERBLZoneType.Airbase: baseIncome = RBL_Config.INCOME_AIRBASE_BASE; break;
+			case ERBLZoneType.Seaport: baseIncome = RBL_Config.INCOME_SEAPORT_BASE; break;
+			default: baseIncome = RBL_Config.INCOME_OUTPOST_BASE; break;
 		}
 		
-		float supportMultiplier = 0.5 + (m_iCivilianSupport / 100.0);
+		float supportMultiplier = RBL_Config.INCOME_SUPPORT_MIN_MULT + 
+			((RBL_Config.INCOME_SUPPORT_MAX_MULT - RBL_Config.INCOME_SUPPORT_MIN_MULT) * (m_iCivilianSupport / 100.0));
 		
-		return baseIncome * supportMultiplier;
+		return Math.Round(baseIncome * supportMultiplier);
 	}
 	
 	int CalculateHRIncome()
@@ -174,7 +175,7 @@ class RBL_CampaignZone : GenericEntity
 		if (m_eZoneType != ERBLZoneType.Town)
 			return 0;
 		
-		return m_iCivilianSupport * 0.1;
+		return Math.Round(m_iCivilianSupport * 0.1);
 	}
 	
 	void SerializeToStruct(out RBL_ZoneSaveData data)

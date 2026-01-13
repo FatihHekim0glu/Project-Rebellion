@@ -198,7 +198,7 @@ class RBL_VirtualZone
 	{
 		if (m_eZoneType != ERBLZoneType.Town)
 			return 0;
-		return m_iCivilianSupport * 0.1;
+		return Math.Round(m_iCivilianSupport * 0.1);
 	}
 
 	void SpawnGarrison()

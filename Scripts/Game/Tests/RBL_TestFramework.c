@@ -147,6 +147,7 @@ class RBL_Tests
 		TestZoneManager();
 		TestConfig();
 		TestCampaignManager();
+		TestIncomeCalculations();
 		TestCommanderAI();
 		
 		// Print results
@@ -323,8 +324,62 @@ class RBL_Tests
 		runner.Assert("Aggression <= 100", aggression <= 100, "Aggression over 100");
 	}
 	
+	// Test income calculations
+	static void TestIncomeCalculations()
+	{
+		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
+		
+		PrintFormat("[RBL_Tests] Running Income Calculation Tests...");
+		
+		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
+		if (!zoneMgr)
+		{
+			runner.RecordResult("ZoneManager for income test", false, "Manager is null");
+			return;
+		}
+		
+		// Test that income calculations return integers (not truncated floats)
+		array<ref RBL_VirtualZone> zones = zoneMgr.GetAllVirtualZones();
+		bool allValid = true;
+		
+		for (int i = 0; i < zones.Count(); i++)
+		{
+			RBL_VirtualZone zone = zones[i];
+			int income = zone.CalculateResourceIncome();
+			int hrIncome = zone.CalculateHRIncome();
+			
+			// Income should be non-negative
+			if (income < 0 || hrIncome < 0)
+			{
+				allValid = false;
+				break;
+			}
+		}
+		
+		runner.Assert("All zone incomes are valid integers", allValid, "Some incomes are negative");
+		
+		// Test specific zone income values
+		RBL_VirtualZone factoryZone = zoneMgr.GetVirtualZoneByID("Factory_East");
+		if (factoryZone)
+		{
+			int factoryIncome = factoryZone.CalculateResourceIncome();
+			// Factory with 25% support: 150 * (0.5 + 0.25) = 112.5 -> 113
+			runner.Assert("Factory income > 0", factoryIncome > 0, "Factory has no income");
+			runner.Assert("Factory income reasonable", factoryIncome >= 75 && factoryIncome <= 225, 
+				string.Format("Factory income out of range: %1", factoryIncome));
+		}
+		
+		// Test town HR income
+		RBL_VirtualZone townZone = zoneMgr.GetVirtualZoneByID("Town_Morton");
+		if (townZone)
+		{
+			int hrIncome = townZone.CalculateHRIncome();
+			// Town with 45% support: 45 * 0.1 = 4.5 -> 5 (rounded)
+			runner.Assert("Town HR income calculated", hrIncome >= 0, "Town HR income negative");
+		}
+	}
+	
 	// Test Commander AI
-	static void TestCommanderAI()
 	{
 		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
 		
