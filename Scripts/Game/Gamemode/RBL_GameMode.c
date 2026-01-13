@@ -72,6 +72,14 @@ class RBL_GameMode : SCR_BaseGameMode
 			autoInit.Initialize();
 		}
 		
+		// Initialize Input System FIRST
+		RBL_InputManager inputMgr = RBL_InputManager.GetInstance();
+		if (inputMgr)
+		{
+			inputMgr.Initialize();
+			PrintFormat("[RBL] Input System initialized");
+		}
+		
 		// Initialize new systems
 		RBL_CaptureManager.GetInstance();
 		RBL_ShopManager.GetInstance();
@@ -98,9 +106,11 @@ class RBL_GameMode : SCR_BaseGameMode
 			PrintFormat("[RBL] UI System initialized");
 		}
 		
-		// Legacy systems (for compatibility)
+		// Legacy systems (for compatibility) - Input handler uses new system
 		RBL_ScreenHUD.GetInstance();
-		RBL_InputHandler.GetInstance();
+		RBL_InputHandler inputHandler = RBL_InputHandler.GetInstance();
+		if (inputHandler)
+			inputHandler.Initialize();
 		
 		// Spawn garrisons at all enemy zones
 		GetGame().GetCallqueue().CallLater(SpawnInitialGarrisons, 5000, false);
@@ -139,7 +149,9 @@ class RBL_GameMode : SCR_BaseGameMode
 		if (!uiMgr)
 			return;
 		
-		uiMgr.ShowNotification("Press [B] to open Shop", RBL_UIColors.COLOR_TEXT_SECONDARY, 3.0);
+		// Use dynamic keybind from input system
+		string shopKey = RBL_InputConfig.GetKeyDisplay(RBL_InputActions.TOGGLE_SHOP);
+		uiMgr.ShowNotification(string.Format("Press [%1] to open Shop", shopKey), RBL_UIColors.COLOR_TEXT_SECONDARY, 3.0);
 	}
 	
 	protected void WireCampaignEventsToMissions()
@@ -252,19 +264,32 @@ class RBL_GameMode : SCR_BaseGameMode
 
 	protected void PrintHelp()
 	{
+		// Get dynamic keybinds from input system
+		string shopKey = RBL_InputConfig.GetKeyDisplay(RBL_InputActions.TOGGLE_SHOP);
+		string mapKey = RBL_InputConfig.GetKeyDisplay(RBL_InputActions.TOGGLE_MAP);
+		string hudKey = RBL_InputConfig.GetKeyDisplay(RBL_InputActions.TOGGLE_HUD);
+		string saveKey = RBL_InputConfig.GetKeyDisplay(RBL_InputActions.QUICK_SAVE);
+		string loadKey = RBL_InputConfig.GetKeyDisplay(RBL_InputActions.QUICK_LOAD);
+		string missionKey = RBL_InputConfig.GetKeyDisplay(RBL_InputActions.TOGGLE_MISSIONS);
+		
 		PrintFormat("[RBL] ========================================");
 		PrintFormat("[RBL] KEYBINDS:");
-		PrintFormat("[RBL]   [B] - Open Shop");
-		PrintFormat("[RBL]   [M] - Toggle Map");
-		PrintFormat("[RBL]   [H] - Toggle HUD");
+		PrintFormat("[RBL]   [%1] - Open Shop", shopKey);
+		PrintFormat("[RBL]   [%1] - Toggle Map", mapKey);
+		PrintFormat("[RBL]   [%1] - Toggle HUD", hudKey);
+		PrintFormat("[RBL]   [%1] - Toggle Missions", missionKey);
+		PrintFormat("[RBL]   [%1] - Quick Save", saveKey);
+		PrintFormat("[RBL]   [%1] - Quick Load", loadKey);
 		PrintFormat("[RBL] CONSOLE COMMANDS:");
 		PrintFormat("[RBL]   RBL_DebugCommands.PrintStatus()");
+		PrintFormat("[RBL]   RBL_DebugCommands.PrintKeybinds()");
 		PrintFormat("[RBL]   RBL_DebugCommands.OpenShop()");
 		PrintFormat("[RBL]   RBL_DebugCommands.Buy(\"akm\")");
 		PrintFormat("[RBL]   RBL_DebugCommands.AddMoney(1000)");
 		PrintFormat("[RBL]   RBL_DebugCommands.ListZones()");
 		PrintFormat("[RBL]   RBL_DebugCommands.CaptureZone(\"zoneid\")");
 		PrintFormat("[RBL]   RBL_DebugCommands.TeleportToZone(\"zoneid\")");
+		PrintFormat("[RBL]   RBL_InputTestCommands.RunInputTests()");
 		PrintFormat("[RBL]   RBL_UITests.RunAllTests() - Run UI tests");
 		PrintFormat("[RBL] ========================================");
 	}
@@ -339,6 +364,14 @@ class RBL_GameModeAddon
 		PrintFormat("[RBL] PROJECT REBELLION - ACTIVE");
 		PrintFormat("[RBL] ========================================");
 		
+		// Initialize Input System FIRST
+		RBL_InputManager inputMgr = RBL_InputManager.GetInstance();
+		if (inputMgr)
+		{
+			inputMgr.Initialize();
+			PrintFormat("[RBL] Input System initialized");
+		}
+		
 		// Core initialization
 		RBL_AutoInitializer autoInit = RBL_AutoInitializer.GetInstance();
 		autoInit.Initialize();
@@ -365,9 +398,11 @@ class RBL_GameModeAddon
 		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
 		uiMgr.Initialize();
 		
-		// Legacy systems
+		// Legacy systems - Input handler uses new system
 		RBL_ScreenHUD.GetInstance();
-		RBL_InputHandler.GetInstance();
+		RBL_InputHandler inputHandler = RBL_InputHandler.GetInstance();
+		if (inputHandler)
+			inputHandler.Initialize();
 		
 		// Spawn garrisons after delay
 		GetGame().GetCallqueue().CallLater(SpawnGarrisons, 5000, false);
@@ -431,22 +466,39 @@ class RBL_GameModeAddon
 	{
 		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
 		if (uiMgr)
-			uiMgr.ShowNotification("Press [B] to open Shop", RBL_UIColors.COLOR_TEXT_SECONDARY, 3.0);
+		{
+			// Use dynamic keybind from input system
+			string shopKey = RBL_InputConfig.GetKeyDisplay(RBL_InputActions.TOGGLE_SHOP);
+			uiMgr.ShowNotification(string.Format("Press [%1] to open Shop", shopKey), RBL_UIColors.COLOR_TEXT_SECONDARY, 3.0);
+		}
 	}
 
 	protected void PrintHelp()
 	{
+		// Get dynamic keybinds from input system
+		string shopKey = RBL_InputConfig.GetKeyDisplay(RBL_InputActions.TOGGLE_SHOP);
+		string mapKey = RBL_InputConfig.GetKeyDisplay(RBL_InputActions.TOGGLE_MAP);
+		string hudKey = RBL_InputConfig.GetKeyDisplay(RBL_InputActions.TOGGLE_HUD);
+		string saveKey = RBL_InputConfig.GetKeyDisplay(RBL_InputActions.QUICK_SAVE);
+		string loadKey = RBL_InputConfig.GetKeyDisplay(RBL_InputActions.QUICK_LOAD);
+		string missionKey = RBL_InputConfig.GetKeyDisplay(RBL_InputActions.TOGGLE_MISSIONS);
+		
 		PrintFormat("[RBL] ========================================");
 		PrintFormat("[RBL] KEYBINDS:");
-		PrintFormat("[RBL]   [B] - Open Shop");
-		PrintFormat("[RBL]   [M] - Toggle Map");
-		PrintFormat("[RBL]   [H] - Toggle HUD");
+		PrintFormat("[RBL]   [%1] - Open Shop", shopKey);
+		PrintFormat("[RBL]   [%1] - Toggle Map", mapKey);
+		PrintFormat("[RBL]   [%1] - Toggle HUD", hudKey);
+		PrintFormat("[RBL]   [%1] - Toggle Missions", missionKey);
+		PrintFormat("[RBL]   [%1] - Quick Save", saveKey);
+		PrintFormat("[RBL]   [%1] - Quick Load", loadKey);
 		PrintFormat("[RBL] CONSOLE COMMANDS:");
 		PrintFormat("[RBL]   RBL_DebugCommands.PrintStatus()");
+		PrintFormat("[RBL]   RBL_DebugCommands.PrintKeybinds()");
 		PrintFormat("[RBL]   RBL_DebugCommands.OpenShop()");
 		PrintFormat("[RBL]   RBL_DebugCommands.Buy(\"akm\")");
 		PrintFormat("[RBL]   RBL_DebugCommands.AddMoney(1000)");
 		PrintFormat("[RBL]   RBL_DebugCommands.TeleportToZone(\"Town_LePort\")");
+		PrintFormat("[RBL]   RBL_InputTestCommands.RunInputTests()");
 		PrintFormat("[RBL]   RBL_UITests.RunAllTests() - Run UI tests");
 		PrintFormat("[RBL] ========================================");
 	}
@@ -512,7 +564,7 @@ class RBL_GameModeAddon
 }
 
 // ============================================================================
-// UI INPUT HANDLER - Keybind processing
+// UI INPUT HANDLER - Keybind processing (uses RBL_InputActions constants)
 // ============================================================================
 class RBL_UIInputHandler
 {
@@ -531,16 +583,16 @@ class RBL_UIInputHandler
 		if (!input)
 			return;
 		
-		// Shop toggle (B key)
-		if (input.GetActionTriggered("RBL_ToggleShop"))
+		// Shop toggle - uses constant from RBL_InputActions
+		if (input.GetActionTriggered(RBL_InputActions.TOGGLE_SHOP))
 		{
 			RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
 			if (uiMgr)
 				uiMgr.ToggleShop();
 		}
 		
-		// HUD toggle (H key)
-		if (input.GetActionTriggered("RBL_ToggleHUD"))
+		// HUD toggle - uses constant from RBL_InputActions
+		if (input.GetActionTriggered(RBL_InputActions.TOGGLE_HUD))
 		{
 			RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
 			if (uiMgr)
