@@ -379,7 +379,8 @@ class RBL_Tests
 		}
 	}
 	
-	// Test Commander AI
+	// Test Commander AI with Virtual Zone support
+	static void TestCommanderAI()
 	{
 		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
 		
@@ -400,6 +401,33 @@ class RBL_Tests
 		// Test QRF count
 		int qrfCount = ai.GetActiveQRFCount();
 		runner.Assert("QRF count >= 0", qrfCount >= 0, "Negative QRF count");
+		
+		// Test controlled faction
+		ERBLFactionKey faction = ai.GetControlledFaction();
+		runner.Assert("AI controls USSR faction", faction == ERBLFactionKey.USSR, "Wrong controlled faction");
+		
+		// Test that AI can process updates without crashing
+		ai.Update(0.1);
+		runner.RecordResult("AI.Update handles no threats", true, "No crash");
+		
+		// Test QRF operation creation
+		RBL_QRFOperation qrf = new RBL_QRFOperation();
+		runner.AssertNotNull("QRF operation created", qrf);
+		
+		if (qrf)
+		{
+			runner.Assert("QRF starts incomplete", !qrf.IsComplete(), "QRF started complete");
+			qrf.Update(0.1);
+			runner.Assert("QRF still incomplete after small update", !qrf.IsComplete(), "QRF completed too fast");
+		}
+		
+		// Test virtual zone integration
+		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
+		if (zoneMgr)
+		{
+			array<ref RBL_VirtualZone> ussrZones = zoneMgr.GetVirtualZonesByFaction(ERBLFactionKey.USSR);
+			runner.Assert("AI can find USSR virtual zones", ussrZones.Count() > 0, "No USSR zones for AI");
+		}
 	}
 }
 
