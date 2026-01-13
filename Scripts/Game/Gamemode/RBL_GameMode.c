@@ -140,7 +140,7 @@ class RBL_GameMode : SCR_BaseGameMode
 		if (zoneMgr)
 			zoneMgr.Update(timeSlice);
 		
-		RBL_PersistenceManager persistence = RBL_PersistenceManager.GetInstance();
+		RBL_PersistenceIntegration persistence = RBL_PersistenceIntegration.GetInstance();
 		if (persistence)
 			persistence.Update(timeSlice);
 		
@@ -362,7 +362,7 @@ class RBL_GameModeAddon
 		if (zoneMgr)
 			zoneMgr.Update(timeSlice);
 		
-		RBL_PersistenceManager persistence = RBL_PersistenceManager.GetInstance();
+		RBL_PersistenceIntegration persistence = RBL_PersistenceIntegration.GetInstance();
 		if (persistence)
 			persistence.Update(timeSlice);
 		
