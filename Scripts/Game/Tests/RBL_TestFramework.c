@@ -1073,6 +1073,14 @@ class RBL_TestCommands
 		runner.PrintResults();
 	}
 	
+	static void RunEnumTests()
+	{
+		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
+		runner.Reset();
+		RBL_Tests.TestEnumDefinitions();
+		runner.PrintResults();
+	}
+	
 	static void RunUndercoverTests()
 	{
 		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
