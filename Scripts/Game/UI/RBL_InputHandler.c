@@ -1,38 +1,16 @@
 // ============================================================================
 // PROJECT REBELLION - Input Handler
 // Handles keybinds for HUD, Shop, Persistence, etc.
+// Now integrates with RBL_InputSystem for proper custom keybinds
 // ============================================================================
-
-class RBL_InputConfig
-{
-	// Keybind definitions (used with InputManager.GetActionTriggered)
-	// These map to existing Arma Reforger actions or can be custom
-	
-	static const string ACTION_SHOP = "CharacterInspect";       // J key - opens shop
-	static const string ACTION_MAP = "ToggleMap";               // M key - toggle map
-	static const string ACTION_INVENTORY = "Inventory";         // I key - inventory
-	static const string ACTION_ESCAPE = "MenuOpen";             // ESC key - escape/close
-	static const string ACTION_USE = "CharacterAction";         // F key - interact
-	static const string ACTION_QUICK_SAVE = "QuickSave";        // F5 - quick save
-	static const string ACTION_QUICK_LOAD = "QuickLoad";        // F9 - quick load
-	
-	// Cooldowns to prevent spam
-	static const float SHOP_COOLDOWN = 0.3;
-	static const float SAVE_COOLDOWN = 1.0;
-}
 
 class RBL_InputHandler
 {
 	protected static ref RBL_InputHandler s_Instance;
 	
-	// Cooldown timers
-	protected float m_fShopCooldown;
-	protected float m_fSaveCooldown;
-	protected float m_fLoadCooldown;
-	
-	// State
-	protected bool m_bShopOpen;
+	protected ref RBL_InputManager m_InputManager;
 	protected bool m_bInitialized;
+	protected bool m_bShopOpen;
 	
 	static RBL_InputHandler GetInstance()
 	{
@@ -43,19 +21,43 @@ class RBL_InputHandler
 	
 	void RBL_InputHandler()
 	{
-		m_fShopCooldown = 0;
-		m_fSaveCooldown = 0;
-		m_fLoadCooldown = 0;
-		m_bShopOpen = false;
+		m_InputManager = RBL_InputManager.GetInstance();
 		m_bInitialized = false;
+		m_bShopOpen = false;
 		
 		PrintFormat("[RBL_Input] Input handler initialized");
+		PrintKeybindHelp();
+	}
+	
+	protected void PrintKeybindHelp()
+	{
 		PrintFormat("[RBL_Input] Keybinds:");
-		PrintFormat("[RBL_Input]   J - Toggle Shop");
-		PrintFormat("[RBL_Input]   H - Toggle HUD");
-		PrintFormat("[RBL_Input]   F5 - Quick Save");
-		PrintFormat("[RBL_Input]   F9 - Quick Load");
-		PrintFormat("[RBL_Input]   ESC - Close menus");
+		PrintFormat("[RBL_Input]   %1 - Toggle Shop", GetKeyForAction(RBL_InputActions.TOGGLE_SHOP));
+		PrintFormat("[RBL_Input]   %1 - Toggle HUD", GetKeyForAction(RBL_InputActions.TOGGLE_HUD));
+		PrintFormat("[RBL_Input]   %1 - Quick Save", GetKeyForAction(RBL_InputActions.QUICK_SAVE));
+		PrintFormat("[RBL_Input]   %1 - Quick Load", GetKeyForAction(RBL_InputActions.QUICK_LOAD));
+		PrintFormat("[RBL_Input]   %1 - Toggle Map", GetKeyForAction(RBL_InputActions.TOGGLE_MAP));
+		PrintFormat("[RBL_Input]   %1 - Toggle Missions", GetKeyForAction(RBL_InputActions.TOGGLE_MISSIONS));
+		PrintFormat("[RBL_Input]   %1 - Toggle Debug HUD", GetKeyForAction(RBL_InputActions.TOGGLE_DEBUG_HUD));
+		PrintFormat("[RBL_Input]   %1 - Close menus", GetKeyForAction(RBL_InputActions.CLOSE_MENU));
+	}
+	
+	protected string GetKeyForAction(string actionName)
+	{
+		if (m_InputManager && m_InputManager.IsInitialized())
+			return m_InputManager.GetKeyForAction(actionName);
+		
+		// Fallback to default display names
+		if (actionName == RBL_InputActions.TOGGLE_SHOP) return "J";
+		if (actionName == RBL_InputActions.TOGGLE_HUD) return "H";
+		if (actionName == RBL_InputActions.QUICK_SAVE) return "F5";
+		if (actionName == RBL_InputActions.QUICK_LOAD) return "F9";
+		if (actionName == RBL_InputActions.TOGGLE_MAP) return "M";
+		if (actionName == RBL_InputActions.TOGGLE_MISSIONS) return "L";
+		if (actionName == RBL_InputActions.TOGGLE_DEBUG_HUD) return "F6";
+		if (actionName == RBL_InputActions.CLOSE_MENU) return "ESC";
+		
+		return "?";
 	}
 	
 	void Initialize()
@@ -63,42 +65,31 @@ class RBL_InputHandler
 		if (m_bInitialized)
 			return;
 		
+		// Initialize the new input manager
+		m_InputManager.Initialize();
+		
+		// Subscribe to menu state changes
+		m_InputManager.GetOnMenuStateChanged().Insert(OnMenuStateChanged);
+		
 		m_bInitialized = true;
 		PrintFormat("[RBL_Input] Input handler ready");
 	}
 	
 	void Update(float timeSlice)
 	{
-		// Decay cooldowns
-		if (m_fShopCooldown > 0)
-			m_fShopCooldown -= timeSlice;
-		if (m_fSaveCooldown > 0)
-			m_fSaveCooldown -= timeSlice;
-		if (m_fLoadCooldown > 0)
-			m_fLoadCooldown -= timeSlice;
-		
-		// Get input manager
-		InputManager inputMgr = GetGame().GetInputManager();
-		if (!inputMgr)
-			return;
-		
-		// Handle shop toggle (J key via CharacterInspect)
-		if (inputMgr.GetActionTriggered(RBL_InputConfig.ACTION_SHOP) && m_fShopCooldown <= 0)
-		{
-			HandleShopToggle();
-			m_fShopCooldown = RBL_InputConfig.SHOP_COOLDOWN;
-		}
-		
-		// Handle escape (close menus)
-		if (inputMgr.GetActionTriggered(RBL_InputConfig.ACTION_ESCAPE))
-		{
-			HandleEscape();
-		}
+		// Delegate to new input manager
+		if (m_InputManager)
+			m_InputManager.Update(timeSlice);
 	}
 	
-	protected void HandleShopToggle()
+	protected void OnMenuStateChanged(bool isOpen)
 	{
-		// Toggle via new UI system
+		m_bShopOpen = isOpen;
+	}
+	
+	// Legacy handlers for external callers
+	void HandleShopToggle()
+	{
 		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
 		if (uiMgr)
 		{
@@ -107,23 +98,16 @@ class RBL_InputHandler
 			{
 				shopMenu.Toggle();
 				m_bShopOpen = shopMenu.IsVisible();
-				
-				if (m_bShopOpen)
-					PrintFormat("[RBL_Input] Shop opened");
-				else
-					PrintFormat("[RBL_Input] Shop closed");
 			}
 		}
 		
-		// Also try legacy shop manager
 		RBL_ShopManager shop = RBL_ShopManager.GetInstance();
 		if (shop)
 			shop.ToggleMenu();
 	}
 	
-	protected void HandleEscape()
+	void HandleEscape()
 	{
-		// Close any open menus
 		if (m_bShopOpen)
 		{
 			RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
@@ -141,14 +125,6 @@ class RBL_InputHandler
 	
 	void HandleQuickSave()
 	{
-		if (m_fSaveCooldown > 0)
-		{
-			PrintFormat("[RBL_Input] Save on cooldown");
-			return;
-		}
-		
-		m_fSaveCooldown = RBL_InputConfig.SAVE_COOLDOWN;
-		
 		RBL_PersistenceIntegration persistence = RBL_PersistenceIntegration.GetInstance();
 		if (persistence)
 		{
@@ -159,19 +135,9 @@ class RBL_InputHandler
 	
 	void HandleQuickLoad()
 	{
-		if (m_fLoadCooldown > 0)
-		{
-			PrintFormat("[RBL_Input] Load on cooldown");
-			return;
-		}
-		
-		m_fLoadCooldown = RBL_InputConfig.SAVE_COOLDOWN;
-		
 		RBL_PersistenceIntegration persistence = RBL_PersistenceIntegration.GetInstance();
 		if (persistence)
-		{
 			persistence.QuickLoad();
-		}
 	}
 	
 	void HandleToggleHUD()
@@ -179,8 +145,6 @@ class RBL_InputHandler
 		RBL_HUDManager hud = RBL_HUDManager.GetInstance();
 		if (hud)
 			hud.ToggleVisibility();
-		
-		PrintFormat("[RBL_Input] HUD toggled");
 	}
 	
 	void HandleToggleDebugHUD()
@@ -188,13 +152,15 @@ class RBL_InputHandler
 		RBL_ScreenHUD screenHUD = RBL_ScreenHUD.GetInstance();
 		if (screenHUD)
 			screenHUD.Toggle();
-		
-		PrintFormat("[RBL_Input] Debug HUD toggled");
 	}
 	
 	// State queries
 	bool IsShopOpen() { return m_bShopOpen; }
 	bool IsAnyMenuOpen() { return m_bShopOpen; }
+	bool IsInitialized() { return m_bInitialized; }
+	
+	// Get the input manager for direct access
+	RBL_InputManager GetInputManager() { return m_InputManager; }
 }
 
 // ============================================================================
@@ -249,6 +215,34 @@ class RBL_DebugCommands
 		PrintFormat("\n=== DEBUG COMMANDS ===");
 		PrintFormat("RBL_DebugCommands.TeleportToZone(\"zoneid\")");
 		PrintFormat("RBL_DebugCommands.TestResourceTick()");
+		PrintFormat("RBL_DebugCommands.PrintKeybinds()");
+		PrintFormat("\n========================================");
+	}
+
+	static void PrintKeybinds()
+	{
+		PrintFormat("\n========================================");
+		PrintFormat("     PROJECT REBELLION - KEYBINDS");
+		PrintFormat("========================================\n");
+		
+		RBL_InputBindingRegistry registry = RBL_InputBindingRegistry.GetInstance();
+		if (!registry)
+		{
+			PrintFormat("Input registry not available");
+			return;
+		}
+		
+		array<ref RBL_Keybind> bindings = {};
+		registry.GetAllBindings(bindings);
+		
+		foreach (RBL_Keybind binding : bindings)
+		{
+			PrintFormat("  [%1] - %2 (%3)", 
+				binding.GetKeyDisplayName(), 
+				binding.DisplayName, 
+				binding.ActionName);
+		}
+		
 		PrintFormat("\n========================================");
 	}
 
@@ -327,7 +321,6 @@ class RBL_DebugCommands
 			RBL_CampaignManager campaignMgr = RBL_CampaignManager.GetInstance();
 			if (campaignMgr)
 			{
-				// Create a dummy zone for notification (or extend the system)
 				PrintFormat("[RBL_Debug] Campaign notified of zone capture");
 			}
 		}
@@ -365,7 +358,6 @@ class RBL_DebugCommands
 		}
 
 		vector zonePos = zone.GetZonePosition();
-		// Add some height to avoid falling through ground
 		zonePos[1] = zonePos[1] + 2.0;
 
 		playerEntity.SetOrigin(zonePos);
@@ -377,10 +369,36 @@ class RBL_DebugCommands
 		RBL_CampaignManager campaignMgr = RBL_CampaignManager.GetInstance();
 		if (campaignMgr)
 		{
-			// Force a resource tick by accessing the method
-			// Note: This is a workaround - ideally you'd expose a method
 			PrintFormat("[RBL_Debug] Resource tick triggered manually");
 			PrintFormat("[RBL_Debug] Check console for resource tick output");
 		}
+	}
+	
+	static void TestInputSystem()
+	{
+		PrintFormat("\n========================================");
+		PrintFormat("     INPUT SYSTEM TEST");
+		PrintFormat("========================================\n");
+		
+		RBL_InputManager inputMgr = RBL_InputManager.GetInstance();
+		if (!inputMgr)
+		{
+			PrintFormat("[FAIL] Input manager not available");
+			return;
+		}
+		
+		PrintFormat("Input Manager Initialized: %1", inputMgr.IsInitialized());
+		PrintFormat("Input Manager Enabled: %1", inputMgr.IsEnabled());
+		PrintFormat("Menu Open: %1", inputMgr.IsMenuOpen());
+		
+		RBL_InputBindingRegistry registry = inputMgr.GetRegistry();
+		if (registry)
+		{
+			PrintFormat("Registry Initialized: %1", registry.IsInitialized());
+			PrintFormat("Using Custom Actions: %1", registry.IsUsingCustomActions());
+			PrintFormat("Binding Count: %1", registry.GetBindingCount());
+		}
+		
+		PrintFormat("\n========================================");
 	}
 }
