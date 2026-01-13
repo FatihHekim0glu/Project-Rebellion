@@ -208,6 +208,33 @@ class RBL_EconomyManager
 		return true;
 	}
 
+	bool TryPurchase(string itemID, int moneyCost, int hrCost)
+	{
+		if (m_iMoney < moneyCost)
+		{
+			PrintFormat("[RBL_Economy] TryPurchase failed: Not enough money ($%1 < $%2)", m_iMoney, moneyCost);
+			return false;
+		}
+		
+		if (m_iHumanResources < hrCost)
+		{
+			PrintFormat("[RBL_Economy] TryPurchase failed: Not enough HR (%1 < %2)", m_iHumanResources, hrCost);
+			return false;
+		}
+		
+		SpendMoney(moneyCost);
+		if (hrCost > 0)
+			SpendHR(hrCost);
+		
+		PrintFormat("[RBL_Economy] Purchase successful: %1 ($%2, %3 HR)", itemID, moneyCost, hrCost);
+		return true;
+	}
+
+	bool CanAffordPurchase(int moneyCost, int hrCost)
+	{
+		return (m_iMoney >= moneyCost) && (m_iHumanResources >= hrCost);
+	}
+
 	void PrintEconomyStatus()
 	{
 		PrintFormat("[RBL_Economy] === ECONOMY STATUS ===");
