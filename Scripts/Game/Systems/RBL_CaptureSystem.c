@@ -211,6 +211,7 @@ class RBL_CaptureManager
 			return;
 		
 		string zoneID = zone.GetZoneID();
+		string zoneName = zone.GetZoneName();
 		ERBLFactionKey previousOwner = zone.GetOwnerFaction();
 		
 		// Clear enemy garrison before transfer
@@ -226,6 +227,11 @@ class RBL_CaptureManager
 		// Reset progress
 		m_mCaptureProgress.Set(zoneID, 0);
 		m_mCapturingFaction.Remove(zoneID);
+		
+		// Notify UI of capture completion
+		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+		if (uiMgr)
+			uiMgr.OnCaptureComplete(zoneID, zoneName, newOwner);
 
 		// Award resources (server only)
 		RBL_EconomyManager econMgr = RBL_EconomyManager.GetInstance();
@@ -263,7 +269,17 @@ class RBL_CaptureManager
 		else
 			m_mCapturingFaction.Remove(zoneID);
 		
-		// Trigger progress event for UI updates
+		// Update UI with capture progress
+		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+		if (uiMgr)
+		{
+			if (progress > 0)
+				uiMgr.UpdateCaptureProgress(zoneID, progress, capturingFaction);
+			else
+				uiMgr.ClearCaptureProgress(zoneID);
+		}
+		
+		// Trigger progress event for other listeners
 		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
 		if (zoneMgr)
 		{
