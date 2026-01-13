@@ -1,6 +1,7 @@
 // ============================================================================
 // PROJECT REBELLION - Mission Manager
 // Core system for managing missions
+// Server-authoritative mission state with client sync
 // ============================================================================
 
 class RBL_MissionManager
@@ -57,16 +58,26 @@ class RBL_MissionManager
 		m_iTotalMissionsFailed = 0;
 	}
 	
+	// ========================================================================
+	// NETWORK HELPERS
+	// ========================================================================
+	
+	protected bool IsServer()
+	{
+		return RBL_NetworkUtils.IsSinglePlayer() || RBL_NetworkUtils.IsServer();
+	}
+	
 	void Initialize()
 	{
 		if (m_bInitialized)
 			return;
 		
-		// Generate initial missions
-		RefreshAvailableMissions();
+		// Only server generates missions
+		if (IsServer())
+			RefreshAvailableMissions();
 		
 		m_bInitialized = true;
-		PrintFormat("[RBL_MissionMgr] Mission Manager initialized");
+		PrintFormat("[RBL_MissionMgr] Mission Manager initialized (Server: %1)", IsServer());
 	}
 	
 	// ========================================================================
@@ -76,6 +87,10 @@ class RBL_MissionManager
 	void Update(float timeSlice)
 	{
 		if (!m_bInitialized)
+			return;
+		
+		// Mission processing is server-authoritative
+		if (!IsServer())
 			return;
 		
 		// Update active missions
@@ -113,6 +128,13 @@ class RBL_MissionManager
 	
 	bool StartMission(string missionID)
 	{
+		// Only server can start missions
+		if (!IsServer())
+		{
+			PrintFormat("[RBL_MissionMgr] StartMission blocked - not server");
+			return false;
+		}
+		
 		// Find mission in available pool
 		RBL_Mission mission = GetAvailableMissionByID(missionID);
 		if (!mission)
@@ -136,9 +158,15 @@ class RBL_MissionManager
 		mission.Start();
 		m_aActiveMissions.Insert(mission);
 		
-		// Notify
+		// Notify locally
 		m_OnMissionStarted.Invoke(mission);
-		RBL_Notifications.MissionReceived(mission.GetName());
+		
+		// Broadcast to all clients
+		RBL_NetworkManager netMgr = RBL_NetworkManager.GetInstance();
+		if (netMgr)
+			netMgr.BroadcastMissionStarted(mission.GetID(), mission.GetName());
+		else
+			RBL_Notifications.MissionReceived(mission.GetName());
 		
 		PrintFormat("[RBL_MissionMgr] Mission started: %1", mission.GetName());
 		return true;
@@ -159,6 +187,9 @@ class RBL_MissionManager
 		if (!mission)
 			return;
 		
+		if (!IsServer())
+			return;
+		
 		// Remove from active
 		m_aActiveMissions.RemoveItem(mission);
 		m_aCompletedMissions.Insert(mission);
@@ -168,9 +199,15 @@ class RBL_MissionManager
 		// Apply rewards
 		ApplyMissionReward(mission);
 		
-		// Notify
+		// Notify locally
 		m_OnMissionCompleted.Invoke(mission);
-		RBL_Notifications.MissionComplete(mission.GetName());
+		
+		// Broadcast to all clients
+		RBL_NetworkManager netMgr = RBL_NetworkManager.GetInstance();
+		if (netMgr)
+			netMgr.BroadcastMissionCompleted(mission.GetID(), mission.GetName());
+		else
+			RBL_Notifications.MissionComplete(mission.GetName());
 		
 		PrintFormat("[RBL_MissionMgr] Mission completed: %1", mission.GetName());
 		
@@ -184,15 +221,24 @@ class RBL_MissionManager
 		if (!mission)
 			return;
 		
+		if (!IsServer())
+			return;
+		
 		// Remove from active
 		m_aActiveMissions.RemoveItem(mission);
 		m_aFailedMissions.Insert(mission);
 		
 		m_iTotalMissionsFailed++;
 		
-		// Notify
+		// Notify locally
 		m_OnMissionFailed.Invoke(mission);
-		RBL_Notifications.MissionFailed(mission.GetName());
+		
+		// Broadcast to all clients
+		RBL_NetworkManager netMgr = RBL_NetworkManager.GetInstance();
+		if (netMgr)
+			netMgr.BroadcastMissionFailed(mission.GetID(), mission.GetName());
+		else
+			RBL_Notifications.MissionFailed(mission.GetName());
 		
 		PrintFormat("[RBL_MissionMgr] Mission failed: %1", mission.GetName());
 	}
