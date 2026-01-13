@@ -16,7 +16,7 @@ class RBL_UIManager
 	protected ref RBL_UndercoverWidgetImpl m_UndercoverIndicator;
 	protected ref RBL_NotificationManagerImpl m_Notifications;
 	protected ref RBL_ShopMenuWidgetImpl m_ShopMenu;
-	protected ref RBL_KeybindHintsImpl m_KeybindHints;
+	//protected ref RBL_KeybindHintsImpl m_KeybindHints;
 	protected ref RBL_SettingsMenuWidget m_SettingsMenu;
 	
 	protected bool m_bInitialized;
@@ -175,8 +175,9 @@ class RBL_UIManager
 		// Show completion notification
 		string factionName = GetFactionName(newOwnerFaction);
 		string message = zoneName + " captured by " + factionName + "!";
-		int color = (newOwnerFaction == ERBLFactionKey.FIA) ? 
-			RBL_UIColors.COLOR_ACCENT_GREEN : RBL_UIColors.COLOR_ACCENT_RED;
+		int color = RBL_UIColors.COLOR_ACCENT_RED;
+		if (newOwnerFaction == ERBLFactionKey.FIA)
+			color = RBL_UIColors.COLOR_ACCENT_GREEN;
 		
 		ShowNotification(message, color, 4.0);
 	}
@@ -388,7 +389,7 @@ void ExtractRGBA(int color, out int r, out int g, out int b, out int a)
 }
 
 // Create ARGB color
-int ARGB(int a, int r, int g, int b)
+int RBL_ARGB(int a, int r, int g, int b)
 {
 	return (a << 24) | (r << 16) | (g << 8) | b;
 }

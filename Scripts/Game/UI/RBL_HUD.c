@@ -70,6 +70,93 @@ class RBL_HUDManager
 	
 	bool IsVisible() { return m_bVisible; }
 	
+	static void Show()
+	{
+		RBL_HUDManager inst = GetInstance();
+		if (inst)
+			inst.SetVisible(true);
+	}
+	
+	static void Hide()
+	{
+		RBL_HUDManager inst = GetInstance();
+		if (inst)
+			inst.SetVisible(false);
+	}
+	
+	static string GetNearestZoneName()
+	{
+		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
+		if (!zoneMgr)
+			return "Unknown";
+		
+		IEntity player = RBL_NetworkComponent.GetLocalPlayerEntity();
+		if (!player)
+			return "Unknown";
+		
+		RBL_CampaignZone nearest = zoneMgr.GetNearestZone(player.GetOrigin());
+		if (nearest)
+			return nearest.GetZoneName();
+		return "Unknown";
+	}
+	
+	static int GetFIAZoneCount()
+	{
+		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
+		if (zoneMgr)
+			return zoneMgr.GetZoneCountByFaction(ERBLFactionKey.FIA);
+		return 0;
+	}
+	
+	static string GetNearestZoneOwner()
+	{
+		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
+		if (!zoneMgr)
+			return "Unknown";
+		
+		IEntity player = RBL_NetworkComponent.GetLocalPlayerEntity();
+		if (!player)
+			return "Unknown";
+		
+		RBL_CampaignZone nearest = zoneMgr.GetNearestZone(player.GetOrigin());
+		if (nearest)
+		{
+			ERBLFactionKey owner = nearest.GetOwnerFaction();
+			if (owner == ERBLFactionKey.FIA)
+				return "FIA";
+			else if (owner == ERBLFactionKey.USSR)
+				return "USSR";
+			else if (owner == ERBLFactionKey.US)
+				return "US";
+			return "Neutral";
+		}
+		return "Unknown";
+	}
+	
+	static int GetEnemyZoneCount()
+	{
+		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
+		if (zoneMgr)
+			return zoneMgr.GetZoneCountByFaction(ERBLFactionKey.USSR);
+		return 0;
+	}
+	
+	static float GetNearestZoneDistance()
+	{
+		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
+		if (!zoneMgr)
+			return 0;
+		
+		IEntity player = RBL_NetworkComponent.GetLocalPlayerEntity();
+		if (!player)
+			return 0;
+		
+		RBL_CampaignZone nearest = zoneMgr.GetNearestZone(player.GetOrigin());
+		if (nearest)
+			return vector.Distance(player.GetOrigin(), nearest.GetOrigin());
+		return 0;
+	}
+	
 	// Legacy getters - delegate to MainHUD widget
 	int GetDisplayMoney()
 	{

@@ -146,58 +146,46 @@ class RBL_SettingsPersistence
 	
 	protected string SerializeSettings(RBL_SettingsData settings)
 	{
-		// Manual JSON construction for Enfusion compatibility
-		string json = "{\n";
-		
-		// Version
-		json += "\t\"version\": " + settings.m_iVersion.ToString() + ",\n";
-		
-		// Gameplay
-		json += "\t\"gameplay\": {\n";
-		json += "\t\t\"difficulty\": " + ((int)settings.m_eDifficulty).ToString() + ",\n";
-		json += "\t\t\"autoSaveEnabled\": " + BoolToString(settings.m_bAutoSaveEnabled) + ",\n";
-		json += "\t\t\"autoSaveInterval\": " + settings.m_fAutoSaveInterval.ToString() + ",\n";
-		json += "\t\t\"saveOnZoneCapture\": " + BoolToString(settings.m_bSaveOnZoneCapture) + ",\n";
-		json += "\t\t\"saveOnMissionComplete\": " + BoolToString(settings.m_bSaveOnMissionComplete) + ",\n";
-		json += "\t\t\"undercoverSystemEnabled\": " + BoolToString(settings.m_bUndercoverSystemEnabled) + ",\n";
-		json += "\t\t\"friendlyFireEnabled\": " + BoolToString(settings.m_bFriendlyFireEnabled) + ",\n";
-		json += "\t\t\"showTutorialHints\": " + BoolToString(settings.m_bShowTutorialHints) + "\n";
-		json += "\t},\n";
-		
-		// Display
-		json += "\t\"display\": {\n";
-		json += "\t\t\"hudEnabled\": " + BoolToString(settings.m_bHUDEnabled) + ",\n";
-		json += "\t\t\"hudOpacity\": " + settings.m_fHUDOpacity.ToString() + ",\n";
-		json += "\t\t\"uiScale\": " + settings.m_fUIScale.ToString() + ",\n";
-		json += "\t\t\"showMapMarkers\": " + BoolToString(settings.m_bShowMapMarkers) + ",\n";
-		json += "\t\t\"showZoneNames\": " + BoolToString(settings.m_bShowZoneNames) + ",\n";
-		json += "\t\t\"showMinimap\": " + BoolToString(settings.m_bShowMinimap) + ",\n";
-		json += "\t\t\"showNotifications\": " + BoolToString(settings.m_bShowNotifications) + ",\n";
-		json += "\t\t\"notificationDuration\": " + settings.m_fNotificationDuration.ToString() + ",\n";
-		json += "\t\t\"showKeybindHints\": " + BoolToString(settings.m_bShowKeybindHints) + ",\n";
-		json += "\t\t\"showDamageNumbers\": " + BoolToString(settings.m_bShowDamageNumbers) + ",\n";
-		json += "\t\t\"showCaptureBar\": " + BoolToString(settings.m_bShowCaptureBar) + "\n";
-		json += "\t},\n";
-		
-		// Audio
-		json += "\t\"audio\": {\n";
-		json += "\t\t\"masterVolume\": " + settings.m_fMasterVolume.ToString() + ",\n";
-		json += "\t\t\"musicVolume\": " + settings.m_fMusicVolume.ToString() + ",\n";
-		json += "\t\t\"sfxVolume\": " + settings.m_fSFXVolume.ToString() + ",\n";
-		json += "\t\t\"uiVolume\": " + settings.m_fUIVolume.ToString() + ",\n";
-		json += "\t\t\"muteWhenUnfocused\": " + BoolToString(settings.m_bMuteWhenUnfocused) + "\n";
-		json += "\t},\n";
-		
-		// Controls
-		json += "\t\"controls\": {\n";
-		json += "\t\t\"mouseSensitivity\": " + settings.m_fMouseSensitivity.ToString() + ",\n";
-		json += "\t\t\"invertY\": " + BoolToString(settings.m_bInvertY) + ",\n";
-		json += "\t\t\"toggleADS\": " + BoolToString(settings.m_bToggleADS) + ",\n";
-		json += "\t\t\"toggleSprint\": " + BoolToString(settings.m_bToggleSprint) + "\n";
-		json += "\t}\n";
-		
+		// Manual JSON construction for Enfusion compatibility - minified
+		string json = "{";
+		json += "\"version\":" + settings.m_iVersion.ToString() + ",";
+		json += "\"gameplay\":{";
+		json += "\"difficulty\":" + ((int)settings.m_eDifficulty).ToString() + ",";
+		json += "\"autoSaveEnabled\":" + BoolToString(settings.m_bAutoSaveEnabled) + ",";
+		json += "\"autoSaveInterval\":" + settings.m_fAutoSaveInterval.ToString() + ",";
+		json += "\"saveOnZoneCapture\":" + BoolToString(settings.m_bSaveOnZoneCapture) + ",";
+		json += "\"saveOnMissionComplete\":" + BoolToString(settings.m_bSaveOnMissionComplete) + ",";
+		json += "\"undercoverSystemEnabled\":" + BoolToString(settings.m_bUndercoverSystemEnabled) + ",";
+		json += "\"friendlyFireEnabled\":" + BoolToString(settings.m_bFriendlyFireEnabled) + ",";
+		json += "\"showTutorialHints\":" + BoolToString(settings.m_bShowTutorialHints);
+		json += "},";
+		json += "\"display\":{";
+		json += "\"hudEnabled\":" + BoolToString(settings.m_bHUDEnabled) + ",";
+		json += "\"hudOpacity\":" + settings.m_fHUDOpacity.ToString() + ",";
+		json += "\"uiScale\":" + settings.m_fUIScale.ToString() + ",";
+		json += "\"showMapMarkers\":" + BoolToString(settings.m_bShowMapMarkers) + ",";
+		json += "\"showZoneNames\":" + BoolToString(settings.m_bShowZoneNames) + ",";
+		json += "\"showMinimap\":" + BoolToString(settings.m_bShowMinimap) + ",";
+		json += "\"showNotifications\":" + BoolToString(settings.m_bShowNotifications) + ",";
+		json += "\"notificationDuration\":" + settings.m_fNotificationDuration.ToString() + ",";
+		json += "\"showKeybindHints\":" + BoolToString(settings.m_bShowKeybindHints) + ",";
+		json += "\"showDamageNumbers\":" + BoolToString(settings.m_bShowDamageNumbers) + ",";
+		json += "\"showCaptureBar\":" + BoolToString(settings.m_bShowCaptureBar);
+		json += "},";
+		json += "\"audio\":{";
+		json += "\"masterVolume\":" + settings.m_fMasterVolume.ToString() + ",";
+		json += "\"musicVolume\":" + settings.m_fMusicVolume.ToString() + ",";
+		json += "\"sfxVolume\":" + settings.m_fSFXVolume.ToString() + ",";
+		json += "\"uiVolume\":" + settings.m_fUIVolume.ToString() + ",";
+		json += "\"muteWhenUnfocused\":" + BoolToString(settings.m_bMuteWhenUnfocused);
+		json += "},";
+		json += "\"controls\":{";
+		json += "\"mouseSensitivity\":" + settings.m_fMouseSensitivity.ToString() + ",";
+		json += "\"invertY\":" + BoolToString(settings.m_bInvertY) + ",";
+		json += "\"toggleADS\":" + BoolToString(settings.m_bToggleADS) + ",";
+		json += "\"toggleSprint\":" + BoolToString(settings.m_bToggleSprint);
 		json += "}";
-		
+		json += "}";
 		return json;
 	}
 	
@@ -318,7 +306,9 @@ class RBL_SettingsPersistence
 	
 	protected string BoolToString(bool value)
 	{
-		return value ? "true" : "false";
+		if (value)
+			return "true";
+		return "false";
 	}
 	
 	protected int ParseIntValue(string json, string key, int defaultValue)
@@ -331,12 +321,12 @@ class RBL_SettingsPersistence
 		int valueStart = keyPos + searchKey.Length();
 		
 		// Skip whitespace
-		while (valueStart < json.Length() && (json[valueStart] == ' ' || json[valueStart] == '\t'))
+		while (valueStart < json.Length() && json.Get(valueStart) == " ")
 			valueStart++;
 		
 		// Find end of value
 		int valueEnd = valueStart;
-		while (valueEnd < json.Length() && IsDigit(json[valueEnd]))
+		while (valueEnd < json.Length() && IsDigitChar(json.Get(valueEnd)))
 			valueEnd++;
 		
 		if (valueEnd == valueStart)
@@ -356,12 +346,12 @@ class RBL_SettingsPersistence
 		int valueStart = keyPos + searchKey.Length();
 		
 		// Skip whitespace
-		while (valueStart < json.Length() && (json[valueStart] == ' ' || json[valueStart] == '\t'))
+		while (valueStart < json.Length() && json.Get(valueStart) == " ")
 			valueStart++;
 		
 		// Find end of value (including decimals)
 		int valueEnd = valueStart;
-		while (valueEnd < json.Length() && (IsDigit(json[valueEnd]) || json[valueEnd] == '.' || json[valueEnd] == '-'))
+		while (valueEnd < json.Length() && IsFloatChar(json.Get(valueEnd)))
 			valueEnd++;
 		
 		if (valueEnd == valueStart)
@@ -381,7 +371,7 @@ class RBL_SettingsPersistence
 		int valueStart = keyPos + searchKey.Length();
 		
 		// Skip whitespace
-		while (valueStart < json.Length() && (json[valueStart] == ' ' || json[valueStart] == '\t'))
+		while (valueStart < json.Length() && json.Get(valueStart) == " ")
 			valueStart++;
 		
 		// Check for true/false
@@ -400,6 +390,17 @@ class RBL_SettingsPersistence
 		}
 		
 		return defaultValue;
+	}
+	
+	protected bool IsDigitChar(string c)
+	{
+		return c == "0" || c == "1" || c == "2" || c == "3" || c == "4" || 
+			   c == "5" || c == "6" || c == "7" || c == "8" || c == "9";
+	}
+	
+	protected bool IsFloatChar(string c)
+	{
+		return IsDigitChar(c) || c == "." || c == "-";
 	}
 	
 	protected bool IsDigit(string char)

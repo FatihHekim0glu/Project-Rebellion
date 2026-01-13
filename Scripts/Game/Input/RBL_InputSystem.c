@@ -98,68 +98,65 @@ class RBL_KeyCodes
 	// Get display name for key code
 	static string GetKeyName(int keyCode)
 	{
-		switch (keyCode)
-		{
-			case KEY_ESC: return "ESC";
-			case KEY_1: return "1";
-			case KEY_2: return "2";
-			case KEY_3: return "3";
-			case KEY_4: return "4";
-			case KEY_5: return "5";
-			case KEY_6: return "6";
-			case KEY_7: return "7";
-			case KEY_8: return "8";
-			case KEY_9: return "9";
-			case KEY_0: return "0";
-			case KEY_Q: return "Q";
-			case KEY_W: return "W";
-			case KEY_E: return "E";
-			case KEY_R: return "R";
-			case KEY_T: return "T";
-			case KEY_Y: return "Y";
-			case KEY_U: return "U";
-			case KEY_I: return "I";
-			case KEY_O: return "O";
-			case KEY_P: return "P";
-			case KEY_A: return "A";
-			case KEY_S: return "S";
-			case KEY_D: return "D";
-			case KEY_F: return "F";
-			case KEY_G: return "G";
-			case KEY_H: return "H";
-			case KEY_J: return "J";
-			case KEY_K: return "K";
-			case KEY_L: return "L";
-			case KEY_Z: return "Z";
-			case KEY_X: return "X";
-			case KEY_C: return "C";
-			case KEY_V: return "V";
-			case KEY_B: return "B";
-			case KEY_N: return "N";
-			case KEY_M: return "M";
-			case KEY_F1: return "F1";
-			case KEY_F2: return "F2";
-			case KEY_F3: return "F3";
-			case KEY_F4: return "F4";
-			case KEY_F5: return "F5";
-			case KEY_F6: return "F6";
-			case KEY_F7: return "F7";
-			case KEY_F8: return "F8";
-			case KEY_F9: return "F9";
-			case KEY_F10: return "F10";
-			case KEY_F11: return "F11";
-			case KEY_F12: return "F12";
-			case KEY_TAB: return "TAB";
-			case KEY_SPACE: return "SPACE";
-			case KEY_ENTER: return "ENTER";
-			case KEY_LSHIFT: return "SHIFT";
-			case KEY_RSHIFT: return "SHIFT";
-			case KEY_LCTRL: return "CTRL";
-			case KEY_RCTRL: return "CTRL";
-			case KEY_LALT: return "ALT";
-			case KEY_RALT: return "ALT";
-			default: return "?";
-		}
+		if (keyCode == KEY_ESC) return "ESC";
+		if (keyCode == KEY_1) return "1";
+		if (keyCode == KEY_2) return "2";
+		if (keyCode == KEY_3) return "3";
+		if (keyCode == KEY_4) return "4";
+		if (keyCode == KEY_5) return "5";
+		if (keyCode == KEY_6) return "6";
+		if (keyCode == KEY_7) return "7";
+		if (keyCode == KEY_8) return "8";
+		if (keyCode == KEY_9) return "9";
+		if (keyCode == KEY_0) return "0";
+		if (keyCode == KEY_Q) return "Q";
+		if (keyCode == KEY_W) return "W";
+		if (keyCode == KEY_E) return "E";
+		if (keyCode == KEY_R) return "R";
+		if (keyCode == KEY_T) return "T";
+		if (keyCode == KEY_Y) return "Y";
+		if (keyCode == KEY_U) return "U";
+		if (keyCode == KEY_I) return "I";
+		if (keyCode == KEY_O) return "O";
+		if (keyCode == KEY_P) return "P";
+		if (keyCode == KEY_A) return "A";
+		if (keyCode == KEY_S) return "S";
+		if (keyCode == KEY_D) return "D";
+		if (keyCode == KEY_F) return "F";
+		if (keyCode == KEY_G) return "G";
+		if (keyCode == KEY_H) return "H";
+		if (keyCode == KEY_J) return "J";
+		if (keyCode == KEY_K) return "K";
+		if (keyCode == KEY_L) return "L";
+		if (keyCode == KEY_Z) return "Z";
+		if (keyCode == KEY_X) return "X";
+		if (keyCode == KEY_C) return "C";
+		if (keyCode == KEY_V) return "V";
+		if (keyCode == KEY_B) return "B";
+		if (keyCode == KEY_N) return "N";
+		if (keyCode == KEY_M) return "M";
+		if (keyCode == KEY_F1) return "F1";
+		if (keyCode == KEY_F2) return "F2";
+		if (keyCode == KEY_F3) return "F3";
+		if (keyCode == KEY_F4) return "F4";
+		if (keyCode == KEY_F5) return "F5";
+		if (keyCode == KEY_F6) return "F6";
+		if (keyCode == KEY_F7) return "F7";
+		if (keyCode == KEY_F8) return "F8";
+		if (keyCode == KEY_F9) return "F9";
+		if (keyCode == KEY_F10) return "F10";
+		if (keyCode == KEY_F11) return "F11";
+		if (keyCode == KEY_F12) return "F12";
+		if (keyCode == KEY_TAB) return "TAB";
+		if (keyCode == KEY_SPACE) return "SPACE";
+		if (keyCode == KEY_ENTER) return "ENTER";
+		if (keyCode == KEY_LSHIFT) return "SHIFT";
+		if (keyCode == KEY_RSHIFT) return "SHIFT";
+		if (keyCode == KEY_LCTRL) return "CTRL";
+		if (keyCode == KEY_RCTRL) return "CTRL";
+		if (keyCode == KEY_LALT) return "ALT";
+		if (keyCode == KEY_RALT) return "ALT";
+		return "?";
 	}
 }
 
@@ -437,14 +434,14 @@ class RBL_InputState
 class RBL_InputActionEvent
 {
 	string ActionName;
-	int KeyCode;
+	int InputKeyCode;
 	bool IsPressed;
 	float Timestamp;
 	
 	void RBL_InputActionEvent(string actionName, int keyCode, bool isPressed)
 	{
 		ActionName = actionName;
-		KeyCode = keyCode;
+		InputKeyCode = keyCode;
 		IsPressed = isPressed;
 		Timestamp = System.GetTickCount() / 1000.0;
 	}
@@ -520,12 +517,12 @@ class RBL_InputManager
 		// Process each registered action
 		ProcessAction(inputMgr, RBL_InputActions.TOGGLE_SHOP, RBL_InputActions.FALLBACK_SHOP);
 		ProcessAction(inputMgr, RBL_InputActions.TOGGLE_SETTINGS, RBL_InputActions.FALLBACK_SETTINGS);
-		ProcessAction(inputMgr, RBL_InputActions.TOGGLE_HUD, null);
-		ProcessAction(inputMgr, RBL_InputActions.QUICK_SAVE, null);
-		ProcessAction(inputMgr, RBL_InputActions.QUICK_LOAD, null);
+		ProcessAction(inputMgr, RBL_InputActions.TOGGLE_HUD, "");
+		ProcessAction(inputMgr, RBL_InputActions.QUICK_SAVE, "");
+		ProcessAction(inputMgr, RBL_InputActions.QUICK_LOAD, "");
 		ProcessAction(inputMgr, RBL_InputActions.TOGGLE_MAP, RBL_InputActions.FALLBACK_MAP);
-		ProcessAction(inputMgr, RBL_InputActions.TOGGLE_MISSIONS, null);
-		ProcessAction(inputMgr, RBL_InputActions.TOGGLE_DEBUG_HUD, null);
+		ProcessAction(inputMgr, RBL_InputActions.TOGGLE_MISSIONS, "");
+		ProcessAction(inputMgr, RBL_InputActions.TOGGLE_DEBUG_HUD, "");
 		ProcessAction(inputMgr, RBL_InputActions.CLOSE_MENU, RBL_InputActions.FALLBACK_ESCAPE);
 		ProcessAction(inputMgr, RBL_InputActions.INTERACT, RBL_InputActions.FALLBACK_USE);
 	}
@@ -551,7 +548,9 @@ class RBL_InputManager
 	protected void HandleActionTriggered(string actionName)
 	{
 		RBL_Keybind binding = m_Registry.GetBinding(actionName);
-		int keyCode = binding ? binding.CurrentKeyCode : 0;
+		int keyCode = 0;
+		if (binding)
+			keyCode = binding.CurrentKeyCode;
 		
 		RBL_InputActionEvent evt = new RBL_InputActionEvent(actionName, keyCode, true);
 		m_OnActionTriggered.Invoke(evt);
@@ -594,7 +593,10 @@ class RBL_InputManager
 			{
 				shopMenu.Toggle();
 				SetMenuOpen(shopMenu.IsVisible());
-				PrintFormat("[RBL_Input] Shop %1", shopMenu.IsVisible() ? "opened" : "closed");
+				string shopState = "closed";
+				if (shopMenu.IsVisible())
+					shopState = "opened";
+				PrintFormat("[RBL_Input] Shop %1", shopState);
 			}
 		}
 		
@@ -614,7 +616,10 @@ class RBL_InputManager
 			{
 				settingsMenu.Toggle();
 				SetMenuOpen(settingsMenu.IsVisible());
-				PrintFormat("[RBL_Input] Settings %1", settingsMenu.IsVisible() ? "opened" : "closed");
+				string settingsState = "closed";
+				if (settingsMenu.IsVisible())
+					settingsState = "opened";
+				PrintFormat("[RBL_Input] Settings %1", settingsState);
 			}
 		}
 	}
@@ -737,4 +742,3 @@ class RBL_InputConfig
 		return "?";
 	}
 }
-

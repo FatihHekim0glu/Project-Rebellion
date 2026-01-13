@@ -723,13 +723,17 @@ class RBL_QRFTemplates
 		switch (type)
 		{
 			case ERBLQRFType.PATROL:
-				return (warLevel >= 5) ? PREFAB_UAZ_MG : PREFAB_UAZ;
+				if (warLevel >= 5)
+					return PREFAB_UAZ_MG;
+				return PREFAB_UAZ;
 				
 			case ERBLQRFType.CONVOY:
 				return PREFAB_URAL;
 				
 			case ERBLQRFType.MECHANIZED:
-				return (warLevel >= 6) ? PREFAB_BMP1 : PREFAB_BTR70;
+				if (warLevel >= 6)
+					return PREFAB_BMP1;
+				return PREFAB_BTR70;
 				
 			case ERBLQRFType.HELICOPTER:
 				return PREFAB_MI8;

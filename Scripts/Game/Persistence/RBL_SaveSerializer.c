@@ -707,11 +707,10 @@ class RBL_SaveSerializer
 	protected static string EscapeString(string str)
 	{
 		// Escape special characters for JSON
-		str = str.Replace("\\", "\\\\");
-		str = str.Replace("\"", "\\\"");
-		str = str.Replace("\n", "\\n");
-		str = str.Replace("\r", "\\r");
-		str = str.Replace("\t", "\\t");
+		string backslash = "\\";
+		string quote = "\"";
+		str = str.Replace(backslash, backslash + backslash);
+		str = str.Replace(quote, backslash + quote);
 		return str;
 	}
 }

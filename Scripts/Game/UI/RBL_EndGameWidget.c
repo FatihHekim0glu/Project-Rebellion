@@ -6,7 +6,6 @@
 class RBL_EndGameWidget : RBL_PanelWidget
 {
 	protected bool m_bIsVictory;
-	protected bool m_bVisible;
 	protected float m_fFadeProgress;
 	protected float m_fAnimTimer;
 	protected float m_fDisplayTime;
@@ -100,17 +99,17 @@ class RBL_EndGameWidget : RBL_PanelWidget
 	// VISIBILITY
 	// ========================================================================
 	
-	void Show()
+	override void Show()
 	{
-		m_bVisible = true;
+		super.Show();
 		m_fFadeProgress = 0;
 		m_fAnimTimer = 0;
 		m_fDisplayTime = 0;
 	}
 	
-	void Hide()
+	override void Hide()
 	{
-		m_bVisible = false;
+		super.Hide();
 	}
 	
 	override bool IsVisible()
@@ -169,7 +168,9 @@ class RBL_EndGameWidget : RBL_PanelWidget
 		DrawRect(panelX, panelY, panelWidth, panelHeight, panelBgColor);
 		
 		// Border with victory/defeat color
-		int borderColor = m_bIsVictory ? RBL_UIColors.COLOR_ACCENT_GREEN : RBL_UIColors.COLOR_ACCENT_RED;
+		int borderColor = RBL_UIColors.COLOR_ACCENT_RED;
+		if (m_bIsVictory)
+			borderColor = RBL_UIColors.COLOR_ACCENT_GREEN;
 		borderColor = ApplyAlpha(borderColor, m_fAlpha);
 		DrawRectOutline(panelX, panelY, panelWidth, panelHeight, borderColor, 3);
 		
@@ -189,8 +190,12 @@ class RBL_EndGameWidget : RBL_PanelWidget
 	protected void DrawHeader(float panelX, float panelY, float panelWidth)
 	{
 		// Title
-		string title = m_bIsVictory ? "VICTORY" : "DEFEAT";
-		int titleColor = m_bIsVictory ? RBL_UIColors.COLOR_ACCENT_GREEN : RBL_UIColors.COLOR_ACCENT_RED;
+		string title = "DEFEAT";
+		if (m_bIsVictory)
+			title = "VICTORY";
+		int titleColor = RBL_UIColors.COLOR_ACCENT_RED;
+		if (m_bIsVictory)
+			titleColor = RBL_UIColors.COLOR_ACCENT_GREEN;
 		titleColor = ApplyAlpha(titleColor, m_fAlpha);
 		
 		// Pulsing effect
@@ -204,7 +209,9 @@ class RBL_EndGameWidget : RBL_PanelWidget
 		DbgUI.End();
 		
 		// Subtitle
-		string subtitle = m_bIsVictory ? "REBELLION SUCCESSFUL" : "REBELLION CRUSHED";
+		string subtitle = "REBELLION CRUSHED";
+		if (m_bIsVictory)
+			subtitle = "REBELLION SUCCESSFUL";
 		int subtitleColor = ApplyAlpha(RBL_UIColors.COLOR_TEXT_SECONDARY, m_fAlpha);
 		
 		DbgUI.Begin("EndGameSubtitle", panelX + (panelWidth / 2) - 100, titleY + 40);
@@ -274,7 +281,9 @@ class RBL_EndGameWidget : RBL_PanelWidget
 	protected void DrawEndReason(float panelX, float panelY, float panelWidth)
 	{
 		int labelColor = ApplyAlpha(RBL_UIColors.COLOR_TEXT_MUTED, m_fAlpha);
-		int reasonColor = m_bIsVictory ? RBL_UIColors.COLOR_ACCENT_GREEN : RBL_UIColors.COLOR_ACCENT_RED;
+		int reasonColor = RBL_UIColors.COLOR_ACCENT_RED;
+		if (m_bIsVictory)
+			reasonColor = RBL_UIColors.COLOR_ACCENT_GREEN;
 		reasonColor = ApplyAlpha(reasonColor, m_fAlpha);
 		
 		float centerX = panelX + (panelWidth / 2);
@@ -385,7 +394,10 @@ class RBL_CampaignSummaryWidget : RBL_PanelWidget
 		int minutes = totalSeconds / 60;
 		int secs = totalSeconds % 60;
 		
-		return minutes.ToString() + ":" + (secs < 10 ? "0" : "") + secs.ToString();
+		string secPad = "";
+		if (secs < 10)
+			secPad = "0";
+		return minutes.ToString() + ":" + secPad + secs.ToString();
 	}
 }
 

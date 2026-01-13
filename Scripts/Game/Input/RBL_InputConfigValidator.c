@@ -20,14 +20,14 @@ class RBL_InputValidationIssue
 	ERBLInputValidationResult Result;
 	string ActionName;
 	string Message;
-	int KeyCode;
+	int InputKeyCode;
 	
 	void RBL_InputValidationIssue(ERBLInputValidationResult result, string actionName, string message, int keyCode = -1)
 	{
 		Result = result;
 		ActionName = actionName;
 		Message = message;
-		KeyCode = keyCode;
+		InputKeyCode = keyCode;
 	}
 	
 	string GetSeverity()

@@ -143,7 +143,9 @@ class RBL_MissionListWidget : RBL_PanelWidget
 				float timeLeft = mission.GetTimeRemaining();
 				int mins = timeLeft / 60;
 				int secs = timeLeft % 60;
-				statusText += " [" + mins.ToString() + ":" + (secs < 10 ? "0" : "") + secs.ToString() + "]";
+				string secPad1 = "";
+				if (secs < 10) secPad1 = "0";
+				statusText += " [" + mins.ToString() + ":" + secPad1 + secs.ToString() + "]";
 			}
 		}
 		else if (mission.IsAvailable())
@@ -277,12 +279,15 @@ class RBL_ObjectiveTrackerWidget : RBL_PanelWidget
 		if (m_pTrackedMission.HasTimeLimit())
 		{
 			float timeLeft = m_pTrackedMission.GetTimeRemaining();
-			int timeColor = timeLeft < 60 ? RBL_UIColors.COLOR_ACCENT_RED : RBL_UIColors.COLOR_TEXT_SECONDARY;
+			int timeColor = RBL_UIColors.COLOR_TEXT_SECONDARY;
+			if (timeLeft < 60) timeColor = RBL_UIColors.COLOR_ACCENT_RED;
 			timeColor = ApplyAlpha(timeColor, m_fAlpha);
 			
 			int mins = timeLeft / 60;
 			int secs = timeLeft % 60;
-			string timeStr = mins.ToString() + ":" + (secs < 10 ? "0" : "") + secs.ToString();
+			string secPad2 = "";
+			if (secs < 10) secPad2 = "0";
+			string timeStr = mins.ToString() + ":" + secPad2 + secs.ToString();
 			
 			DbgUI.Begin("TrackedTime", m_fPosX + m_fWidth - 60, m_fPosY + 8);
 			DbgUI.Text(timeStr);
@@ -300,8 +305,10 @@ class RBL_ObjectiveTrackerWidget : RBL_PanelWidget
 				continue;
 			
 			// Checkbox
-			string checkbox = obj.IsCompleted() ? "[X]" : "[ ]";
-			int checkColor = obj.IsCompleted() ? RBL_UIColors.COLOR_ACCENT_GREEN : RBL_UIColors.COLOR_TEXT_MUTED;
+			string checkbox = "[ ]";
+			if (obj.IsCompleted()) checkbox = "[X]";
+			int checkColor = RBL_UIColors.COLOR_TEXT_MUTED;
+			if (obj.IsCompleted()) checkColor = RBL_UIColors.COLOR_ACCENT_GREEN;
 			checkColor = ApplyAlpha(checkColor, m_fAlpha);
 			
 			DbgUI.Begin("ObjCheck_" + i.ToString(), m_fPosX + 8, objY);
@@ -309,7 +316,8 @@ class RBL_ObjectiveTrackerWidget : RBL_PanelWidget
 			DbgUI.End();
 			
 			// Description
-			int descColor = obj.IsCompleted() ? RBL_UIColors.COLOR_TEXT_MUTED : RBL_UIColors.COLOR_TEXT_PRIMARY;
+			int descColor = RBL_UIColors.COLOR_TEXT_PRIMARY;
+			if (obj.IsCompleted()) descColor = RBL_UIColors.COLOR_TEXT_MUTED;
 			if (obj.IsOptional())
 				descColor = RBL_UIColors.COLOR_TEXT_SECONDARY;
 			descColor = ApplyAlpha(descColor, m_fAlpha);
@@ -348,7 +356,6 @@ class RBL_ObjectiveTrackerWidget : RBL_PanelWidget
 class RBL_MissionBriefingWidget : RBL_PanelWidget
 {
 	protected ref RBL_Mission m_pMission;
-	protected bool m_bVisible;
 	protected float m_fFadeProgress;
 	
 	void RBL_MissionBriefingWidget()
@@ -373,9 +380,9 @@ class RBL_MissionBriefingWidget : RBL_PanelWidget
 		m_fFadeProgress = 0;
 	}
 	
-	void Hide()
+	override void Hide()
 	{
-		m_bVisible = false;
+		super.Hide();
 	}
 	
 	override bool IsVisible()
@@ -462,7 +469,8 @@ class RBL_MissionBriefingWidget : RBL_PanelWidget
 			if (!obj)
 				continue;
 			
-			string prefix = obj.IsOptional() ? "  (Optional) " : "  - ";
+			string prefix = "  - ";
+			if (obj.IsOptional()) prefix = "  (Optional) ";
 			DbgUI.Begin("BriefingObj_" + i.ToString(), m_fPosX + 16, objY);
 			DbgUI.Text(prefix + obj.GetDescription());
 			DbgUI.End();

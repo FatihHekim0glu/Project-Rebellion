@@ -1,6 +1,6 @@
 // ============================================================================
 // PROJECT REBELLION - Network Component
-// Base replication component with authority helpers for multiplayer
+// Replication and network state management
 // ============================================================================
 
 class RBL_NetworkComponentClass : ScriptComponentClass
@@ -10,8 +10,6 @@ class RBL_NetworkComponentClass : ScriptComponentClass
 class RBL_NetworkComponent : ScriptComponent
 {
 	protected RplComponent m_RplComponent;
-	protected bool m_bIsAuthority;
-	protected bool m_bIsProxy;
 	protected bool m_bNetworkReady;
 	
 	override void OnPostInit(IEntity owner)
@@ -19,59 +17,27 @@ class RBL_NetworkComponent : ScriptComponent
 		super.OnPostInit(owner);
 		
 		m_RplComponent = RplComponent.Cast(owner.FindComponent(RplComponent));
-		UpdateAuthorityState();
-		
 		m_bNetworkReady = true;
-		PrintFormat("[RBL_Network] Component initialized. Authority: %1, Proxy: %2", m_bIsAuthority, m_bIsProxy);
+		
+		PrintFormat("[RBL_Network] Network component initialized");
 	}
-	
-	protected void UpdateAuthorityState()
-	{
-		if (m_RplComponent)
-		{
-			m_bIsAuthority = m_RplComponent.IsMaster();
-			m_bIsProxy = m_RplComponent.IsProxy();
-		}
-		else
-		{
-			m_bIsAuthority = IsSinglePlayer();
-			m_bIsProxy = false;
-		}
-	}
-	
-	// ========================================================================
-	// AUTHORITY CHECKS
-	// ========================================================================
 	
 	bool IsAuthority()
 	{
-		UpdateAuthorityState();
-		return m_bIsAuthority;
+		if (!m_RplComponent)
+			return true;
+		return m_RplComponent.Role() == RplRole.Authority;
 	}
 	
 	bool IsProxy()
-	{
-		UpdateAuthorityState();
-		return m_bIsProxy;
-	}
-	
-	bool IsServer()
-	{
-		return IsAuthority();
-	}
-	
-	bool IsClient()
 	{
 		return !IsAuthority();
 	}
 	
 	bool IsSinglePlayer()
 	{
-		RplSession session = RplSession.Global();
-		if (!session)
-			return true;
-		
-		return !session.IsActive();
+		// Check if replication is active
+		return !Replication.IsRunning();
 	}
 	
 	bool IsMultiplayer()
@@ -89,10 +55,6 @@ class RBL_NetworkComponent : ScriptComponent
 		return m_RplComponent;
 	}
 	
-	// ========================================================================
-	// PLAYER HELPERS
-	// ========================================================================
-	
 	static int GetLocalPlayerID()
 	{
 		PlayerController pc = GetGame().GetPlayerController();
@@ -108,44 +70,6 @@ class RBL_NetworkComponent : ScriptComponent
 			return pc.GetControlledEntity();
 		return null;
 	}
-	
-	static bool IsLocalPlayer(int playerID)
-	{
-		return playerID == GetLocalPlayerID();
-	}
-	
-	static array<int> GetAllPlayerIDs()
-	{
-		array<int> playerIDs = new array<int>();
-		GetGame().GetPlayerManager().GetPlayers(playerIDs);
-		return playerIDs;
-	}
-	
-	static int GetPlayerCount()
-	{
-		array<int> playerIDs = new array<int>();
-		GetGame().GetPlayerManager().GetPlayers(playerIDs);
-		return playerIDs.Count();
-	}
-	
-	// ========================================================================
-	// RPC HELPERS
-	// ========================================================================
-	
-	protected void BroadcastToAllClients(string methodName, Managed context = null)
-	{
-		if (!m_RplComponent)
-			return;
-		
-		Rpc(RpcDo_BroadcastMethod, methodName);
-	}
-	
-	[RplRpc(RplChannel.Reliable, RplRcver.Broadcast)]
-	protected void RpcDo_BroadcastMethod(string methodName)
-	{
-		// Override in subclasses to handle specific broadcasts
-		PrintFormat("[RBL_Network] Received broadcast: %1", methodName);
-	}
 }
 
 // ============================================================================
@@ -155,11 +79,12 @@ class RBL_NetworkUtils
 {
 	static bool IsServer()
 	{
-		RplSession session = RplSession.Global();
-		if (!session || !session.IsActive())
+		// In singleplayer, we're always the server
+		if (!Replication.IsRunning())
 			return true;
 		
-		return session.IsDedicated() || !session.IsProxy();
+		// Check replication role
+		return Replication.IsServer();
 	}
 	
 	static bool IsClient()
@@ -169,25 +94,18 @@ class RBL_NetworkUtils
 	
 	static bool IsSinglePlayer()
 	{
-		RplSession session = RplSession.Global();
-		if (!session)
-			return true;
-		
-		return !session.IsActive();
+		return !Replication.IsRunning();
 	}
 	
 	static bool IsMultiplayer()
 	{
-		return !IsSinglePlayer();
+		return Replication.IsRunning();
 	}
 	
 	static bool IsDedicatedServer()
 	{
-		RplSession session = RplSession.Global();
-		if (!session)
-			return false;
-		
-		return session.IsDedicated();
+		// Use GetGame to check
+		return System.IsCLIParam("-server");
 	}
 	
 	static bool IsListenServer()
@@ -205,89 +123,56 @@ class RBL_NetworkUtils
 	
 	static IEntity GetPlayerEntity(int playerID)
 	{
-		return GetGame().GetPlayerManager().GetPlayerControlledEntity(playerID);
-	}
-	
-	static string GetPlayerName(int playerID)
-	{
-		return GetGame().GetPlayerManager().GetPlayerName(playerID);
-	}
-	
-	static void GetAllPlayers(out array<int> playerIDs)
-	{
-		if (!playerIDs)
-			playerIDs = new array<int>();
-		else
-			playerIDs.Clear();
-		
-		GetGame().GetPlayerManager().GetPlayers(playerIDs);
-	}
-	
-	static int GetPlayerCount()
-	{
-		array<int> players = new array<int>();
-		GetGame().GetPlayerManager().GetPlayers(players);
-		return players.Count();
-	}
-	
-	static void PrintNetworkStatus()
-	{
-		PrintFormat("[RBL_Network] === NETWORK STATUS ===");
-		PrintFormat("  Server: %1", IsServer());
-		PrintFormat("  Client: %1", IsClient());
-		PrintFormat("  SinglePlayer: %1", IsSinglePlayer());
-		PrintFormat("  Multiplayer: %1", IsMultiplayer());
-		PrintFormat("  Dedicated: %1", IsDedicatedServer());
-		PrintFormat("  Players: %1", GetPlayerCount());
-		PrintFormat("  Local Player ID: %1", GetLocalPlayerID());
+		PlayerManager pm = GetGame().GetPlayerManager();
+		if (pm)
+			return pm.GetPlayerControlledEntity(playerID);
+		return null;
 	}
 }
 
 // ============================================================================
-// NETWORK EVENT DATA STRUCTURES
+// NETWORK EVENT DATA
 // ============================================================================
-
 class RBL_NetworkEventData
 {
-	int SenderPlayerID;
-	float Timestamp;
+	int m_iEventType;
+	float m_fTimestamp;
 	
 	void RBL_NetworkEventData()
 	{
-		SenderPlayerID = RBL_NetworkUtils.GetLocalPlayerID();
-		Timestamp = System.GetTickCount();
+		m_iEventType = 0;
+		m_fTimestamp = 0;
 	}
-}
-
-class RBL_EconomyNetworkEvent : RBL_NetworkEventData
-{
-	int Money;
-	int HR;
-	string ItemID;
-	int Cost;
-	bool Success;
 }
 
 class RBL_ZoneNetworkEvent : RBL_NetworkEventData
 {
 	string ZoneID;
-	int OwnerFaction;
+	int NewOwner;
+	int PreviousOwner;
 	float CaptureProgress;
-	int CapturingFaction;
+}
+
+class RBL_EconomyNetworkEvent : RBL_NetworkEventData
+{
+	int EventFactionKey;
+	int MoneyDelta;
+	int HRDelta;
 }
 
 class RBL_MissionNetworkEvent : RBL_NetworkEventData
 {
 	string MissionID;
-	int Status;
-	float Progress;
+	int MissionType;
+	string TargetZone;
+	bool IsCompleted;
+	bool IsFailed;
 }
 
 class RBL_NotificationNetworkEvent : RBL_NetworkEventData
 {
 	string Message;
-	int Color;
+	int NotificationColor;
 	float Duration;
 	int TargetPlayerID;
 }
-

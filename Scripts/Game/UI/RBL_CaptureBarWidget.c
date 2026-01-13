@@ -140,7 +140,9 @@ class RBL_CaptureBarWidgetImpl : RBL_BaseWidget
 		super.Update(timeSlice);
 		
 		// Smooth progress animation
-		float targetProgress = m_bIsCapturing ? m_fCaptureProgress : 0;
+		float targetProgress = 0;
+		if (m_bIsCapturing)
+			targetProgress = m_fCaptureProgress;
 		float progressSpeed = 2.0;
 		
 		if (m_fDisplayProgress < targetProgress)
