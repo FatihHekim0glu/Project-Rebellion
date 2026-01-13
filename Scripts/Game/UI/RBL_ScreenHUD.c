@@ -60,39 +60,42 @@ class RBL_ScreenHUD
 			DbgUI.Text("FIA Zones: " + fia.ToString());
 			DbgUI.Text("Enemy Zones: " + enemy.ToString());
 
-			// Nearest zone info
-			PlayerController playerController = GetGame().GetPlayerController();
-			if (playerController)
+			// Nearest zone info (with null safety)
+			IEntity controlled = null;
+			if (GetGame())
 			{
-				IEntity controlled = playerController.GetControlledEntity();
-				if (controlled)
+				PlayerController playerController = GetGame().GetPlayerController();
+				if (playerController)
+					controlled = playerController.GetControlledEntity();
+			}
+			
+			if (controlled)
+			{
+				RBL_VirtualZone nearest = zoneMgr.GetNearestVirtualZone(controlled.GetOrigin());
+				if (nearest)
 				{
-					RBL_VirtualZone nearest = zoneMgr.GetNearestVirtualZone(controlled.GetOrigin());
-					if (nearest)
-					{
-						DbgUI.Text("---");
-						DbgUI.Text("Nearest: " + nearest.GetZoneID());
-						float dist = vector.Distance(controlled.GetOrigin(), nearest.GetZonePosition());
-						DbgUI.Text("Distance: " + Math.Round(dist).ToString() + "m");
-						string owner = typename.EnumToString(ERBLFactionKey, nearest.GetOwnerFaction());
-						DbgUI.Text("Owner: " + owner);
+					DbgUI.Text("---");
+					DbgUI.Text("Nearest: " + nearest.GetZoneID());
+					float dist = vector.Distance(controlled.GetOrigin(), nearest.GetZonePosition());
+					DbgUI.Text("Distance: " + Math.Round(dist).ToString() + "m");
+					string owner = typename.EnumToString(ERBLFactionKey, nearest.GetOwnerFaction());
+					DbgUI.Text("Owner: " + owner);
 
-						// Capture progress
-						RBL_CaptureManager capMgr = RBL_CaptureManager.GetInstance();
-						if (capMgr)
+					// Capture progress
+					RBL_CaptureManager capMgr = RBL_CaptureManager.GetInstance();
+					if (capMgr)
+					{
+						float progress = capMgr.GetCaptureProgress(nearest.GetZoneID());
+						if (progress > 0)
 						{
-							float progress = capMgr.GetCaptureProgress(nearest.GetZoneID());
-							if (progress > 0)
-							{
-								DbgUI.Text("CAPTURING: " + Math.Round(progress).ToString() + "%");
-							}
-							else if (dist <= nearest.GetCaptureRadius())
-							{
-								if (nearest.GetOwnerFaction() == ERBLFactionKey.FIA)
-									DbgUI.Text("[FRIENDLY ZONE]");
-								else
-									DbgUI.Text("[ENTER TO CAPTURE]");
-							}
+							DbgUI.Text("CAPTURING: " + Math.Round(progress).ToString() + "%");
+						}
+						else if (dist <= nearest.GetCaptureRadius())
+						{
+							if (nearest.GetOwnerFaction() == ERBLFactionKey.FIA)
+								DbgUI.Text("[FRIENDLY ZONE]");
+							else
+								DbgUI.Text("[ENTER TO CAPTURE]");
 						}
 					}
 				}

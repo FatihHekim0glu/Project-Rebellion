@@ -175,6 +175,25 @@ class RBL_Tests
 		runner.AssertNotNull("ShopManager.GetInstance", RBL_ShopManager.GetInstance());
 		runner.AssertNotNull("CaptureManager.GetInstance", RBL_CaptureManager.GetInstance());
 		runner.AssertNotNull("AutoInitializer.GetInstance", RBL_AutoInitializer.GetInstance());
+		runner.AssertNotNull("ScreenHUD.GetInstance", RBL_ScreenHUD.GetInstance());
+		runner.AssertNotNull("HUDManager.GetInstance", RBL_HUDManager.GetInstance());
+		
+		// Test HUD systems handle null player gracefully
+		RBL_ScreenHUD screenHUD = RBL_ScreenHUD.GetInstance();
+		if (screenHUD)
+		{
+			// This should not crash even without a player
+			screenHUD.Update(0.1);
+			runner.RecordResult("ScreenHUD.Update handles null player", true, "No crash");
+		}
+		
+		RBL_HUDManager hudMgr = RBL_HUDManager.GetInstance();
+		if (hudMgr)
+		{
+			// This should not crash even without a player
+			hudMgr.Update(0.1);
+			runner.RecordResult("HUDManager.Update handles null player", true, "No crash");
+		}
 	}
 	
 	// Test economy manager
