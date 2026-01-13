@@ -319,9 +319,103 @@ class RBL_CaptureBarWidgetImpl : RBL_BaseWidget
 		Show();
 	}
 	
+	// ========================================================================
+	// NETWORK CAPTURE PROGRESS - Accept updates from server via UIManager
+	// ========================================================================
+	
+	protected bool m_bHasNetworkData;
+	protected string m_sNetworkZoneID;
+	protected float m_fNetworkProgress;
+	protected int m_iNetworkCapturingFaction;
+	
+	void SetNetworkCaptureProgress(string zoneID, float progress, int capturingFaction)
+	{
+		m_bHasNetworkData = true;
+		m_sNetworkZoneID = zoneID;
+		m_fNetworkProgress = progress / 100.0;
+		m_iNetworkCapturingFaction = capturingFaction;
+		
+		// If player is not in capture range, use network data
+		if (!m_bIsCapturing && progress > 0)
+		{
+			// Get zone name from zone manager
+			RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
+			if (zoneMgr)
+			{
+				RBL_VirtualZone zone = zoneMgr.GetVirtualZoneByID(zoneID);
+				if (zone)
+					m_sCapturingZoneName = zone.GetZoneName();
+				else
+					m_sCapturingZoneName = zoneID;
+			}
+			else
+			{
+				m_sCapturingZoneName = zoneID;
+			}
+			
+			m_sCapturingZoneID = zoneID;
+			m_fCaptureProgress = m_fNetworkProgress;
+			m_bIsCapturing = true;
+			m_bIsContested = false;
+			m_iCapturingPlayers = 1;
+			
+			// Trigger capture started notification
+			if (!m_bWasCapturing)
+			{
+				m_fGlowIntensity = 1.0;
+				RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+				if (uiMgr)
+				{
+					uiMgr.ShowNotification(
+						"Capturing " + m_sCapturingZoneName + "...",
+						RBL_UIColors.COLOR_ACCENT_AMBER,
+						2.0
+					);
+				}
+			}
+			
+			Show();
+		}
+		else if (m_bIsCapturing && m_sCapturingZoneID == zoneID)
+		{
+			// Update existing capture progress with network data
+			m_fCaptureProgress = m_fNetworkProgress;
+		}
+		
+		PrintFormat("[RBL_CaptureBar] Network progress update: %1 = %2%% (faction: %3)", 
+			zoneID, progress, capturingFaction);
+	}
+	
+	void ClearNetworkCaptureProgress(string zoneID)
+	{
+		if (m_sNetworkZoneID == zoneID)
+		{
+			m_bHasNetworkData = false;
+			m_sNetworkZoneID = "";
+			m_fNetworkProgress = 0;
+			m_iNetworkCapturingFaction = 0;
+			
+			// If player is not in a zone either, clear display
+			if (!m_bIsCapturing || m_sCapturingZoneID == zoneID)
+			{
+				m_bIsCapturing = false;
+				m_fCaptureProgress = 0;
+			}
+			
+			PrintFormat("[RBL_CaptureBar] Network progress cleared for: %1", zoneID);
+		}
+	}
+	
+	bool HasNetworkCaptureData() { return m_bHasNetworkData; }
+	string GetNetworkZoneID() { return m_sNetworkZoneID; }
+	float GetNetworkProgress() { return m_fNetworkProgress; }
+	int GetNetworkCapturingFaction() { return m_iNetworkCapturingFaction; }
+	
 	// Getters for testing
 	bool IsCapturing() { return m_bIsCapturing; }
 	float GetDisplayProgress() { return m_fDisplayProgress; }
+	float GetCaptureProgress() { return m_fCaptureProgress; }
 	string GetCapturingZoneName() { return m_sCapturingZoneName; }
+	string GetCapturingZoneID() { return m_sCapturingZoneID; }
 }
 
