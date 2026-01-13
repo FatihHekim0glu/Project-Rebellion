@@ -151,6 +151,48 @@ class RBL_UIManager
 			m_Notifications.ShowNotification(message, color, duration);
 	}
 	
+	// ========================================================================
+	// CAPTURE PROGRESS - Network-synchronized capture updates
+	// ========================================================================
+	
+	void UpdateCaptureProgress(string zoneID, float progress, int capturingFaction)
+	{
+		if (m_CaptureBar)
+			m_CaptureBar.SetNetworkCaptureProgress(zoneID, progress, capturingFaction);
+	}
+	
+	void ClearCaptureProgress(string zoneID)
+	{
+		if (m_CaptureBar)
+			m_CaptureBar.ClearNetworkCaptureProgress(zoneID);
+	}
+	
+	void OnCaptureComplete(string zoneID, string zoneName, int newOwnerFaction)
+	{
+		// Clear capture progress bar
+		ClearCaptureProgress(zoneID);
+		
+		// Show completion notification
+		string factionName = GetFactionName(newOwnerFaction);
+		string message = zoneName + " captured by " + factionName + "!";
+		int color = (newOwnerFaction == ERBLFactionKey.FIA) ? 
+			RBL_UIColors.COLOR_ACCENT_GREEN : RBL_UIColors.COLOR_ACCENT_RED;
+		
+		ShowNotification(message, color, 4.0);
+	}
+	
+	protected string GetFactionName(int factionKey)
+	{
+		switch (factionKey)
+		{
+			case ERBLFactionKey.FIA: return "FIA";
+			case ERBLFactionKey.US: return "US Forces";
+			case ERBLFactionKey.USSR: return "Soviet Forces";
+			case ERBLFactionKey.CIVILIAN: return "Civilians";
+		}
+		return "Unknown";
+	}
+	
 	void SetVisible(bool visible) { m_bVisible = visible; }
 	bool IsVisible() { return m_bVisible; }
 	
