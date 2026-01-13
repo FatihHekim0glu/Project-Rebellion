@@ -67,21 +67,28 @@ class RBL_KeybindHintsWidgetImpl : RBL_BaseWidget
 		
 		vector playerPos = player.GetOrigin();
 		
-		// Check if near zone
+		// Check if near virtual zone
 		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
 		if (zoneMgr)
 		{
-			RBL_CampaignZone nearestZone = zoneMgr.GetNearestZone(playerPos);
+			RBL_VirtualZone nearestZone = zoneMgr.GetNearestVirtualZone(playerPos);
 			if (nearestZone)
 			{
-				float dist = vector.Distance(playerPos, nearestZone.GetOrigin());
+				float dist = vector.Distance(playerPos, nearestZone.GetZonePosition());
 				
 				if (dist <= nearestZone.GetCaptureRadius())
 				{
 					// In zone - show capture hint
 					if (nearestZone.GetOwnerFaction() != ERBLFactionKey.FIA)
 					{
-						m_aContextHints.Insert(new RBL_KeybindHint("HOLD", "Capture Zone", 20));
+						if (nearestZone.GetGarrisonStrength() > 0)
+						{
+							m_aContextHints.Insert(new RBL_KeybindHint("!", "Clear Garrison First", 20));
+						}
+						else
+						{
+							m_aContextHints.Insert(new RBL_KeybindHint("STAY", "Capture Zone", 20));
+						}
 					}
 					else
 					{
@@ -95,24 +102,34 @@ class RBL_KeybindHintsWidgetImpl : RBL_BaseWidget
 		RBL_UndercoverSystem undercover = RBL_UndercoverSystem.GetInstance();
 		if (undercover)
 		{
-			int playerId = GetLocalPlayerId();
-			ERBLCoverStatus status = undercover.GetCoverStatus(playerId);
-			
-			if (status == ERBLCoverStatus.SUSPICIOUS || status == ERBLCoverStatus.COMPROMISED)
+			RBL_PlayerCoverState playerState = undercover.GetPlayerState(player);
+			if (playerState)
 			{
-				m_aContextHints.Insert(new RBL_KeybindHint("HOLSTER", "Lower Suspicion", 18));
+				ERBLCoverStatus status = playerState.GetStatus();
+				
+				if (status == ERBLCoverStatus.SUSPICIOUS || status == ERBLCoverStatus.SPOTTED)
+				{
+					m_aContextHints.Insert(new RBL_KeybindHint("HOLSTER", "Lower Suspicion", 18));
+				}
+				else if (status == ERBLCoverStatus.COMPROMISED || status == ERBLCoverStatus.HOSTILE)
+				{
+					m_aContextHints.Insert(new RBL_KeybindHint("!", "Evade or Fight", 18));
+				}
 			}
 		}
 		
-		// Check if near vehicle
-		// ... (would check for nearby vehicles)
-		// m_aContextHints.Insert(new RBL_KeybindHint("F", "Enter Vehicle", 16));
-		
-		// Check if in combat
+		// Check if in combat (high aggression)
 		RBL_CampaignManager campaignMgr = RBL_CampaignManager.GetInstance();
 		if (campaignMgr && campaignMgr.GetAggression() > 50)
 		{
 			m_aContextHints.Insert(new RBL_KeybindHint("T", "Tactical View", 12));
+		}
+		
+		// Check if shop is available
+		RBL_EconomyManager econMgr = RBL_EconomyManager.GetInstance();
+		if (econMgr && econMgr.GetMoney() > 0)
+		{
+			// Shop is available
 		}
 	}
 	
@@ -276,20 +293,10 @@ class RBL_KeybindHintsWidgetImpl : RBL_BaseWidget
 	// Helpers
 	protected IEntity GetLocalPlayer()
 	{
-		PlayerManager pm = GetGame().GetPlayerManager();
-		if (!pm)
+		PlayerController pc = GetGame().GetPlayerController();
+		if (!pc)
 			return null;
-		
-		return GetGame().GetPlayerController().GetControlledEntity();
-	}
-	
-	protected int GetLocalPlayerId()
-	{
-		PlayerManager pm = GetGame().GetPlayerManager();
-		if (!pm)
-			return -1;
-		
-		return pm.GetPlayerIdFromControlledEntity(GetGame().GetPlayerController().GetControlledEntity());
+		return pc.GetControlledEntity();
 	}
 }
 
