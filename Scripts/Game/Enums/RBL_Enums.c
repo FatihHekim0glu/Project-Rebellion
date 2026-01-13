@@ -21,7 +21,8 @@ enum ERBLFactionKey
 	NONE = 0,
 	FIA,
 	USSR,
-	US
+	US,
+	CIVILIAN
 }
 
 enum ERBLAlertState
