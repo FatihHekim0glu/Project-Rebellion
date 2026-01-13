@@ -174,34 +174,59 @@ class RBL_ShopManager
 		if (!econMgr)
 			return false;
 		
-		// Check if can afford
+		// Check if can afford (local check for UI feedback)
 		if (econMgr.GetMoney() < item.Price)
 		{
 			PrintFormat("[RBL_Shop] Cannot afford %1 ($%2 needed, have $%3)", item.DisplayName, item.Price, econMgr.GetMoney());
+			RBL_Notifications.InsufficientFunds();
 			return false;
 		}
 		
-		// Check HR for recruits
+		// Check HR for recruits (local check for UI feedback)
 		if (item.HRCost > 0 && econMgr.GetHR() < item.HRCost)
 		{
 			PrintFormat("[RBL_Shop] Not enough HR for %1 (%2 needed, have %3)", item.DisplayName, item.HRCost, econMgr.GetHR());
+			RBL_Notifications.InsufficientHR();
 			return false;
 		}
 		
+		// In multiplayer, send purchase request to server
+		if (!RBL_NetworkUtils.IsSinglePlayer())
+		{
+			RBL_NetworkManager netMgr = RBL_NetworkManager.GetInstance();
+			if (netMgr)
+			{
+				int playerID = RBL_NetworkUtils.GetLocalPlayerID();
+				netMgr.RequestPurchase(playerID, itemID, item.Price, item.HRCost);
+				PrintFormat("[RBL_Shop] Purchase request sent to server: %1", item.DisplayName);
+				return true;
+			}
+		}
+		
+		// Singleplayer: process locally
+		return ProcessPurchaseLocally(item);
+	}
+	
+	protected bool ProcessPurchaseLocally(RBL_ShopItem item)
+	{
+		RBL_EconomyManager econMgr = RBL_EconomyManager.GetInstance();
+		if (!econMgr)
+			return false;
+		
 		// Get player ID for delivery
-		int playerID = -1;
-		PlayerController pc = GetGame().GetPlayerController();
-		if (pc)
-			playerID = pc.GetPlayerId();
+		int playerID = RBL_NetworkUtils.GetLocalPlayerID();
+		if (playerID < 0)
+		{
+			PrintFormat("[RBL_Shop] No local player found");
+			return false;
+		}
 		
 		// Deliver the item
 		RBL_ItemDelivery delivery = RBL_ItemDelivery.GetInstance();
 		ERBLDeliveryResult result = ERBLDeliveryResult.FAILED_NO_PLAYER;
 		
-		if (delivery && playerID >= 0)
-		{
+		if (delivery)
 			result = delivery.DeliverItem(item, playerID);
-		}
 		
 		// Only deduct money if delivery succeeded
 		if (result == ERBLDeliveryResult.SUCCESS)
@@ -211,6 +236,7 @@ class RBL_ShopManager
 				econMgr.SpendHR(item.HRCost);
 			
 			m_OnPurchase.Invoke(item);
+			RBL_Notifications.ItemPurchased(item.DisplayName, item.Price);
 			
 			PrintFormat("[RBL_Shop] *** PURCHASED & DELIVERED: %1 for $%2 ***", item.DisplayName, item.Price);
 			PrintFormat("[RBL_Shop] Remaining: $%1, HR: %2", econMgr.GetMoney(), econMgr.GetHR());
@@ -220,6 +246,7 @@ class RBL_ShopManager
 		else
 		{
 			PrintFormat("[RBL_Shop] Purchase failed - delivery error: %1", typename.EnumToString(ERBLDeliveryResult, result));
+			RBL_Notifications.DeliveryFailed(item.DisplayName);
 			return false;
 		}
 	}
@@ -228,6 +255,43 @@ class RBL_ShopManager
 	bool Buy(string itemID)
 	{
 		return PurchaseItem(itemID);
+	}
+	
+	// Server-side purchase processing (called by NetworkManager)
+	bool ProcessServerPurchase(int playerID, string itemID)
+	{
+		if (!RBL_NetworkUtils.IsServer())
+			return false;
+		
+		RBL_ShopItem item = FindItemByID(itemID);
+		if (!item)
+			return false;
+		
+		RBL_EconomyManager econMgr = RBL_EconomyManager.GetInstance();
+		if (!econMgr)
+			return false;
+		
+		if (!econMgr.CanAffordPurchase(item.Price, item.HRCost))
+			return false;
+		
+		// Deduct money
+		econMgr.SpendMoney(item.Price);
+		if (item.HRCost > 0)
+			econMgr.SpendHR(item.HRCost);
+		
+		// Deliver to player
+		RBL_ItemDelivery delivery = RBL_ItemDelivery.GetInstance();
+		if (delivery)
+		{
+			ERBLDeliveryResult result = delivery.DeliverItem(item, playerID);
+			if (result == ERBLDeliveryResult.SUCCESS)
+			{
+				m_OnPurchase.Invoke(item);
+				return true;
+			}
+		}
+		
+		return false;
 	}
 	
 	protected RBL_ShopItem FindItemByID(string itemID)
