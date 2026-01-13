@@ -25,6 +25,7 @@ class RBL_UIColors
 	// Accent colors
 	static const int COLOR_ACCENT_GREEN = ARGB(255, 80, 180, 80);     // Positive/FIA
 	static const int COLOR_ACCENT_AMBER = ARGB(255, 220, 180, 60);    // Warning/caution
+	static const int COLOR_ACCENT_YELLOW = ARGB(255, 220, 200, 60);   // Alert/attention
 	static const int COLOR_ACCENT_RED = ARGB(255, 200, 70, 70);       // Negative/enemy
 	static const int COLOR_ACCENT_BLUE = ARGB(255, 70, 130, 200);     // Info/neutral
 	
@@ -64,7 +65,9 @@ class RBL_UIColors
 		{
 			case ERBLCoverStatus.HIDDEN: return COLOR_STATUS_HIDDEN;
 			case ERBLCoverStatus.SUSPICIOUS: return COLOR_STATUS_SUSPICIOUS;
+			case ERBLCoverStatus.SPOTTED: return COLOR_STATUS_SPOTTED;
 			case ERBLCoverStatus.COMPROMISED: return COLOR_STATUS_COMPROMISED;
+			case ERBLCoverStatus.HOSTILE: return COLOR_STATUS_COMPROMISED;
 		}
 		return COLOR_STATUS_HIDDEN;
 	}
@@ -222,6 +225,7 @@ class RBL_UIStrings
 		{
 			case ERBLCoverStatus.HIDDEN: return "HIDDEN";
 			case ERBLCoverStatus.SUSPICIOUS: return "SUSPICIOUS";
+			case ERBLCoverStatus.SPOTTED: return "SPOTTED";
 			case ERBLCoverStatus.COMPROMISED: return "COMPROMISED";
 			case ERBLCoverStatus.HOSTILE: return "HOSTILE";
 		}
