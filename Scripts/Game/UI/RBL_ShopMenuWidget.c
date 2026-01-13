@@ -1,66 +1,24 @@
 // ============================================================================
 // PROJECT REBELLION - Shop Menu Widget
-// Full-screen shop for purchasing items, vehicles, and recruiting units
+// Full-screen shop UI - uses RBL_ShopManager for item data
 // ============================================================================
 
-// Shop item data
-class RBL_ShopItem
-{
-	string m_sID;
-	string m_sName;
-	string m_sDescription;
-	string m_sCategory;
-	int m_iMoneyCost;
-	int m_iHRCost;
-	bool m_bUnlocked;
-	bool m_bAvailable;
-	
-	void RBL_ShopItem(string id, string name, string desc, string category, int money, int hr)
-	{
-		m_sID = id;
-		m_sName = name;
-		m_sDescription = desc;
-		m_sCategory = category;
-		m_iMoneyCost = money;
-		m_iHRCost = hr;
-		m_bUnlocked = true;
-		m_bAvailable = true;
-	}
-}
-
-// Shop category
-class RBL_ShopCategory
-{
-	string m_sID;
-	string m_sName;
-	ref array<ref RBL_ShopItem> m_aItems;
-	
-	void RBL_ShopCategory(string id, string name)
-	{
-		m_sID = id;
-		m_sName = name;
-		m_aItems = new array<ref RBL_ShopItem>();
-	}
-	
-	void AddItem(RBL_ShopItem item)
-	{
-		m_aItems.Insert(item);
-	}
-}
-
-// Main shop menu
+// Main shop menu widget
 class RBL_ShopMenuWidgetImpl : RBL_PanelWidget
 {
 	protected bool m_bMenuVisible;
-	protected ref array<ref RBL_ShopCategory> m_aCategories;
 	protected int m_iSelectedCategoryIndex;
 	protected int m_iSelectedItemIndex;
 	protected int m_iScrollOffset;
 	protected int m_iMaxVisibleItems;
 	
+	// Cached data from ShopManager
+	protected ref array<ref RBL_ShopCategory> m_aCategories;
+	
 	// Player resources
 	protected int m_iPlayerMoney;
 	protected int m_iPlayerHR;
+	protected int m_iWarLevel;
 	
 	// Animation
 	protected float m_fOpenAnimation;
@@ -83,6 +41,7 @@ class RBL_ShopMenuWidgetImpl : RBL_PanelWidget
 		
 		m_iPlayerMoney = 0;
 		m_iPlayerHR = 0;
+		m_iWarLevel = 1;
 		
 		m_fOpenAnimation = 0;
 		m_bClosing = false;
@@ -90,72 +49,29 @@ class RBL_ShopMenuWidgetImpl : RBL_PanelWidget
 		m_iBackgroundColor = RBL_UIColors.COLOR_BG_DARK;
 		m_iBorderColor = RBL_UIColors.COLOR_BORDER_LIGHT;
 		
-		InitializeShopData();
+		// Get categories from ShopManager
+		RefreshCategoriesFromManager();
 	}
 	
-	protected void InitializeShopData()
+	protected void RefreshCategoriesFromManager()
 	{
-		m_aCategories = new array<ref RBL_ShopCategory>();
-		
-		// ---- WEAPONS ----
-		RBL_ShopCategory weapons = new RBL_ShopCategory("weapons", "WEAPONS");
-		weapons.AddItem(new RBL_ShopItem("ak74", "AK-74", "Standard assault rifle", "weapons", 150, 0));
-		weapons.AddItem(new RBL_ShopItem("akm", "AKM", "7.62mm assault rifle", "weapons", 120, 0));
-		weapons.AddItem(new RBL_ShopItem("svd", "SVD Dragunov", "Marksman rifle", "weapons", 400, 0));
-		weapons.AddItem(new RBL_ShopItem("pkm", "PKM", "General purpose machine gun", "weapons", 600, 0));
-		weapons.AddItem(new RBL_ShopItem("rpg7", "RPG-7", "Rocket launcher", "weapons", 800, 0));
-		weapons.AddItem(new RBL_ShopItem("makarov", "PM Makarov", "Compact pistol", "weapons", 50, 0));
-		m_aCategories.Insert(weapons);
-		
-		// ---- EQUIPMENT ----
-		RBL_ShopCategory equipment = new RBL_ShopCategory("equipment", "EQUIPMENT");
-		equipment.AddItem(new RBL_ShopItem("vest_light", "Light Vest", "Basic protection", "equipment", 100, 0));
-		equipment.AddItem(new RBL_ShopItem("vest_heavy", "Heavy Vest", "Enhanced protection", "equipment", 300, 0));
-		equipment.AddItem(new RBL_ShopItem("helmet", "Combat Helmet", "Head protection", "equipment", 150, 0));
-		equipment.AddItem(new RBL_ShopItem("nvg", "Night Vision", "NVG goggles", "equipment", 500, 0));
-		equipment.AddItem(new RBL_ShopItem("binoculars", "Binoculars", "Observation tool", "equipment", 75, 0));
-		equipment.AddItem(new RBL_ShopItem("radio", "Radio", "Team communication", "equipment", 100, 0));
-		m_aCategories.Insert(equipment);
-		
-		// ---- SUPPLIES ----
-		RBL_ShopCategory supplies = new RBL_ShopCategory("supplies", "SUPPLIES");
-		supplies.AddItem(new RBL_ShopItem("ammo_rifle", "Rifle Ammo", "5.45/7.62mm magazines", "supplies", 20, 0));
-		supplies.AddItem(new RBL_ShopItem("ammo_pistol", "Pistol Ammo", "9mm magazines", "supplies", 10, 0));
-		supplies.AddItem(new RBL_ShopItem("grenade_frag", "F1 Grenade", "Fragmentation grenade", "supplies", 50, 0));
-		supplies.AddItem(new RBL_ShopItem("grenade_smoke", "Smoke Grenade", "Smoke cover", "supplies", 30, 0));
-		supplies.AddItem(new RBL_ShopItem("medkit", "Medical Kit", "Healing supplies", "supplies", 75, 0));
-		supplies.AddItem(new RBL_ShopItem("bandage", "Bandage", "Basic medical", "supplies", 15, 0));
-		m_aCategories.Insert(supplies);
-		
-		// ---- VEHICLES ----
-		RBL_ShopCategory vehicles = new RBL_ShopCategory("vehicles", "VEHICLES");
-		vehicles.AddItem(new RBL_ShopItem("uaz", "UAZ-469", "Light utility vehicle", "vehicles", 500, 0));
-		vehicles.AddItem(new RBL_ShopItem("ural", "Ural Truck", "Transport truck", "vehicles", 800, 0));
-		vehicles.AddItem(new RBL_ShopItem("btr", "BTR-70", "APC (requires War Level 5)", "vehicles", 3000, 0));
-		vehicles.AddItem(new RBL_ShopItem("brdm", "BRDM-2", "Scout car", "vehicles", 1500, 0));
-		m_aCategories.Insert(vehicles);
-		
-		// ---- RECRUITMENT ----
-		RBL_ShopCategory recruit = new RBL_ShopCategory("recruit", "RECRUITMENT");
-		recruit.AddItem(new RBL_ShopItem("militia", "Militia", "Basic fighter", "recruit", 100, 1));
-		recruit.AddItem(new RBL_ShopItem("rifleman", "Rifleman", "Trained soldier", "recruit", 200, 1));
-		recruit.AddItem(new RBL_ShopItem("marksman", "Marksman", "Sniper unit", "recruit", 400, 1));
-		recruit.AddItem(new RBL_ShopItem("medic", "Combat Medic", "Healer unit", "recruit", 300, 1));
-		recruit.AddItem(new RBL_ShopItem("at_soldier", "AT Specialist", "Anti-tank unit", "recruit", 500, 1));
-		recruit.AddItem(new RBL_ShopItem("mg_soldier", "MG Gunner", "Support gunner", "recruit", 450, 1));
-		m_aCategories.Insert(recruit);
+		RBL_ShopManager shopMgr = RBL_ShopManager.GetInstance();
+		if (shopMgr)
+		{
+			m_aCategories = shopMgr.GetCategories();
+		}
+		else
+		{
+			m_aCategories = new array<ref RBL_ShopCategory>();
+		}
 	}
 	
 	void Toggle()
 	{
 		if (m_bMenuVisible)
-		{
 			Close();
-		}
 		else
-		{
 			Open();
-		}
 	}
 	
 	void Open()
@@ -163,13 +79,29 @@ class RBL_ShopMenuWidgetImpl : RBL_PanelWidget
 		m_bMenuVisible = true;
 		m_bClosing = false;
 		m_fOpenAnimation = 0;
+		
+		// Refresh data from manager
+		RefreshCategoriesFromManager();
 		RefreshPlayerResources();
-		RBL_Notifications.Show("Press [ESC] to close shop");
+		
+		// Notify shop manager
+		RBL_ShopManager shopMgr = RBL_ShopManager.GetInstance();
+		if (shopMgr)
+			shopMgr.OpenMenu();
+		
+		// Get close key from input system
+		string closeKey = RBL_InputConfig.GetKeyDisplay(RBL_InputActions.CLOSE_MENU);
+		RBL_Notifications.Show(string.Format("Press [%1] to close shop", closeKey));
 	}
 	
 	void Close()
 	{
 		m_bClosing = true;
+		
+		// Notify shop manager
+		RBL_ShopManager shopMgr = RBL_ShopManager.GetInstance();
+		if (shopMgr)
+			shopMgr.CloseMenu();
 	}
 	
 	override bool IsVisible()
@@ -216,23 +148,23 @@ class RBL_ShopMenuWidgetImpl : RBL_PanelWidget
 			return;
 		
 		// Category navigation (Q/E or Tab)
-		if (input.GetActionTriggered("MenuLeft"))
+		if (input.GetActionTriggered("RBL_MenuLeft") || input.GetActionTriggered("MenuLeft"))
 			SelectPreviousCategory();
-		if (input.GetActionTriggered("MenuRight"))
+		if (input.GetActionTriggered("RBL_MenuRight") || input.GetActionTriggered("MenuRight"))
 			SelectNextCategory();
 		
 		// Item navigation (W/S or arrows)
-		if (input.GetActionTriggered("MenuUp"))
+		if (input.GetActionTriggered("RBL_MenuUp") || input.GetActionTriggered("MenuUp"))
 			SelectPreviousItem();
-		if (input.GetActionTriggered("MenuDown"))
+		if (input.GetActionTriggered("RBL_MenuDown") || input.GetActionTriggered("MenuDown"))
 			SelectNextItem();
 		
 		// Purchase (Enter or Space)
-		if (input.GetActionTriggered("MenuSelect"))
+		if (input.GetActionTriggered("RBL_MenuSelect") || input.GetActionTriggered("MenuSelect"))
 			PurchaseSelectedItem();
 		
 		// Close (Escape)
-		if (input.GetActionTriggered("MenuBack"))
+		if (input.GetActionTriggered("RBL_MenuBack") || input.GetActionTriggered("MenuBack"))
 			Close();
 	}
 	
@@ -279,15 +211,17 @@ class RBL_ShopMenuWidgetImpl : RBL_PanelWidget
 		DbgUI.End();
 		
 		// Player resources (right side)
-		int moneyColor = ApplyAlpha(RBL_UIColors.COLOR_ACCENT_AMBER, m_fAlpha);
-		int hrColor = ApplyAlpha(RBL_UIColors.COLOR_ACCENT_BLUE, m_fAlpha);
-		
 		DbgUI.Begin("Shop_Money", x + width - 200, y + 16);
 		DbgUI.Text(RBL_UIStrings.FormatMoney(m_iPlayerMoney));
 		DbgUI.End();
 		
 		DbgUI.Begin("Shop_HR", x + width - 80, y + 16);
 		DbgUI.Text(RBL_UIStrings.FormatHR(m_iPlayerHR));
+		DbgUI.End();
+		
+		// War level indicator
+		DbgUI.Begin("Shop_WarLevel", x + width - 300, y + 16);
+		DbgUI.Text(string.Format("WL:%1", m_iWarLevel));
 		DbgUI.End();
 		
 		// Separator line
@@ -297,6 +231,9 @@ class RBL_ShopMenuWidgetImpl : RBL_PanelWidget
 	
 	protected void DrawCategories(float x, float y, float width)
 	{
+		if (!m_aCategories || m_aCategories.Count() == 0)
+			return;
+		
 		float tabWidth = (width - 32) / m_aCategories.Count();
 		
 		for (int i = 0; i < m_aCategories.Count(); i++)
@@ -319,17 +256,19 @@ class RBL_ShopMenuWidgetImpl : RBL_PanelWidget
 			textColor = ApplyAlpha(textColor, m_fAlpha);
 			
 			DbgUI.Begin("Shop_Tab_" + i.ToString(), tabX + 8, y + 6);
-			DbgUI.Text(cat.m_sName);
+			DbgUI.Text(cat.GetDisplayName());
 			DbgUI.End();
 		}
 	}
 	
 	protected void DrawItems(float x, float y, float width, float height)
 	{
-		if (m_iSelectedCategoryIndex >= m_aCategories.Count())
+		if (!m_aCategories || m_iSelectedCategoryIndex >= m_aCategories.Count())
 			return;
 		
 		RBL_ShopCategory category = m_aCategories[m_iSelectedCategoryIndex];
+		array<ref RBL_ShopItem> items = category.GetItems();
+		
 		float itemHeight = RBL_UISizes.SHOP_ITEM_HEIGHT;
 		float listX = x + 16;
 		float listWidth = width * 0.6 - 24;
@@ -342,9 +281,9 @@ class RBL_ShopMenuWidgetImpl : RBL_PanelWidget
 		
 		// Draw visible items
 		float currentY = y;
-		for (int i = m_iScrollOffset; i < category.m_aItems.Count() && i < m_iScrollOffset + m_iMaxVisibleItems; i++)
+		for (int i = m_iScrollOffset; i < items.Count() && i < m_iScrollOffset + m_iMaxVisibleItems; i++)
 		{
-			RBL_ShopItem item = category.m_aItems[i];
+			RBL_ShopItem item = items[i];
 			bool isSelected = (i == m_iSelectedItemIndex);
 			
 			DrawItemRow(item, listX, currentY, listWidth, itemHeight, isSelected);
@@ -358,7 +297,7 @@ class RBL_ShopMenuWidgetImpl : RBL_PanelWidget
 			DbgUI.Text("▲");
 			DbgUI.End();
 		}
-		if (m_iScrollOffset + m_iMaxVisibleItems < category.m_aItems.Count())
+		if (m_iScrollOffset + m_iMaxVisibleItems < items.Count())
 		{
 			DbgUI.Begin("Shop_ScrollDown", listX + listWidth / 2 - 10, y + height);
 			DbgUI.Text("▼");
@@ -371,11 +310,13 @@ class RBL_ShopMenuWidgetImpl : RBL_PanelWidget
 	
 	protected void DrawItemRow(RBL_ShopItem item, float x, float y, float width, float height, bool selected)
 	{
+		bool canAfford = item.CanPurchase(m_iPlayerMoney, m_iPlayerHR, m_iWarLevel);
+		
 		// Row background
 		int rowColor = RBL_UIColors.COLOR_BG_LIGHT;
 		if (selected)
 			rowColor = RBL_UIColors.COLOR_BG_HIGHLIGHT;
-		if (!CanAfford(item))
+		if (!canAfford)
 			rowColor = ApplyAlpha(rowColor, 0.5);
 		rowColor = ApplyAlpha(rowColor, m_fAlpha);
 		
@@ -390,36 +331,49 @@ class RBL_ShopMenuWidgetImpl : RBL_PanelWidget
 		
 		// Item name
 		int nameColor = RBL_UIColors.COLOR_TEXT_BRIGHT;
-		if (!CanAfford(item))
+		if (!canAfford)
 			nameColor = RBL_UIColors.COLOR_TEXT_MUTED;
 		nameColor = ApplyAlpha(nameColor, m_fAlpha);
 		
-		DbgUI.Begin("Shop_Item_" + item.m_sID, x + 12, y + 8);
-		DbgUI.Text(item.m_sName);
+		DbgUI.Begin("Shop_Item_" + item.GetID(), x + 12, y + 8);
+		DbgUI.Text(item.GetDisplayName());
 		DbgUI.End();
+		
+		// War level indicator if required
+		if (item.GetRequiredWarLevel() > 1)
+		{
+			int wlColor = RBL_UIColors.COLOR_TEXT_MUTED;
+			if (m_iWarLevel < item.GetRequiredWarLevel())
+				wlColor = RBL_UIColors.COLOR_ACCENT_RED;
+			wlColor = ApplyAlpha(wlColor, m_fAlpha);
+			
+			DbgUI.Begin("Shop_WL_" + item.GetID(), x + width - 180, y + 8);
+			DbgUI.Text(string.Format("WL%1+", item.GetRequiredWarLevel()));
+			DbgUI.End();
+		}
 		
 		// Price (right aligned)
 		string priceText = "";
 		int priceColor = RBL_UIColors.COLOR_TEXT_SECONDARY;
 		
-		if (item.m_iMoneyCost > 0)
+		if (item.GetPrice() > 0)
 		{
-			priceText = RBL_UIStrings.FormatMoney(item.m_iMoneyCost);
-			if (m_iPlayerMoney < item.m_iMoneyCost)
+			priceText = RBL_UIStrings.FormatMoney(item.GetPrice());
+			if (m_iPlayerMoney < item.GetPrice())
 				priceColor = RBL_UIColors.COLOR_ACCENT_RED;
 		}
-		if (item.m_iHRCost > 0)
+		if (item.GetHRCost() > 0)
 		{
 			if (!priceText.IsEmpty())
 				priceText = priceText + " + ";
-			priceText = priceText + item.m_iHRCost.ToString() + " HR";
-			if (m_iPlayerHR < item.m_iHRCost)
+			priceText = priceText + item.GetHRCost().ToString() + " HR";
+			if (m_iPlayerHR < item.GetHRCost())
 				priceColor = RBL_UIColors.COLOR_ACCENT_RED;
 		}
 		
 		priceColor = ApplyAlpha(priceColor, m_fAlpha);
 		
-		DbgUI.Begin("Shop_Price_" + item.m_sID, x + width - 100, y + 8);
+		DbgUI.Begin("Shop_Price_" + item.GetID(), x + width - 100, y + 8);
 		DbgUI.Text(priceText);
 		DbgUI.End();
 	}
@@ -440,7 +394,7 @@ class RBL_ShopMenuWidgetImpl : RBL_PanelWidget
 		// Item name (large)
 		int nameColor = ApplyAlpha(RBL_UIColors.COLOR_TEXT_BRIGHT, m_fAlpha);
 		DbgUI.Begin("Shop_Detail_Name", contentX, contentY);
-		DbgUI.Text(selectedItem.m_sName);
+		DbgUI.Text(selectedItem.GetDisplayName());
 		DbgUI.End();
 		
 		contentY += 32;
@@ -448,7 +402,7 @@ class RBL_ShopMenuWidgetImpl : RBL_PanelWidget
 		// Description
 		int descColor = ApplyAlpha(RBL_UIColors.COLOR_TEXT_SECONDARY, m_fAlpha);
 		DbgUI.Begin("Shop_Detail_Desc", contentX, contentY);
-		DbgUI.Text(selectedItem.m_sDescription);
+		DbgUI.Text(selectedItem.GetDescription());
 		DbgUI.End();
 		
 		contentY += 48;
@@ -464,40 +418,56 @@ class RBL_ShopMenuWidgetImpl : RBL_PanelWidget
 		DbgUI.End();
 		contentY += 20;
 		
-		if (selectedItem.m_iMoneyCost > 0)
+		if (selectedItem.GetPrice() > 0)
 		{
 			int moneyColor = RBL_UIColors.COLOR_ACCENT_AMBER;
-			if (m_iPlayerMoney < selectedItem.m_iMoneyCost)
+			if (m_iPlayerMoney < selectedItem.GetPrice())
 				moneyColor = RBL_UIColors.COLOR_ACCENT_RED;
 			moneyColor = ApplyAlpha(moneyColor, m_fAlpha);
 			
 			DbgUI.Begin("Shop_Detail_Money", contentX, contentY);
-			DbgUI.Text("  " + RBL_UIStrings.FormatMoney(selectedItem.m_iMoneyCost));
+			DbgUI.Text("  " + RBL_UIStrings.FormatMoney(selectedItem.GetPrice()));
 			DbgUI.End();
 			contentY += 20;
 		}
 		
-		if (selectedItem.m_iHRCost > 0)
+		if (selectedItem.GetHRCost() > 0)
 		{
 			int hrColor = RBL_UIColors.COLOR_ACCENT_BLUE;
-			if (m_iPlayerHR < selectedItem.m_iHRCost)
+			if (m_iPlayerHR < selectedItem.GetHRCost())
 				hrColor = RBL_UIColors.COLOR_ACCENT_RED;
 			hrColor = ApplyAlpha(hrColor, m_fAlpha);
 			
 			DbgUI.Begin("Shop_Detail_HR", contentX, contentY);
-			DbgUI.Text("  " + selectedItem.m_iHRCost.ToString() + " Human Resources");
+			DbgUI.Text("  " + selectedItem.GetHRCost().ToString() + " Human Resources");
+			DbgUI.End();
+			contentY += 20;
+		}
+		
+		// War level requirement
+		if (selectedItem.GetRequiredWarLevel() > 1)
+		{
+			int wlColor = RBL_UIColors.COLOR_TEXT_MUTED;
+			if (m_iWarLevel < selectedItem.GetRequiredWarLevel())
+				wlColor = RBL_UIColors.COLOR_ACCENT_RED;
+			wlColor = ApplyAlpha(wlColor, m_fAlpha);
+			
+			contentY += 10;
+			DbgUI.Begin("Shop_Detail_WL", contentX, contentY);
+			DbgUI.Text(string.Format("  Requires War Level %1", selectedItem.GetRequiredWarLevel()));
 			DbgUI.End();
 			contentY += 20;
 		}
 		
 		// Purchase hint
 		contentY = y + height - 40;
+		bool canPurchase = selectedItem.CanPurchase(m_iPlayerMoney, m_iPlayerHR, m_iWarLevel);
 		string hintText = "[ENTER] Purchase";
 		int hintColor = RBL_UIColors.COLOR_ACCENT_GREEN;
 		
-		if (!CanAfford(selectedItem))
+		if (!canPurchase)
 		{
-			hintText = "Insufficient resources";
+			hintText = selectedItem.GetUnavailableReason(m_iPlayerMoney, m_iPlayerHR, m_iWarLevel);
 			hintColor = RBL_UIColors.COLOR_ACCENT_RED;
 		}
 		
@@ -523,6 +493,9 @@ class RBL_ShopMenuWidgetImpl : RBL_PanelWidget
 	// Navigation
 	void SelectNextCategory()
 	{
+		if (!m_aCategories || m_aCategories.Count() == 0)
+			return;
+		
 		m_iSelectedCategoryIndex++;
 		if (m_iSelectedCategoryIndex >= m_aCategories.Count())
 			m_iSelectedCategoryIndex = 0;
@@ -532,6 +505,9 @@ class RBL_ShopMenuWidgetImpl : RBL_PanelWidget
 	
 	void SelectPreviousCategory()
 	{
+		if (!m_aCategories || m_aCategories.Count() == 0)
+			return;
+		
 		m_iSelectedCategoryIndex--;
 		if (m_iSelectedCategoryIndex < 0)
 			m_iSelectedCategoryIndex = m_aCategories.Count() - 1;
@@ -541,9 +517,14 @@ class RBL_ShopMenuWidgetImpl : RBL_PanelWidget
 	
 	void SelectNextItem()
 	{
+		if (!m_aCategories || m_iSelectedCategoryIndex >= m_aCategories.Count())
+			return;
+		
 		RBL_ShopCategory cat = m_aCategories[m_iSelectedCategoryIndex];
+		array<ref RBL_ShopItem> items = cat.GetItems();
+		
 		m_iSelectedItemIndex++;
-		if (m_iSelectedItemIndex >= cat.m_aItems.Count())
+		if (m_iSelectedItemIndex >= items.Count())
 			m_iSelectedItemIndex = 0;
 		
 		// Adjust scroll
@@ -555,10 +536,15 @@ class RBL_ShopMenuWidgetImpl : RBL_PanelWidget
 	
 	void SelectPreviousItem()
 	{
+		if (!m_aCategories || m_iSelectedCategoryIndex >= m_aCategories.Count())
+			return;
+		
 		RBL_ShopCategory cat = m_aCategories[m_iSelectedCategoryIndex];
+		array<ref RBL_ShopItem> items = cat.GetItems();
+		
 		m_iSelectedItemIndex--;
 		if (m_iSelectedItemIndex < 0)
-			m_iSelectedItemIndex = cat.m_aItems.Count() - 1;
+			m_iSelectedItemIndex = items.Count() - 1;
 		
 		// Adjust scroll
 		if (m_iSelectedItemIndex < m_iScrollOffset)
@@ -574,13 +560,14 @@ class RBL_ShopMenuWidgetImpl : RBL_PanelWidget
 		if (!item)
 			return;
 		
-		if (!CanAfford(item))
+		if (!item.CanPurchase(m_iPlayerMoney, m_iPlayerHR, m_iWarLevel))
 		{
-			RBL_Notifications.InsufficientFunds();
+			string reason = item.GetUnavailableReason(m_iPlayerMoney, m_iPlayerHR, m_iWarLevel);
+			RBL_Notifications.Show(reason);
 			return;
 		}
 		
-		// Execute purchase through ShopManager (handles delivery)
+		// Execute purchase through ShopManager
 		RBL_ShopManager shopMgr = RBL_ShopManager.GetInstance();
 		if (!shopMgr)
 		{
@@ -588,51 +575,43 @@ class RBL_ShopMenuWidgetImpl : RBL_PanelWidget
 			return;
 		}
 		
-		bool success = shopMgr.PurchaseItem(item.m_sID);
+		bool success = shopMgr.PurchaseItem(item.GetID());
 		
 		if (success)
 		{
-			RBL_Notifications.MoneySpent(item.m_iMoneyCost, item.m_sName);
 			RefreshPlayerResources();
-			PrintFormat("[RBL_ShopWidget] Purchased & delivered: %1", item.m_sName);
-		}
-		else
-		{
-			RBL_Notifications.Show("Purchase or delivery failed");
+			PrintFormat("[RBL_ShopWidget] Purchased: %1", item.GetDisplayName());
 		}
 	}
 	
 	// Helpers
 	protected RBL_ShopItem GetSelectedItem()
 	{
-		if (m_iSelectedCategoryIndex >= m_aCategories.Count())
+		if (!m_aCategories || m_iSelectedCategoryIndex >= m_aCategories.Count())
 			return null;
 		
 		RBL_ShopCategory cat = m_aCategories[m_iSelectedCategoryIndex];
-		if (m_iSelectedItemIndex >= cat.m_aItems.Count())
-			return null;
-		
-		return cat.m_aItems[m_iSelectedItemIndex];
-	}
-	
-	protected bool CanAfford(RBL_ShopItem item)
-	{
-		return m_iPlayerMoney >= item.m_iMoneyCost && m_iPlayerHR >= item.m_iHRCost;
+		return cat.GetItemByIndex(m_iSelectedItemIndex);
 	}
 	
 	protected void RefreshPlayerResources()
 	{
 		RBL_EconomyManager econMgr = RBL_EconomyManager.GetInstance();
-		if (!econMgr)
-			return;
+		if (econMgr)
+		{
+			m_iPlayerMoney = econMgr.GetMoney();
+			m_iPlayerHR = econMgr.GetHR();
+		}
 		
-		m_iPlayerMoney = econMgr.GetMoney();
-		m_iPlayerHR = econMgr.GetHR();
+		RBL_CampaignManager campMgr = RBL_CampaignManager.GetInstance();
+		if (campMgr)
+		{
+			m_iWarLevel = campMgr.GetWarLevel();
+		}
 	}
 	
 	// Getters for testing
 	int GetSelectedCategoryIndex() { return m_iSelectedCategoryIndex; }
 	int GetSelectedItemIndex() { return m_iSelectedItemIndex; }
-	int GetCategoryCount() { return m_aCategories.Count(); }
+	int GetCategoryCount() { return m_aCategories ? m_aCategories.Count() : 0; }
 }
-
