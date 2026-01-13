@@ -45,48 +45,94 @@ class RBL_CaptureBarWidgetImpl : RBL_BaseWidget
 	
 	override void OnUpdate()
 	{
-		RBL_CaptureSystem captureSys = RBL_CaptureSystem.GetInstance();
-		if (!captureSys)
+		RBL_CaptureManager captureMgr = RBL_CaptureManager.GetInstance();
+		if (!captureMgr)
 		{
 			m_bIsCapturing = false;
 			return;
 		}
 		
-		// Get capture state
-		m_bIsCapturing = captureSys.IsCapturingAny();
+		// Get player and zone info
+		IEntity player = GetLocalPlayer();
+		if (!player)
+		{
+			m_bIsCapturing = false;
+			return;
+		}
+		
+		vector playerPos = player.GetOrigin();
+		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
+		if (!zoneMgr)
+		{
+			m_bIsCapturing = false;
+			return;
+		}
+		
+		// Find nearest virtual zone that's being captured
+		RBL_VirtualZone nearestZone = zoneMgr.GetNearestVirtualZone(playerPos);
+		if (!nearestZone)
+		{
+			m_bIsCapturing = false;
+			return;
+		}
+		
+		string zoneID = nearestZone.GetZoneID();
+		float captureProgress = captureMgr.GetCaptureProgress(zoneID);
+		bool isBeingCaptured = captureMgr.IsZoneBeingCaptured(zoneID);
+		
+		// Check if player is in range
+		float dist = vector.Distance(playerPos, nearestZone.GetZonePosition());
+		bool inRange = dist <= nearestZone.GetCaptureRadius();
+		
+		// Only show capture bar if in range and capture is happening
+		m_bIsCapturing = inRange && (isBeingCaptured || captureProgress > 0);
 		
 		if (m_bIsCapturing)
 		{
-			m_sCapturingZoneID = captureSys.GetCapturingZoneID();
-			m_sCapturingZoneName = captureSys.GetCapturingZoneName();
-			m_fCaptureProgress = captureSys.GetCaptureProgress();
-			m_iCapturingPlayers = captureSys.GetCapturingPlayerCount();
-			m_bIsContested = captureSys.IsContested();
+			m_sCapturingZoneID = zoneID;
+			m_sCapturingZoneName = zoneID;
+			m_fCaptureProgress = captureProgress / 100.0;
+			m_iCapturingPlayers = 1;
+			m_bIsContested = nearestZone.GetGarrisonStrength() > 0;
 		}
 		
 		// Detect capture start/complete
 		if (m_bIsCapturing && !m_bWasCapturing)
 		{
-			// Started capturing
 			m_fDisplayProgress = 0;
 			m_fGlowIntensity = 1.0;
-			RBL_UIManager.GetInstance().ShowNotification(
-				"Capturing " + m_sCapturingZoneName + "...",
-				RBL_UIColors.COLOR_ACCENT_AMBER,
-				2.0
-			);
+			RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+			if (uiMgr)
+			{
+				uiMgr.ShowNotification(
+					"Capturing " + m_sCapturingZoneName + "...",
+					RBL_UIColors.COLOR_ACCENT_AMBER,
+					2.0
+				);
+			}
 		}
 		else if (!m_bIsCapturing && m_bWasCapturing && m_fDisplayProgress >= 0.95)
 		{
-			// Capture completed
-			RBL_UIManager.GetInstance().ShowNotification(
-				m_sCapturingZoneName + " CAPTURED!",
-				RBL_UIColors.COLOR_ACCENT_GREEN,
-				3.0
-			);
+			RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+			if (uiMgr)
+			{
+				uiMgr.ShowNotification(
+					m_sCapturingZoneName + " CAPTURED!",
+					RBL_UIColors.COLOR_ACCENT_GREEN,
+					3.0
+				);
+			}
 		}
 		
 		m_bWasCapturing = m_bIsCapturing;
+	}
+	
+	protected IEntity GetLocalPlayer()
+	{
+		PlayerController pc = GetGame().GetPlayerController();
+		if (!pc)
+			return null;
+		return pc.GetControlledEntity();
 	}
 	
 	override void Update(float timeSlice)
