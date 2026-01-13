@@ -20,6 +20,9 @@ class RBL_InputTests
 		TestInputHandler();
 		TestCooldownSystem();
 		TestEventSystem();
+		TestConfigValidator();
+		TestExpectedActions();
+		TestValidationIssues();
 		
 		PrintFormat("\n[RBL_InputTests] Input tests complete.\n");
 	}
@@ -399,6 +402,172 @@ class RBL_InputTests
 		runner.Assert("State not held on release", !state.IsHeld(), "Still held after release");
 		runner.AssertEqualFloat("Held time reset", 0, state.GetHeldTime(), 0.001);
 	}
+	
+	// Test config validator
+	static void TestConfigValidator()
+	{
+		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
+		
+		PrintFormat("[RBL_InputTests] Testing config validator...");
+		
+		// Initialize registry first
+		RBL_InputBindingRegistry registry = RBL_InputBindingRegistry.GetInstance();
+		registry.Initialize();
+		
+		// Get validator singleton
+		RBL_InputConfigValidator validator = RBL_InputConfigValidator.GetInstance();
+		runner.AssertNotNull("Validator singleton exists", validator);
+		
+		if (!validator)
+			return;
+		
+		// Test initial state
+		runner.Assert("Validator not validated initially", !validator.IsValidated(), "Already validated");
+		
+		// Run validation
+		bool isValid = validator.Validate();
+		
+		// Test post-validation state
+		runner.Assert("Validator marked as validated", validator.IsValidated(), "Not marked validated");
+		runner.Assert("Validation ran without crash", true, "Validation crashed");
+		
+		// Test issue tracking
+		int totalIssues = validator.GetTotalIssueCount();
+		int errors = validator.GetErrorCount();
+		int warnings = validator.GetWarningCount();
+		
+		runner.Assert("Total issues count is non-negative", totalIssues >= 0, "Negative issue count");
+		runner.Assert("Error count is non-negative", errors >= 0, "Negative error count");
+		runner.Assert("Warning count is non-negative", warnings >= 0, "Negative warning count");
+		runner.Assert("Issues breakdown matches total", errors + warnings <= totalIssues, "Issue count mismatch");
+		
+		// Test GetIssues returns array
+		array<ref RBL_InputValidationIssue> issues = validator.GetIssues();
+		runner.AssertNotNull("GetIssues returns array", issues);
+		runner.AssertEqual("GetIssues count matches", totalIssues, issues.Count());
+		
+		// Test GetErrors returns array
+		array<ref RBL_InputValidationIssue> errorList = validator.GetErrors();
+		runner.AssertNotNull("GetErrors returns array", errorList);
+		runner.AssertEqual("GetErrors count matches", errors, errorList.Count());
+		
+		// Test GetWarnings returns array
+		array<ref RBL_InputValidationIssue> warningList = validator.GetWarnings();
+		runner.AssertNotNull("GetWarnings returns array", warningList);
+		runner.AssertEqual("GetWarnings count matches", warnings, warningList.Count());
+		
+		// Log results
+		PrintFormat("[RBL_InputTests] Validation result: %1 (Errors: %2, Warnings: %3)", 
+			isValid ? "VALID" : "INVALID", errors, warnings);
+	}
+	
+	// Test expected actions configuration
+	static void TestExpectedActions()
+	{
+		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
+		
+		PrintFormat("[RBL_InputTests] Testing expected actions configuration...");
+		
+		// Test GetRequiredActions returns array
+		array<string> requiredActions = RBL_ExpectedInputActions.GetRequiredActions();
+		runner.AssertNotNull("GetRequiredActions returns array", requiredActions);
+		runner.Assert("Required actions count > 0", requiredActions.Count() > 0, "No required actions");
+		runner.Assert("At least 9 required actions", requiredActions.Count() >= 9, 
+			string.Format("Only %1 required actions", requiredActions.Count()));
+		
+		// Test GetMenuActions returns array
+		array<string> menuActions = RBL_ExpectedInputActions.GetMenuActions();
+		runner.AssertNotNull("GetMenuActions returns array", menuActions);
+		runner.Assert("Menu actions count > 0", menuActions.Count() > 0, "No menu actions");
+		runner.Assert("At least 6 menu actions", menuActions.Count() >= 6,
+			string.Format("Only %1 menu actions", menuActions.Count()));
+		
+		// Test expected key codes
+		runner.AssertEqual("Shop expected key is J", RBL_KeyCodes.KEY_J, 
+			RBL_ExpectedInputActions.GetExpectedKeyCode(RBL_InputActions.TOGGLE_SHOP));
+		runner.AssertEqual("Settings expected key is K", RBL_KeyCodes.KEY_K, 
+			RBL_ExpectedInputActions.GetExpectedKeyCode(RBL_InputActions.TOGGLE_SETTINGS));
+		runner.AssertEqual("HUD expected key is H", RBL_KeyCodes.KEY_H, 
+			RBL_ExpectedInputActions.GetExpectedKeyCode(RBL_InputActions.TOGGLE_HUD));
+		runner.AssertEqual("QuickSave expected key is F5", RBL_KeyCodes.KEY_F5, 
+			RBL_ExpectedInputActions.GetExpectedKeyCode(RBL_InputActions.QUICK_SAVE));
+		runner.AssertEqual("QuickLoad expected key is F9", RBL_KeyCodes.KEY_F9, 
+			RBL_ExpectedInputActions.GetExpectedKeyCode(RBL_InputActions.QUICK_LOAD));
+		runner.AssertEqual("Map expected key is M", RBL_KeyCodes.KEY_M, 
+			RBL_ExpectedInputActions.GetExpectedKeyCode(RBL_InputActions.TOGGLE_MAP));
+		runner.AssertEqual("Missions expected key is L", RBL_KeyCodes.KEY_L, 
+			RBL_ExpectedInputActions.GetExpectedKeyCode(RBL_InputActions.TOGGLE_MISSIONS));
+		runner.AssertEqual("DebugHUD expected key is F6", RBL_KeyCodes.KEY_F6, 
+			RBL_ExpectedInputActions.GetExpectedKeyCode(RBL_InputActions.TOGGLE_DEBUG_HUD));
+		runner.AssertEqual("CloseMenu expected key is ESC", RBL_KeyCodes.KEY_ESC, 
+			RBL_ExpectedInputActions.GetExpectedKeyCode(RBL_InputActions.CLOSE_MENU));
+		runner.AssertEqual("Interact expected key is F", RBL_KeyCodes.KEY_F, 
+			RBL_ExpectedInputActions.GetExpectedKeyCode(RBL_InputActions.INTERACT));
+		
+		// Test menu navigation expected keys
+		runner.AssertEqual("MenuUp expected key is W", RBL_KeyCodes.KEY_W, 
+			RBL_ExpectedInputActions.GetExpectedKeyCode("RBL_MenuUp"));
+		runner.AssertEqual("MenuDown expected key is S", RBL_KeyCodes.KEY_S, 
+			RBL_ExpectedInputActions.GetExpectedKeyCode("RBL_MenuDown"));
+		runner.AssertEqual("MenuLeft expected key is Q", RBL_KeyCodes.KEY_Q, 
+			RBL_ExpectedInputActions.GetExpectedKeyCode("RBL_MenuLeft"));
+		runner.AssertEqual("MenuRight expected key is E", RBL_KeyCodes.KEY_E, 
+			RBL_ExpectedInputActions.GetExpectedKeyCode("RBL_MenuRight"));
+		runner.AssertEqual("MenuSelect expected key is ENTER", RBL_KeyCodes.KEY_ENTER, 
+			RBL_ExpectedInputActions.GetExpectedKeyCode("RBL_MenuSelect"));
+		runner.AssertEqual("MenuBack expected key is ESC", RBL_KeyCodes.KEY_ESC, 
+			RBL_ExpectedInputActions.GetExpectedKeyCode("RBL_MenuBack"));
+		
+		// Test unknown action returns -1
+		runner.AssertEqual("Unknown action returns -1", -1, 
+			RBL_ExpectedInputActions.GetExpectedKeyCode("UnknownAction"));
+	}
+	
+	// Test validation issue class
+	static void TestValidationIssues()
+	{
+		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
+		
+		PrintFormat("[RBL_InputTests] Testing validation issue class...");
+		
+		// Test issue creation with different result types
+		RBL_InputValidationIssue validIssue = new RBL_InputValidationIssue(
+			ERBLInputValidationResult.VALID, "TestAction", "All good");
+		runner.AssertNotNull("Valid issue created", validIssue);
+		runner.AssertStringEqual("Valid issue severity is OK", "OK", validIssue.GetSeverity());
+		runner.AssertEqual("Valid issue result is VALID", ERBLInputValidationResult.VALID, validIssue.Result);
+		
+		RBL_InputValidationIssue missingIssue = new RBL_InputValidationIssue(
+			ERBLInputValidationResult.MISSING_ACTION, "MissingAction", "Action not found");
+		runner.AssertNotNull("Missing issue created", missingIssue);
+		runner.AssertStringEqual("Missing issue severity is ERROR", "ERROR", missingIssue.GetSeverity());
+		runner.AssertStringEqual("Missing issue action name", "MissingAction", missingIssue.ActionName);
+		runner.AssertStringEqual("Missing issue message", "Action not found", missingIssue.Message);
+		
+		RBL_InputValidationIssue duplicateIssue = new RBL_InputValidationIssue(
+			ERBLInputValidationResult.DUPLICATE_KEYBIND, "DupeAction", "Duplicate key", RBL_KeyCodes.KEY_J);
+		runner.AssertNotNull("Duplicate issue created", duplicateIssue);
+		runner.AssertStringEqual("Duplicate issue severity is WARNING", "WARNING", duplicateIssue.GetSeverity());
+		runner.AssertEqual("Duplicate issue key code", RBL_KeyCodes.KEY_J, duplicateIssue.KeyCode);
+		
+		RBL_InputValidationIssue invalidKeyIssue = new RBL_InputValidationIssue(
+			ERBLInputValidationResult.INVALID_KEY_CODE, "BadKeyAction", "Invalid key code", 999);
+		runner.AssertNotNull("Invalid key issue created", invalidKeyIssue);
+		runner.AssertStringEqual("Invalid key issue severity is ERROR", "ERROR", invalidKeyIssue.GetSeverity());
+		
+		RBL_InputValidationIssue configIssue = new RBL_InputValidationIssue(
+			ERBLInputValidationResult.CONFIG_NOT_LOADED, "", "Config not loaded");
+		runner.AssertNotNull("Config issue created", configIssue);
+		runner.AssertStringEqual("Config issue severity is ERROR", "ERROR", configIssue.GetSeverity());
+		
+		RBL_InputValidationIssue contextIssue = new RBL_InputValidationIssue(
+			ERBLInputValidationResult.CONTEXT_ERROR, "ContextAction", "Context error");
+		runner.AssertNotNull("Context issue created", contextIssue);
+		runner.AssertStringEqual("Context issue severity is ERROR", "ERROR", contextIssue.GetSeverity());
+		
+		// Test default key code (-1) when not provided
+		runner.AssertEqual("Valid issue default key code is -1", -1, validIssue.KeyCode);
+	}
 }
 
 // Console command to run input tests
@@ -442,6 +611,42 @@ class RBL_InputTestCommands
 		RBL_InputTests.TestCooldownSystem();
 		
 		runner.PrintResults();
+	}
+	
+	static void RunValidatorTests()
+	{
+		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
+		runner.Reset();
+		
+		RBL_InputTests.TestConfigValidator();
+		RBL_InputTests.TestExpectedActions();
+		RBL_InputTests.TestValidationIssues();
+		
+		runner.PrintResults();
+	}
+	
+	static void ValidateAndTest()
+	{
+		PrintFormat("\n========================================");
+		PrintFormat("   INPUT VALIDATION + TESTS");
+		PrintFormat("========================================\n");
+		
+		// First run validation
+		RBL_InputValidatorCommands.ValidateInputConfig();
+		
+		// Then run tests
+		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
+		runner.Reset();
+		
+		RBL_InputTests.TestConfigValidator();
+		RBL_InputTests.TestExpectedActions();
+		RBL_InputTests.TestValidationIssues();
+		
+		runner.PrintResults();
+		
+		PrintFormat("\n========================================");
+		PrintFormat("   VALIDATION + TESTS COMPLETE");
+		PrintFormat("========================================\n");
 	}
 }
 
