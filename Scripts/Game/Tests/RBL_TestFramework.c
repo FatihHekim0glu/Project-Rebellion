@@ -154,6 +154,7 @@ class RBL_Tests
 		TestGarrisonSystem();
 		TestQRFSystem();
 		TestUndercoverSystem();
+		TestItemDelivery();
 		
 		// Print results
 		runner.PrintResults();
@@ -773,6 +774,97 @@ class RBL_Tests
 		int trackedCount = system.GetTrackedPlayerCount();
 		runner.Assert("Tracked player count >= 0", trackedCount >= 0, "Negative count");
 	}
+	
+	// Test item delivery system
+	static void TestItemDelivery()
+	{
+		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
+		
+		PrintFormat("[RBL_Tests] Running Item Delivery Tests...");
+		
+		// Test singleton
+		RBL_ItemDelivery delivery = RBL_ItemDelivery.GetInstance();
+		runner.AssertNotNull("ItemDelivery.GetInstance", delivery);
+		
+		if (!delivery)
+			return;
+		
+		// Test delivery result enum
+		runner.Assert("SUCCESS result exists", ERBLDeliveryResult.SUCCESS >= 0, "Missing result");
+		runner.Assert("FAILED_NO_PLAYER result exists", ERBLDeliveryResult.FAILED_NO_PLAYER >= 0, "Missing result");
+		runner.Assert("FAILED_NO_PREFAB result exists", ERBLDeliveryResult.FAILED_NO_PREFAB >= 0, "Missing result");
+		runner.Assert("FAILED_SPAWN_ERROR result exists", ERBLDeliveryResult.FAILED_SPAWN_ERROR >= 0, "Missing result");
+		
+		// Test helper methods don't crash
+		int localPlayerID = delivery.GetLocalPlayerID();
+		runner.RecordResult("GetLocalPlayerID works", true, "ID: " + localPlayerID.ToString());
+		
+		IEntity localPlayer = delivery.GetLocalPlayerEntity();
+		if (localPlayer)
+		{
+			runner.RecordResult("GetLocalPlayerEntity found player", true, "OK");
+			
+			bool validTarget = delivery.IsValidDeliveryTarget(localPlayer);
+			runner.RecordResult("IsValidDeliveryTarget works", true, validTarget ? "Valid" : "Invalid");
+			
+			vector playerPos = delivery.GetPlayerPosition(localPlayer);
+			runner.Assert("GetPlayerPosition returns valid vector", playerPos != vector.Zero, "Zero vector");
+		}
+		else
+		{
+			runner.RecordResult("GetLocalPlayerEntity", true, "No player (normal in test env)");
+		}
+		
+		// Test event invokers exist
+		ScriptInvoker onDelivered = delivery.GetOnItemDelivered();
+		runner.AssertNotNull("GetOnItemDelivered returns invoker", onDelivered);
+		
+		ScriptInvoker onFailed = delivery.GetOnDeliveryFailed();
+		runner.AssertNotNull("GetOnDeliveryFailed returns invoker", onFailed);
+		
+		// Test ShopManager integration
+		RBL_ShopManager shop = RBL_ShopManager.GetInstance();
+		runner.AssertNotNull("ShopManager.GetInstance", shop);
+		
+		if (shop)
+		{
+			// Test item catalog exists
+			array<ref RBL_ShopItem> weapons = shop.GetWeapons();
+			runner.Assert("Shop has weapons", weapons.Count() > 0, "No weapons in shop");
+			
+			array<ref RBL_ShopItem> vehicles = shop.GetVehicles();
+			runner.Assert("Shop has vehicles", vehicles.Count() > 0, "No vehicles in shop");
+			
+			array<ref RBL_ShopItem> recruits = shop.GetRecruits();
+			runner.Assert("Shop has recruits", recruits.Count() > 0, "No recruits in shop");
+			
+			array<ref RBL_ShopItem> equipment = shop.GetEquipment();
+			runner.Assert("Shop has equipment", equipment.Count() > 0, "No equipment in shop");
+			
+			// Test item structure
+			if (weapons.Count() > 0)
+			{
+				RBL_ShopItem testItem = weapons[0];
+				runner.Assert("Weapon has ID", testItem.ID.Length() > 0, "Empty ID");
+				runner.Assert("Weapon has name", testItem.DisplayName.Length() > 0, "Empty name");
+				runner.Assert("Weapon has price > 0", testItem.Price > 0, "Zero price");
+				runner.Assert("Weapon has prefab", testItem.PrefabPath.Length() > 0, "Empty prefab");
+				runner.Assert("Weapon category correct", testItem.Category == "Weapons", "Wrong category");
+			}
+			
+			if (recruits.Count() > 0)
+			{
+				RBL_ShopItem testRecruit = recruits[0];
+				runner.Assert("Recruit has HR cost", testRecruit.HRCost > 0, "Zero HR cost");
+			}
+		}
+		
+		// Test DeliveryEventData
+		RBL_DeliveryEventData eventData = new RBL_DeliveryEventData();
+		runner.AssertNotNull("DeliveryEventData created", eventData);
+		runner.Assert("EventData default PlayerID is -1", eventData.PlayerID == -1, "Wrong default");
+		runner.Assert("EventData default Result is SUCCESS", eventData.Result == ERBLDeliveryResult.SUCCESS, "Wrong default");
+	}
 }
 
 // Console command to run tests
@@ -828,6 +920,14 @@ class RBL_TestCommands
 		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
 		runner.Reset();
 		RBL_Tests.TestUndercoverSystem();
+		runner.PrintResults();
+	}
+	
+	static void RunDeliveryTests()
+	{
+		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
+		runner.Reset();
+		RBL_Tests.TestItemDelivery();
 		runner.PrintResults();
 	}
 }
