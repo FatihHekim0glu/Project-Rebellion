@@ -15,8 +15,8 @@ class RBL_GameMode : SCR_BaseGameMode
 	[Attribute("1", UIWidgets.CheckBox, "Auto-initialize zones from config")]
 	protected bool m_bAutoInitialize;
 
-	[Attribute("1", UIWidgets.CheckBox, "Show debug HUD")]
-	protected bool m_bShowDebugHUD;
+	[Attribute("1", UIWidgets.CheckBox, "Show UI HUD")]
+	protected bool m_bShowHUD;
 
 	protected bool m_bSystemsInitialized;
 	protected float m_fInitDelay;
@@ -75,12 +75,25 @@ class RBL_GameMode : SCR_BaseGameMode
 		// Initialize new systems
 		RBL_CaptureManager.GetInstance();
 		RBL_ShopManager.GetInstance();
+		RBL_GarrisonManager.GetInstance();
+		
+		// Initialize NEW UI System
+		if (m_bShowHUD)
+		{
+			RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+			uiMgr.Initialize();
+			PrintFormat("[RBL] UI System initialized");
+		}
+		
+		// Legacy systems (for compatibility)
 		RBL_ScreenHUD.GetInstance();
 		RBL_InputHandler.GetInstance();
-		RBL_GarrisonManager.GetInstance();
 		
 		// Spawn garrisons at all enemy zones
 		GetGame().GetCallqueue().CallLater(SpawnInitialGarrisons, 5000, false);
+		
+		// Show welcome notification
+		GetGame().GetCallqueue().CallLater(ShowWelcomeNotifications, 1000, false);
 		
 		PrintZoneInfo();
 		PrintHelp();
@@ -94,6 +107,26 @@ class RBL_GameMode : SCR_BaseGameMode
 			garMgr.SpawnAllGarrisons();
 			PrintFormat("[RBL] Initial garrisons spawned");
 		}
+	}
+	
+	protected void ShowWelcomeNotifications()
+	{
+		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+		if (!uiMgr)
+			return;
+		
+		uiMgr.ShowNotification("PROJECT REBELLION Active", RBL_UIColors.COLOR_ACCENT_GREEN, 4.0);
+		
+		GetGame().GetCallqueue().CallLater(ShowHintNotification, 2000, false);
+	}
+	
+	protected void ShowHintNotification()
+	{
+		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+		if (!uiMgr)
+			return;
+		
+		uiMgr.ShowNotification("Press [B] to open Shop", RBL_UIColors.COLOR_TEXT_SECONDARY, 3.0);
 	}
 
 	protected void UpdateAllSystems(float timeSlice)
@@ -126,13 +159,21 @@ class RBL_GameMode : SCR_BaseGameMode
 		if (undercover)
 			undercover.Update(timeSlice);
 		
-		// HUD system
-		if (m_bShowDebugHUD)
+		// NEW UI System
+		if (m_bShowHUD)
 		{
-			RBL_ScreenHUD hud = RBL_ScreenHUD.GetInstance();
-			if (hud)
-				hud.Update(timeSlice);
+			RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+			if (uiMgr)
+			{
+				uiMgr.Update(timeSlice);
+				uiMgr.Draw();
+			}
 		}
+		
+		// Legacy HUD (for compatibility)
+		RBL_ScreenHUD hud = RBL_ScreenHUD.GetInstance();
+		if (hud)
+			hud.Update(timeSlice);
 		
 		// Input
 		RBL_InputHandler input = RBL_InputHandler.GetInstance();
@@ -157,6 +198,10 @@ class RBL_GameMode : SCR_BaseGameMode
 	protected void PrintHelp()
 	{
 		PrintFormat("[RBL] ========================================");
+		PrintFormat("[RBL] KEYBINDS:");
+		PrintFormat("[RBL]   [B] - Open Shop");
+		PrintFormat("[RBL]   [M] - Toggle Map");
+		PrintFormat("[RBL]   [H] - Toggle HUD");
 		PrintFormat("[RBL] CONSOLE COMMANDS:");
 		PrintFormat("[RBL]   RBL_DebugCommands.PrintStatus()");
 		PrintFormat("[RBL]   RBL_DebugCommands.OpenShop()");
@@ -165,6 +210,7 @@ class RBL_GameMode : SCR_BaseGameMode
 		PrintFormat("[RBL]   RBL_DebugCommands.ListZones()");
 		PrintFormat("[RBL]   RBL_DebugCommands.CaptureZone(\"zoneid\")");
 		PrintFormat("[RBL]   RBL_DebugCommands.TeleportToZone(\"zoneid\")");
+		PrintFormat("[RBL]   RBL_UITests.RunAllTests() - Run UI tests");
 		PrintFormat("[RBL] ========================================");
 	}
 
@@ -245,12 +291,21 @@ class RBL_GameModeAddon
 		// New systems
 		RBL_CaptureManager.GetInstance();
 		RBL_ShopManager.GetInstance();
+		RBL_GarrisonManager.GetInstance();
+		
+		// NEW UI System
+		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+		uiMgr.Initialize();
+		
+		// Legacy systems
 		RBL_ScreenHUD.GetInstance();
 		RBL_InputHandler.GetInstance();
-		RBL_GarrisonManager.GetInstance();
 		
 		// Spawn garrisons after delay
 		GetGame().GetCallqueue().CallLater(SpawnGarrisons, 5000, false);
+		
+		// Welcome notifications
+		GetGame().GetCallqueue().CallLater(ShowWelcome, 1000, false);
 		
 		PrintHelp();
 	}
@@ -261,16 +316,38 @@ class RBL_GameModeAddon
 		if (garMgr)
 			garMgr.SpawnAllGarrisons();
 	}
+	
+	protected void ShowWelcome()
+	{
+		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+		if (uiMgr)
+		{
+			uiMgr.ShowNotification("PROJECT REBELLION Active", RBL_UIColors.COLOR_ACCENT_GREEN, 4.0);
+			GetGame().GetCallqueue().CallLater(ShowHint, 2000, false);
+		}
+	}
+	
+	protected void ShowHint()
+	{
+		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+		if (uiMgr)
+			uiMgr.ShowNotification("Press [B] to open Shop", RBL_UIColors.COLOR_TEXT_SECONDARY, 3.0);
+	}
 
 	protected void PrintHelp()
 	{
 		PrintFormat("[RBL] ========================================");
-		PrintFormat("[RBL] Open console (~) and type:");
+		PrintFormat("[RBL] KEYBINDS:");
+		PrintFormat("[RBL]   [B] - Open Shop");
+		PrintFormat("[RBL]   [M] - Toggle Map");
+		PrintFormat("[RBL]   [H] - Toggle HUD");
+		PrintFormat("[RBL] CONSOLE COMMANDS:");
 		PrintFormat("[RBL]   RBL_DebugCommands.PrintStatus()");
 		PrintFormat("[RBL]   RBL_DebugCommands.OpenShop()");
 		PrintFormat("[RBL]   RBL_DebugCommands.Buy(\"akm\")");
 		PrintFormat("[RBL]   RBL_DebugCommands.AddMoney(1000)");
 		PrintFormat("[RBL]   RBL_DebugCommands.TeleportToZone(\"Town_LePort\")");
+		PrintFormat("[RBL]   RBL_UITests.RunAllTests() - Run UI tests");
 		PrintFormat("[RBL] ========================================");
 	}
 
@@ -304,7 +381,15 @@ class RBL_GameModeAddon
 		if (undercover)
 			undercover.Update(timeSlice);
 		
-		// HUD
+		// NEW UI System
+		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+		if (uiMgr)
+		{
+			uiMgr.Update(timeSlice);
+			uiMgr.Draw();
+		}
+		
+		// Legacy HUD
 		RBL_ScreenHUD hud = RBL_ScreenHUD.GetInstance();
 		if (hud)
 			hud.Update(timeSlice);
@@ -313,5 +398,88 @@ class RBL_GameModeAddon
 		RBL_InputHandler input = RBL_InputHandler.GetInstance();
 		if (input)
 			input.Update();
+	}
+}
+
+// ============================================================================
+// UI INPUT HANDLER - Keybind processing
+// ============================================================================
+class RBL_UIInputHandler
+{
+	protected static ref RBL_UIInputHandler s_Instance;
+	
+	static RBL_UIInputHandler GetInstance()
+	{
+		if (!s_Instance)
+			s_Instance = new RBL_UIInputHandler();
+		return s_Instance;
+	}
+	
+	void Update()
+	{
+		InputManager input = GetGame().GetInputManager();
+		if (!input)
+			return;
+		
+		// Shop toggle (B key)
+		if (input.GetActionTriggered("RBL_ToggleShop"))
+		{
+			RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+			if (uiMgr)
+				uiMgr.ToggleShop();
+		}
+		
+		// HUD toggle (H key)
+		if (input.GetActionTriggered("RBL_ToggleHUD"))
+		{
+			RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+			if (uiMgr)
+				uiMgr.SetVisible(!uiMgr.IsVisible());
+		}
+	}
+}
+
+// ============================================================================
+// DEBUG COMMANDS EXTENSION - UI commands
+// ============================================================================
+class RBL_UIDebugCommands
+{
+	[ConsoleCmd("rbl_shop", "Toggle shop menu")]
+	static void ToggleShop()
+	{
+		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+		if (uiMgr)
+		{
+			uiMgr.ToggleShop();
+			PrintFormat("[RBL] Shop toggled");
+		}
+	}
+	
+	[ConsoleCmd("rbl_hud", "Toggle HUD visibility")]
+	static void ToggleHUD()
+	{
+		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+		if (uiMgr)
+		{
+			uiMgr.SetVisible(!uiMgr.IsVisible());
+			PrintFormat("[RBL] HUD visibility: %1", uiMgr.IsVisible());
+		}
+	}
+	
+	[ConsoleCmd("rbl_notify", "Show test notification")]
+	static void TestNotify()
+	{
+		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+		if (uiMgr)
+		{
+			uiMgr.ShowNotification("Test notification!", RBL_UIColors.COLOR_ACCENT_GREEN, 3.0);
+			PrintFormat("[RBL] Notification sent");
+		}
+	}
+	
+	[ConsoleCmd("rbl_ui_test", "Run all UI tests")]
+	static void RunUITests()
+	{
+		RBL_UITests.RunAllTests();
 	}
 }
