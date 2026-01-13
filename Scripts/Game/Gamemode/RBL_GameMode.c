@@ -82,6 +82,11 @@ class RBL_GameMode : SCR_BaseGameMode
 		if (missionMgr)
 			missionMgr.Initialize();
 		
+		// Initialize Victory Manager
+		RBL_VictoryManager victoryMgr = RBL_VictoryManager.GetInstance();
+		if (victoryMgr)
+			victoryMgr.Initialize();
+		
 		// Wire campaign events to missions
 		WireCampaignEventsToMissions();
 		
@@ -203,6 +208,11 @@ class RBL_GameMode : SCR_BaseGameMode
 		RBL_MissionManager missionMgr = RBL_MissionManager.GetInstance();
 		if (missionMgr)
 			missionMgr.Update(timeSlice);
+		
+		// Victory system
+		RBL_VictoryManager victoryMgr = RBL_VictoryManager.GetInstance();
+		if (victoryMgr)
+			victoryMgr.Update(timeSlice);
 		
 		// NEW UI System
 		if (m_bShowHUD)
@@ -343,6 +353,11 @@ class RBL_GameModeAddon
 		if (missionMgr)
 			missionMgr.Initialize();
 		
+		// Victory Manager
+		RBL_VictoryManager victoryMgr = RBL_VictoryManager.GetInstance();
+		if (victoryMgr)
+			victoryMgr.Initialize();
+		
 		// Wire campaign events
 		WireCampaignEvents();
 		
@@ -470,6 +485,11 @@ class RBL_GameModeAddon
 		RBL_MissionManager missionMgr = RBL_MissionManager.GetInstance();
 		if (missionMgr)
 			missionMgr.Update(timeSlice);
+		
+		// Victory system
+		RBL_VictoryManager victoryMgr = RBL_VictoryManager.GetInstance();
+		if (victoryMgr)
+			victoryMgr.Update(timeSlice);
 		
 		// NEW UI System
 		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
