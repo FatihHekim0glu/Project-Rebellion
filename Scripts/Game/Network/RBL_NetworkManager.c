@@ -249,60 +249,19 @@ class RBL_NetworkManager : GenericEntity
 		if (!delivery)
 			return;
 		
-		// Find the item in shop and deliver
-		RBL_ShopItem item = null;
-		array<ref RBL_ShopItem> weapons = shopMgr.GetWeapons();
-		array<ref RBL_ShopItem> equipment = shopMgr.GetEquipment();
-		array<ref RBL_ShopItem> vehicles = shopMgr.GetVehicles();
-		array<ref RBL_ShopItem> recruits = shopMgr.GetRecruits();
-		
-		for (int i = 0; i < weapons.Count(); i++)
-		{
-			if (weapons[i].ID == itemID)
-			{
-				item = weapons[i];
-				break;
-			}
-		}
-		
-		if (!item)
-		{
-			for (int i = 0; i < equipment.Count(); i++)
-			{
-				if (equipment[i].ID == itemID)
-				{
-					item = equipment[i];
-					break;
-				}
-			}
-		}
-		
-		if (!item)
-		{
-			for (int i = 0; i < vehicles.Count(); i++)
-			{
-				if (vehicles[i].ID == itemID)
-				{
-					item = vehicles[i];
-					break;
-				}
-			}
-		}
-		
-		if (!item)
-		{
-			for (int i = 0; i < recruits.Count(); i++)
-			{
-				if (recruits[i].ID == itemID)
-				{
-					item = recruits[i];
-					break;
-				}
-			}
-		}
+		// Use centralized lookup from ShopManager
+		RBL_ShopItem item = shopMgr.GetItemByID(itemID);
 		
 		if (item)
-			delivery.DeliverItem(item, playerID);
+		{
+			// Use the new DeliverShopItem method that works with getter methods
+			delivery.DeliverShopItem(item, playerID);
+			PrintFormat("[RBL_Network] Delivered %1 to player %2", item.GetDisplayName(), playerID);
+		}
+		else
+		{
+			PrintFormat("[RBL_Network] Item not found for delivery: %1", itemID);
+		}
 	}
 	
 	protected void SendPurchaseResult(int playerID, string itemID, bool success, string message)
