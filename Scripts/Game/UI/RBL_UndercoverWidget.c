@@ -64,19 +64,32 @@ class RBL_UndercoverWidgetImpl : RBL_BaseWidget
 			return;
 		}
 		
-		// Get local player
-		int localPlayerId = GetLocalPlayerId();
-		if (localPlayerId < 0)
+		// Get local player entity
+		IEntity playerEntity = GetLocalPlayerEntity();
+		if (!playerEntity)
 			return;
 		
-		// Fetch undercover state
-		m_eCoverStatus = undercover.GetCoverStatus(localPlayerId);
-		m_fSuspicionLevel = undercover.GetSuspicionLevel(localPlayerId);
-		m_bIsDisguised = undercover.IsDisguised(localPlayerId);
-		m_bInVehicle = undercover.IsInCivilianVehicle(localPlayerId);
-		m_bCarryingWeapon = undercover.IsWeaponVisible(localPlayerId);
-		m_iNearbyEnemies = undercover.GetNearbyEnemyCount(localPlayerId);
-		m_fClosestEnemyDist = undercover.GetClosestEnemyDistance(localPlayerId);
+		// Fetch undercover state using the player state tracking
+		RBL_PlayerCoverState playerState = undercover.GetPlayerState(playerEntity);
+		if (playerState)
+		{
+			m_eCoverStatus = playerState.GetStatus();
+			m_fSuspicionLevel = playerState.GetSuspicion() / 100.0;
+			m_iNearbyEnemies = playerState.GetNearbyEnemyCount();
+			m_fClosestEnemyDist = playerState.GetClosestEnemyDistance();
+		}
+		else
+		{
+			m_eCoverStatus = ERBLCoverStatus.HIDDEN;
+			m_fSuspicionLevel = 0;
+			m_iNearbyEnemies = 0;
+			m_fClosestEnemyDist = 999999;
+		}
+		
+		// Check modifiers directly from player
+		m_bIsDisguised = CheckIsDisguised(playerEntity);
+		m_bInVehicle = CheckInVehicle(playerEntity);
+		m_bCarryingWeapon = CheckWeaponVisible(playerEntity);
 		
 		// Detect status changes
 		if (m_eCoverStatus != m_ePreviousStatus)
@@ -84,11 +97,35 @@ class RBL_UndercoverWidgetImpl : RBL_BaseWidget
 			m_bStatusChanged = true;
 			m_fStatusChangeTimer = 1.0;
 			
-			// Notification on status change
 			NotifyStatusChange(m_ePreviousStatus, m_eCoverStatus);
 		}
 		
 		m_ePreviousStatus = m_eCoverStatus;
+	}
+	
+	protected bool CheckIsDisguised(IEntity player)
+	{
+		return false;
+	}
+	
+	protected bool CheckInVehicle(IEntity player)
+	{
+		if (!player)
+			return false;
+		CompartmentAccessComponent comp = CompartmentAccessComponent.Cast(player.FindComponent(CompartmentAccessComponent));
+		if (comp && comp.IsInCompartment())
+			return true;
+		return false;
+	}
+	
+	protected bool CheckWeaponVisible(IEntity player)
+	{
+		if (!player)
+			return false;
+		BaseWeaponManagerComponent weaponMgr = BaseWeaponManagerComponent.Cast(player.FindComponent(BaseWeaponManagerComponent));
+		if (!weaponMgr)
+			return false;
+		return weaponMgr.GetCurrentWeapon() != null;
 	}
 	
 	override void Update(float timeSlice)
@@ -321,7 +358,8 @@ class RBL_UndercoverWidgetImpl : RBL_BaseWidget
 		switch (m_eCoverStatus)
 		{
 			case ERBLCoverStatus.HIDDEN: return 0.0;
-			case ERBLCoverStatus.SUSPICIOUS: return 0.5;
+			case ERBLCoverStatus.SUSPICIOUS: return 0.4;
+			case ERBLCoverStatus.SPOTTED: return 0.7;
 			case ERBLCoverStatus.COMPROMISED: return 1.0;
 			case ERBLCoverStatus.HOSTILE: return 1.0;
 		}
@@ -354,6 +392,11 @@ class RBL_UndercoverWidgetImpl : RBL_BaseWidget
 			message = "Drawing attention...";
 			color = RBL_UIColors.COLOR_ACCENT_AMBER;
 		}
+		else if (newStatus == ERBLCoverStatus.SPOTTED)
+		{
+			message = "Enemy investigating!";
+			color = RBL_UIColors.COLOR_STATUS_SPOTTED;
+		}
 		else if (newStatus == ERBLCoverStatus.COMPROMISED)
 		{
 			message = "COVER BLOWN!";
@@ -367,17 +410,18 @@ class RBL_UndercoverWidgetImpl : RBL_BaseWidget
 		
 		if (!message.IsEmpty())
 		{
-			RBL_UIManager.GetInstance().ShowNotification(message, color, 2.5);
+			RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+			if (uiMgr)
+				uiMgr.ShowNotification(message, color, 2.5);
 		}
 	}
 	
-	protected int GetLocalPlayerId()
+	protected IEntity GetLocalPlayerEntity()
 	{
-		PlayerManager pm = GetGame().GetPlayerManager();
-		if (!pm)
-			return -1;
-		
-		return pm.GetPlayerIdFromControlledEntity(GetGame().GetPlayerController().GetControlledEntity());
+		PlayerController pc = GetGame().GetPlayerController();
+		if (!pc)
+			return null;
+		return pc.GetControlledEntity();
 	}
 	
 	// Force state for testing
