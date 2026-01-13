@@ -218,27 +218,77 @@ class RBL_ItemDelivery
 		if (!playerEntity || item.PrefabPath.IsEmpty())
 			return ERBLDeliveryResult.FAILED_NO_PREFAB;
 		
-		// Spawn the equipment
-		IEntity equipEntity = SpawnEntity(item.PrefabPath, playerEntity.GetOrigin());
+		// Check if valid target
+		if (!IsValidDeliveryTarget(playerEntity))
+			return ERBLDeliveryResult.FAILED_NO_PLAYER;
+		
+		// Spawn the equipment near player
+		vector spawnPos = playerEntity.GetOrigin() + Vector(0, 1, 0);
+		IEntity equipEntity = SpawnEntity(item.PrefabPath, spawnPos);
 		if (!equipEntity)
 			return ERBLDeliveryResult.FAILED_SPAWN_ERROR;
 		
 		// Try to add to player inventory
 		bool added = AddToPlayerInventory(playerEntity, equipEntity);
 		
-		if (!added)
+		if (added)
 		{
-			// Drop at player's feet
-			vector dropPos = playerEntity.GetOrigin() + Vector(0, 0.5, 1);
-			BaseWorld world = GetGame().GetWorld();
-			if (world)
-				dropPos[1] = world.GetSurfaceY(dropPos[0], dropPos[2]) + 0.5;
+			PrintFormat("[RBL_Delivery] Equipment %1 added to inventory", item.DisplayName);
+		}
+		else
+		{
+			// Check if it's a stackable item (like bandages, grenades)
+			bool stacked = TryStackEquipment(playerEntity, equipEntity, item);
 			
-			equipEntity.SetOrigin(dropPos);
-			PrintFormat("[RBL_Delivery] Equipment dropped at player's feet (inventory full)");
+			if (!stacked)
+			{
+				// Drop at player's feet as last resort
+				vector dropPos = GetEquipmentDropPosition(playerEntity);
+				equipEntity.SetOrigin(dropPos);
+				PrintFormat("[RBL_Delivery] Equipment %1 dropped at player's feet", item.DisplayName);
+			}
 		}
 		
 		return ERBLDeliveryResult.SUCCESS;
+	}
+	
+	// Try to stack equipment with existing items
+	protected bool TryStackEquipment(IEntity playerEntity, IEntity equipEntity, RBL_ShopItem item)
+	{
+		if (!playerEntity || !equipEntity)
+			return false;
+		
+		// Get inventory manager
+		SCR_InventoryStorageManagerComponent invMgr = SCR_InventoryStorageManagerComponent.Cast(
+			playerEntity.FindComponent(SCR_InventoryStorageManagerComponent));
+		
+		if (!invMgr)
+			return false;
+		
+		// Try to find matching stack and add
+		// Note: This is a simplified implementation
+		// Full implementation would search inventory for matching prefab
+		
+		return false;
+	}
+	
+	// Get position to drop equipment
+	protected vector GetEquipmentDropPosition(IEntity playerEntity)
+	{
+		vector playerPos = playerEntity.GetOrigin();
+		vector playerAngles = playerEntity.GetAngles();
+		
+		// Drop slightly to the side
+		float yaw = (playerAngles[1] + 30) * Math.DEG2RAD;
+		vector offset = Vector(Math.Sin(yaw), 0, Math.Cos(yaw));
+		
+		vector dropPos = playerPos + offset * 1.0;
+		
+		BaseWorld world = GetGame().GetWorld();
+		if (world)
+			dropPos[1] = world.GetSurfaceY(dropPos[0], dropPos[2]) + 0.2;
+		
+		return dropPos;
 	}
 	
 	// ========================================================================
