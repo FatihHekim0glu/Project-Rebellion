@@ -71,12 +71,46 @@ class RBL_ItemDelivery
 	{
 		m_mRecruitPrefabs = new map<string, string>();
 		
-		// FIA faction prefabs
-		m_mRecruitPrefabs.Set("rifleman", "{84CE36A610A57C88}Prefabs/Characters/Factions/FIA/Character_FIA_Rifleman.et");
-		m_mRecruitPrefabs.Set("medic", "{5A26B77C6A35E8D1}Prefabs/Characters/Factions/FIA/Character_FIA_Medic.et");
-		m_mRecruitPrefabs.Set("mg", "{3D94F1B2E8C7A456}Prefabs/Characters/Factions/FIA/Character_FIA_MG.et");
-		m_mRecruitPrefabs.Set("at", "{2F81D3C5A9B64E12}Prefabs/Characters/Factions/FIA/Character_FIA_AT.et");
-		m_mRecruitPrefabs.Set("sniper", "{7B3E9F4D1C8A2567}Prefabs/Characters/Factions/FIA/Character_FIA_Sniper.et");
+		// NOTE: These prefabs need to match your game installation
+		// You can find valid prefabs in Workbench under:
+		// Prefabs/Characters/Factions/BLUFOR/US_Army/
+		// or Prefabs/Characters/Factions/INDFOR/FIA/ (if using FIA mod)
+		
+		// Vanilla Arma Reforger US Army characters
+		// Format: {GUID}Path/To/Prefab.et
+		// Get GUIDs from Workbench by right-clicking prefab -> Copy Resource Name
+		
+		// Default fallback prefabs - US Army (vanilla)
+		string usRifleman = "{DCB41E1B7E697DE8}Prefabs/Characters/Factions/BLUFOR/US_Army/Character_US_Rifleman.et";
+		
+		m_mRecruitPrefabs.Set("rifleman", usRifleman);
+		m_mRecruitPrefabs.Set("medic", usRifleman);    // Fallback to rifleman
+		m_mRecruitPrefabs.Set("mg", usRifleman);       // Fallback to rifleman  
+		m_mRecruitPrefabs.Set("at", usRifleman);       // Fallback to rifleman
+		m_mRecruitPrefabs.Set("sniper", usRifleman);   // Fallback to rifleman
+		m_mRecruitPrefabs.Set("squad", usRifleman);    // Squad uses riflemen
+		
+		PrintFormat("[RBL_Delivery] Recruit prefabs initialized (using US Army fallback)");
+		PrintFormat("[RBL_Delivery] To customize, call SetRecruitPrefab() with valid prefab paths");
+	}
+	
+	// Allow runtime configuration of recruit prefabs
+	void SetRecruitPrefab(string recruitType, string prefabPath)
+	{
+		if (recruitType.IsEmpty() || prefabPath.IsEmpty())
+			return;
+		
+		m_mRecruitPrefabs.Set(recruitType, prefabPath);
+		PrintFormat("[RBL_Delivery] Set %1 prefab to: %2", recruitType, prefabPath);
+	}
+	
+	// Get current prefab for a recruit type
+	string GetRecruitPrefabPath(string recruitType)
+	{
+		string prefab;
+		if (m_mRecruitPrefabs.Find(recruitType, prefab))
+			return prefab;
+		return "";
 	}
 	
 	// ========================================================================
