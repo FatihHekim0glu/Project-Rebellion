@@ -112,6 +112,43 @@ class RBL_ScreenHUD
 			DbgUI.Text("Alert: " + campaignMgr.GetAggression().ToString() + "%");
 		}
 
+		// Undercover status
+		DbgUI.Text("---");
+		RBL_UndercoverSystem undercover = RBL_UndercoverSystem.GetInstance();
+		if (undercover && GetGame())
+		{
+			PlayerController pc = GetGame().GetPlayerController();
+			if (pc)
+			{
+				int playerID = pc.GetPlayerId();
+				RBL_PlayerCoverState coverState = undercover.GetPlayerState(playerID);
+				if (coverState)
+				{
+					string statusColor = "";
+					switch (coverState.m_eCurrentStatus)
+					{
+						case ERBLCoverStatus.HIDDEN: statusColor = "[SAFE] "; break;
+						case ERBLCoverStatus.SUSPICIOUS: statusColor = "[!] "; break;
+						case ERBLCoverStatus.SPOTTED: statusColor = "[!!] "; break;
+						case ERBLCoverStatus.COMPROMISED: statusColor = "[!!!] "; break;
+					}
+					DbgUI.Text("Cover: " + statusColor + coverState.GetStatusString());
+					DbgUI.Text("Suspicion: " + Math.Round(coverState.m_fSuspicionLevel * 100).ToString() + "%");
+					
+					if (coverState.m_bNearEnemy)
+						DbgUI.Text("Enemy: " + Math.Round(coverState.m_fNearestEnemyDistance).ToString() + "m");
+					
+					string factors = coverState.GetFactorsString();
+					if (factors != "None")
+						DbgUI.Text("Risks: " + factors);
+				}
+				else
+				{
+					DbgUI.Text("Cover: HIDDEN");
+				}
+			}
+		}
+
 		DbgUI.Text("---");
 		DbgUI.Text("Console: RBL_DebugCommands");
 		DbgUI.Text("  .PrintStatus()");

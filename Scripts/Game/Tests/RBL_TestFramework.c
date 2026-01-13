@@ -153,6 +153,7 @@ class RBL_Tests
 		TestTerrainHeights();
 		TestGarrisonSystem();
 		TestQRFSystem();
+		TestUndercoverSystem();
 		
 		// Print results
 		runner.PrintResults();
@@ -674,6 +675,104 @@ class RBL_Tests
 		runner.Assert("DESTROYED state exists", ERBLQRFState.DESTROYED >= 0, "Missing state");
 		runner.Assert("COMPLETE state exists", ERBLQRFState.COMPLETE >= 0, "Missing state");
 	}
+	
+	// Test undercover detection system
+	static void TestUndercoverSystem()
+	{
+		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
+		
+		PrintFormat("[RBL_Tests] Running Undercover System Tests...");
+		
+		// Test singleton
+		RBL_UndercoverSystem system = RBL_UndercoverSystem.GetInstance();
+		runner.AssertNotNull("UndercoverSystem.GetInstance", system);
+		
+		if (!system)
+			return;
+		
+		// Test detection factors constants
+		runner.Assert("WEAPON_VISIBLE factor > 0", RBL_DetectionFactors.WEAPON_VISIBLE > 0, "Invalid factor");
+		runner.Assert("MILITARY_UNIFORM factor > 0", RBL_DetectionFactors.MILITARY_UNIFORM > 0, "Invalid factor");
+		runner.Assert("MILITARY_VEHICLE factor > 0", RBL_DetectionFactors.MILITARY_VEHICLE > 0, "Invalid factor");
+		runner.Assert("DECAY_RATE > 0", RBL_DetectionFactors.DECAY_RATE > 0, "Invalid decay rate");
+		
+		// Test thresholds are ordered correctly
+		runner.Assert("Thresholds ordered: SUSPICIOUS < SPOTTED", 
+			RBL_DetectionFactors.THRESHOLD_SUSPICIOUS < RBL_DetectionFactors.THRESHOLD_SPOTTED, "Wrong order");
+		runner.Assert("Thresholds ordered: SPOTTED < COMPROMISED", 
+			RBL_DetectionFactors.THRESHOLD_SPOTTED < RBL_DetectionFactors.THRESHOLD_COMPROMISED, "Wrong order");
+		
+		// Test player state creation
+		int testPlayerID = 99999;
+		ERBLCoverStatus status = system.GetPlayerCoverStatus(testPlayerID);
+		runner.Assert("New player starts HIDDEN", status == ERBLCoverStatus.HIDDEN, "Wrong initial status");
+		
+		float suspicion = system.GetPlayerSuspicionLevel(testPlayerID);
+		runner.Assert("New player has 0 suspicion", suspicion == 0, "Non-zero initial suspicion");
+		
+		bool undercover = system.IsPlayerUndercover(testPlayerID);
+		runner.Assert("New player is undercover", undercover == true, "Should be undercover");
+		
+		bool compromised = system.IsPlayerCompromised(testPlayerID);
+		runner.Assert("New player not compromised", compromised == false, "Should not be compromised");
+		
+		// Test player state object
+		RBL_PlayerCoverState state = system.GetPlayerState(testPlayerID);
+		runner.AssertNotNull("GetPlayerState returns state", state);
+		
+		if (state)
+		{
+			runner.Assert("State status string not empty", state.GetStatusString().Length() > 0, "Empty status string");
+			runner.RecordResult("GetFactorsString works", true, state.GetFactorsString());
+			
+			// Test status change
+			state.m_fSuspicionLevel = 0.3;
+			state.SetStatus(ERBLCoverStatus.SUSPICIOUS);
+			runner.Assert("Status changed to SUSPICIOUS", state.m_eCurrentStatus == ERBLCoverStatus.SUSPICIOUS, "Status not changed");
+			
+			// Test status string
+			string statusStr = state.GetStatusString();
+			runner.Assert("SUSPICIOUS has status string", statusStr == "SUSPICIOUS", "Wrong status string");
+			
+			// Test compromise
+			state.m_fSuspicionLevel = 1.0;
+			state.SetStatus(ERBLCoverStatus.COMPROMISED);
+			runner.Assert("Status changed to COMPROMISED", state.m_eCurrentStatus == ERBLCoverStatus.COMPROMISED, "Status not changed");
+			
+			// Test reset
+			system.ResetPlayerCover(testPlayerID);
+			runner.Assert("Reset sets suspicion to 0", state.m_fSuspicionLevel == 0, "Suspicion not reset");
+			runner.Assert("Reset sets status to HIDDEN", state.m_eCurrentStatus == ERBLCoverStatus.HIDDEN, "Status not reset");
+		}
+		
+		// Test event triggers don't crash
+		system.OnPlayerFiredWeapon(testPlayerID);
+		runner.RecordResult("OnPlayerFiredWeapon doesn't crash", true, "OK");
+		
+		system.OnPlayerAttackedEnemy(testPlayerID);
+		runner.RecordResult("OnPlayerAttackedEnemy doesn't crash", true, "OK");
+		
+		// Test update doesn't crash
+		system.Update(0.5);
+		runner.RecordResult("UndercoverSystem.Update doesn't crash", true, "OK");
+		
+		// Test cover status enum values
+		runner.Assert("HIDDEN status exists", ERBLCoverStatus.HIDDEN >= 0, "Missing status");
+		runner.Assert("SUSPICIOUS status exists", ERBLCoverStatus.SUSPICIOUS >= 0, "Missing status");
+		runner.Assert("SPOTTED status exists", ERBLCoverStatus.SPOTTED >= 0, "Missing status");
+		runner.Assert("COMPROMISED status exists", ERBLCoverStatus.COMPROMISED >= 0, "Missing status");
+		
+		// Test event invokers exist
+		ScriptInvoker onStatusChanged = system.GetOnStatusChanged();
+		runner.AssertNotNull("GetOnStatusChanged returns invoker", onStatusChanged);
+		
+		ScriptInvoker onCoverBlown = system.GetOnCoverBlown();
+		runner.AssertNotNull("GetOnCoverBlown returns invoker", onCoverBlown);
+		
+		// Test tracked player count
+		int trackedCount = system.GetTrackedPlayerCount();
+		runner.Assert("Tracked player count >= 0", trackedCount >= 0, "Negative count");
+	}
 }
 
 // Console command to run tests
@@ -721,6 +820,14 @@ class RBL_TestCommands
 		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
 		runner.Reset();
 		RBL_Tests.TestGarrisonSystem();
+		runner.PrintResults();
+	}
+	
+	static void RunUndercoverTests()
+	{
+		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
+		runner.Reset();
+		RBL_Tests.TestUndercoverSystem();
 		runner.PrintResults();
 	}
 }

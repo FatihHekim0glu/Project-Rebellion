@@ -121,6 +121,11 @@ class RBL_GameMode : SCR_BaseGameMode
 		if (garrisonMgr)
 			garrisonMgr.Update(timeSlice);
 		
+		// Undercover system
+		RBL_UndercoverSystem undercover = RBL_UndercoverSystem.GetInstance();
+		if (undercover)
+			undercover.Update(timeSlice);
+		
 		// HUD system
 		if (m_bShowDebugHUD)
 		{
@@ -293,6 +298,11 @@ class RBL_GameModeAddon
 		RBL_GarrisonManager garrisonMgr = RBL_GarrisonManager.GetInstance();
 		if (garrisonMgr)
 			garrisonMgr.Update(timeSlice);
+		
+		// Undercover
+		RBL_UndercoverSystem undercover = RBL_UndercoverSystem.GetInstance();
+		if (undercover)
+			undercover.Update(timeSlice);
 		
 		// HUD
 		RBL_ScreenHUD hud = RBL_ScreenHUD.GetInstance();
