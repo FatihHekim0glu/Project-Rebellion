@@ -74,60 +74,95 @@ class RBL_MapMarkerManagerImpl : RBL_BaseWidget
 		if (!zoneMgr)
 			return;
 		
-		// Get all zones
-		array<string> zoneIDs = new array<string>();
-		zoneMgr.GetAllZoneIDs(zoneIDs);
-		
-		// Update or create markers
-		for (int i = 0; i < zoneIDs.Count(); i++)
+		// Update markers from virtual zones (primary zone system)
+		array<ref RBL_VirtualZone> virtualZones = zoneMgr.GetAllVirtualZones();
+		for (int i = 0; i < virtualZones.Count(); i++)
 		{
-			string zoneID = zoneIDs[i];
-			RBL_CampaignZone zone = zoneMgr.GetZone(zoneID);
-			if (!zone)
+			RBL_VirtualZone vZone = virtualZones[i];
+			if (!vZone)
 				continue;
 			
+			string zoneID = vZone.GetZoneID();
+			
 			// Get or create marker
-			RBL_ZoneMarker marker = m_mMarkers.Get(zoneID);
-			if (!marker)
+			RBL_ZoneMarker marker;
+			if (!m_mMarkers.Find(zoneID, marker))
 			{
 				marker = new RBL_ZoneMarker(zoneID);
 				m_mMarkers.Insert(zoneID, marker);
 			}
 			
-			// Update marker data
-			marker.m_sZoneName = zone.GetZoneName();
-			marker.m_eZoneType = zone.GetZoneType();
-			marker.m_eOwnerFaction = zone.GetOwnerFaction();
-			marker.m_vWorldPosition = zone.GetOrigin();
-			marker.m_bUnderAttack = zone.IsUnderAttack();
+			// Update marker data from virtual zone
+			marker.m_sZoneName = vZone.GetZoneName();
+			marker.m_eZoneType = vZone.GetZoneType();
+			marker.m_eOwnerFaction = vZone.GetOwnerFaction();
+			marker.m_vWorldPosition = vZone.GetZonePosition();
+			marker.m_bUnderAttack = vZone.IsUnderAttack();
 			
-			// Calculate distance
-			marker.m_fDistanceToPlayer = vector.Distance(playerPos, marker.m_vWorldPosition);
-			
-			// Visibility checks
-			bool inRange = marker.m_fDistanceToPlayer >= m_fMinDrawDistance && 
-						   marker.m_fDistanceToPlayer <= m_fMaxDrawDistance;
-			bool inFOV = IsInPlayerFOV(playerPos, playerForward, marker.m_vWorldPosition);
-			
-			marker.m_bIsVisible = inRange && (inFOV || m_bShowDistantMarkers);
-			
-			// Calculate alpha based on distance
-			if (marker.m_fDistanceToPlayer > m_fFadeStartDistance)
-			{
-				float fadeRange = m_fMaxDrawDistance - m_fFadeStartDistance;
-				float fadeProgress = (marker.m_fDistanceToPlayer - m_fFadeStartDistance) / fadeRange;
-				marker.m_fAlpha = Math.Max(0.3, 1.0 - fadeProgress);
-			}
-			else
-			{
-				marker.m_fAlpha = 1.0;
-			}
-			
-			// Scale based on distance (closer = larger)
-			float baseScale = 1.0;
-			float distanceScale = Math.Clamp(1.0 - (marker.m_fDistanceToPlayer / m_fMaxDrawDistance) * 0.5, 0.5, 1.5);
-			marker.m_fScale = baseScale * distanceScale;
+			UpdateMarkerVisibility(marker, playerPos, playerForward);
 		}
+		
+		// Also update markers from entity zones if any
+		array<RBL_CampaignZone> entityZones = zoneMgr.GetAllZones();
+		for (int i = 0; i < entityZones.Count(); i++)
+		{
+			RBL_CampaignZone eZone = entityZones[i];
+			if (!eZone)
+				continue;
+			
+			string zoneID = eZone.GetZoneID();
+			
+			// Skip if already have marker from virtual zone
+			if (m_mMarkers.Contains(zoneID))
+				continue;
+			
+			// Get or create marker
+			RBL_ZoneMarker marker;
+			if (!m_mMarkers.Find(zoneID, marker))
+			{
+				marker = new RBL_ZoneMarker(zoneID);
+				m_mMarkers.Insert(zoneID, marker);
+			}
+			
+			// Update marker data from entity zone
+			marker.m_sZoneName = eZone.GetZoneID();
+			marker.m_eZoneType = eZone.GetZoneType();
+			marker.m_eOwnerFaction = eZone.GetOwnerFaction();
+			marker.m_vWorldPosition = eZone.GetZonePosition();
+			marker.m_bUnderAttack = false;
+			
+			UpdateMarkerVisibility(marker, playerPos, playerForward);
+		}
+	}
+	
+	protected void UpdateMarkerVisibility(RBL_ZoneMarker marker, vector playerPos, vector playerForward)
+	{
+		// Calculate distance
+		marker.m_fDistanceToPlayer = vector.Distance(playerPos, marker.m_vWorldPosition);
+		
+		// Visibility checks
+		bool inRange = marker.m_fDistanceToPlayer >= m_fMinDrawDistance && 
+					   marker.m_fDistanceToPlayer <= m_fMaxDrawDistance;
+		bool inFOV = IsInPlayerFOV(playerPos, playerForward, marker.m_vWorldPosition);
+		
+		marker.m_bIsVisible = inRange && (inFOV || m_bShowDistantMarkers);
+		
+		// Calculate alpha based on distance
+		if (marker.m_fDistanceToPlayer > m_fFadeStartDistance)
+		{
+			float fadeRange = m_fMaxDrawDistance - m_fFadeStartDistance;
+			float fadeProgress = (marker.m_fDistanceToPlayer - m_fFadeStartDistance) / fadeRange;
+			marker.m_fAlpha = Math.Max(0.3, 1.0 - fadeProgress);
+		}
+		else
+		{
+			marker.m_fAlpha = 1.0;
+		}
+		
+		// Scale based on distance (closer = larger)
+		float baseScale = 1.0;
+		float distanceScale = Math.Clamp(1.0 - (marker.m_fDistanceToPlayer / m_fMaxDrawDistance) * 0.5, 0.5, 1.5);
+		marker.m_fScale = baseScale * distanceScale;
 	}
 	
 	override void Update(float timeSlice)
