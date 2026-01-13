@@ -59,7 +59,7 @@ class RBL_ZoneInfoWidgetImpl : RBL_PanelWidget
 		
 		vector playerPos = player.GetOrigin();
 		
-		// Find nearest zone
+		// Find nearest zone (check both entity and virtual zones)
 		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
 		if (!zoneMgr)
 		{
@@ -67,26 +67,53 @@ class RBL_ZoneInfoWidgetImpl : RBL_PanelWidget
 			return;
 		}
 		
-		RBL_CampaignZone nearestZone = zoneMgr.GetNearestZone(playerPos);
-		if (!nearestZone)
+		// Check virtual zones first (primary zone type)
+		RBL_VirtualZone nearestVirtual = zoneMgr.GetNearestVirtualZone(playerPos);
+		RBL_CampaignZone nearestEntity = zoneMgr.GetNearestZone(playerPos);
+		
+		// Determine which is closer
+		float virtualDist = 999999;
+		float entityDist = 999999;
+		
+		if (nearestVirtual)
+			virtualDist = vector.Distance(playerPos, nearestVirtual.GetZonePosition());
+		if (nearestEntity)
+			entityDist = vector.Distance(playerPos, nearestEntity.GetZonePosition());
+		
+		// Use virtual zone if closer or no entity zone
+		if (nearestVirtual && virtualDist <= entityDist)
+		{
+			m_sZoneID = nearestVirtual.GetZoneID();
+			m_sZoneName = nearestVirtual.GetZoneID();
+			m_eZoneType = nearestVirtual.GetZoneType();
+			m_eOwnerFaction = nearestVirtual.GetOwnerFaction();
+			m_fDistanceToZone = virtualDist;
+			m_iGarrisonCurrent = nearestVirtual.GetGarrisonStrength();
+			m_iGarrisonMax = nearestVirtual.GetMaxGarrison();
+			m_iSupportLevel = nearestVirtual.GetCivilianSupport();
+			
+			float captureRadius = nearestVirtual.GetCaptureRadius();
+			m_bInCaptureRange = m_fDistanceToZone <= captureRadius;
+		}
+		else if (nearestEntity)
+		{
+			m_sZoneID = nearestEntity.GetZoneID();
+			m_sZoneName = nearestEntity.GetZoneID();
+			m_eZoneType = nearestEntity.GetZoneType();
+			m_eOwnerFaction = nearestEntity.GetOwnerFaction();
+			m_fDistanceToZone = entityDist;
+			m_iGarrisonCurrent = nearestEntity.GetGarrisonStrength();
+			m_iGarrisonMax = nearestEntity.GetMaxGarrison();
+			m_iSupportLevel = nearestEntity.GetCivilianSupport();
+			
+			float captureRadius = nearestEntity.GetCaptureRadius();
+			m_bInCaptureRange = m_fDistanceToZone <= captureRadius;
+		}
+		else
 		{
 			m_bZoneVisible = false;
 			return;
 		}
-		
-		// Update zone data
-		m_sZoneID = nearestZone.GetZoneID();
-		m_sZoneName = nearestZone.GetZoneName();
-		m_eZoneType = nearestZone.GetZoneType();
-		m_eOwnerFaction = nearestZone.GetOwnerFaction();
-		m_fDistanceToZone = vector.Distance(playerPos, nearestZone.GetOrigin());
-		m_iGarrisonCurrent = nearestZone.GetGarrisonStrength();
-		m_iGarrisonMax = nearestZone.GetMaxGarrison();
-		m_iSupportLevel = nearestZone.GetSupportLevel();
-		
-		// Check if in capture range
-		float captureRadius = nearestZone.GetCaptureRadius();
-		m_bInCaptureRange = m_fDistanceToZone <= captureRadius;
 		
 		// Only show if within reasonable distance (5km)
 		m_bZoneVisible = m_fDistanceToZone < 5000;
@@ -94,12 +121,15 @@ class RBL_ZoneInfoWidgetImpl : RBL_PanelWidget
 		// Detect entering/leaving capture range
 		if (m_bInCaptureRange && !m_bWasInRange)
 		{
-			// Just entered range
-			RBL_UIManager.GetInstance().ShowNotification(
-				"Entered " + m_sZoneName + " (" + RBL_UIStrings.GetZoneTypeName(m_eZoneType) + ")",
-				RBL_UIColors.COLOR_TEXT_BRIGHT,
-				2.0
-			);
+			RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+			if (uiMgr)
+			{
+				uiMgr.ShowNotification(
+					"Entered " + m_sZoneName + " (" + RBL_UIStrings.GetZoneTypeName(m_eZoneType) + ")",
+					RBL_UIColors.COLOR_TEXT_BRIGHT,
+					2.0
+				);
+			}
 		}
 		m_bWasInRange = m_bInCaptureRange;
 	}
@@ -281,12 +311,11 @@ class RBL_ZoneInfoWidgetImpl : RBL_PanelWidget
 	// Helper to get local player
 	protected IEntity GetLocalPlayer()
 	{
-		PlayerManager pm = GetGame().GetPlayerManager();
-		if (!pm)
+		PlayerController pc = GetGame().GetPlayerController();
+		if (!pc)
 			return null;
 		
-		int localPlayerId = pm.GetPlayerIdFromControlledEntity(GetGame().GetPlayerController().GetControlledEntity());
-		return pm.GetPlayerControlledEntity(localPlayerId);
+		return pc.GetControlledEntity();
 	}
 	
 	// Getters for testing
