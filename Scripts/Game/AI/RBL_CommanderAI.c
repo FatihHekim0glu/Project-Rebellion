@@ -599,26 +599,194 @@ class RBL_CommanderAI
 }
 
 // ============================================================================
-// QRF Operation - Supports both zone types via ID/position
+// QRF TEMPLATES - Unit compositions for each QRF type
+// ============================================================================
+class RBL_QRFTemplates
+{
+	// USSR infantry prefabs
+	static const string PREFAB_USSR_RIFLEMAN = "{6D62B5D93627D}Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_Rifleman.et";
+	static const string PREFAB_USSR_MG = "{DCB41E1B7E697DE8}Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_MG.et";
+	static const string PREFAB_USSR_AT = "{2A79433F26F22D2D}Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_AT.et";
+	static const string PREFAB_USSR_MEDIC = "{6B5F3AE10AA0C35E}Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_Medic.et";
+	static const string PREFAB_USSR_OFFICER = "{E8C5ED3082B4D2A1}Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_Officer.et";
+	static const string PREFAB_USSR_SNIPER = "{DF25789F0CD75F22}Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_Sniper.et";
+	
+	// USSR vehicle prefabs
+	static const string PREFAB_UAZ = "{5E74787BB083789B}Prefabs/Vehicles/Wheeled/UAZ469/UAZ469.et";
+	static const string PREFAB_UAZ_MG = "{C38D37EE2C0E0888}Prefabs/Vehicles/Wheeled/UAZ469/UAZ469_MG.et";
+	static const string PREFAB_URAL = "{91B01E6C0D20E1D1}Prefabs/Vehicles/Wheeled/Ural4320/Ural4320.et";
+	static const string PREFAB_BTR70 = "{D85A504DF4E2C128}Prefabs/Vehicles/Wheeled/BTR70/BTR70.et";
+	static const string PREFAB_BMP1 = "{BB0E7CE42F0F3E19}Prefabs/Vehicles/Tracked/BMP1/BMP1.et";
+	static const string PREFAB_MI8 = "{3D2E5D6E8C5F9A1B}Prefabs/Vehicles/Helicopters/Mi8/Mi8MT.et";
+	
+	// Get infantry count for QRF type
+	static int GetInfantryCount(ERBLQRFType type, int warLevel)
+	{
+		int base = 0;
+		int scaling = 0;
+		
+		switch (type)
+		{
+			case ERBLQRFType.PATROL:
+				base = 2;
+				scaling = warLevel / 3;
+				return Math.ClampInt(base + scaling, 2, 4);
+				
+			case ERBLQRFType.CONVOY:
+				base = 4;
+				scaling = warLevel / 2;
+				return Math.ClampInt(base + scaling, 4, 8);
+				
+			case ERBLQRFType.INFANTRY:
+				base = 8;
+				scaling = warLevel;
+				return Math.ClampInt(base + scaling, 8, 16);
+				
+			case ERBLQRFType.MECHANIZED:
+				base = 6;
+				scaling = warLevel / 2;
+				return Math.ClampInt(base + scaling, 6, 10);
+				
+			case ERBLQRFType.HELICOPTER:
+				base = 6;
+				scaling = warLevel / 3;
+				return Math.ClampInt(base + scaling, 6, 10);
+				
+			case ERBLQRFType.SPECOPS:
+				base = 4;
+				scaling = warLevel / 4;
+				return Math.ClampInt(base + scaling, 4, 6);
+		}
+		return 4;
+	}
+	
+	// Get vehicle count for QRF type
+	static int GetVehicleCount(ERBLQRFType type, int warLevel)
+	{
+		switch (type)
+		{
+			case ERBLQRFType.PATROL: return 1;
+			case ERBLQRFType.CONVOY: return 2;
+			case ERBLQRFType.INFANTRY: return 0;
+			case ERBLQRFType.MECHANIZED: return 1;
+			case ERBLQRFType.HELICOPTER: return 1;
+			case ERBLQRFType.SPECOPS: return 0;
+		}
+		return 0;
+	}
+	
+	// Get infantry prefabs for composition
+	static void GetInfantryPrefabs(ERBLQRFType type, int warLevel, out array<string> prefabs)
+	{
+		prefabs = new array<string>();
+		int count = GetInfantryCount(type, warLevel);
+		
+		// SPECOPS gets elite units
+		if (type == ERBLQRFType.SPECOPS)
+		{
+			prefabs.Insert(PREFAB_USSR_OFFICER);
+			prefabs.Insert(PREFAB_USSR_SNIPER);
+			for (int i = 2; i < count; i++)
+			{
+				if (i % 2 == 0)
+					prefabs.Insert(PREFAB_USSR_AT);
+				else
+					prefabs.Insert(PREFAB_USSR_MG);
+			}
+			return;
+		}
+		
+		// Standard composition
+		prefabs.Insert(PREFAB_USSR_OFFICER); // Squad leader
+		
+		for (int i = 1; i < count; i++)
+		{
+			int role = i % 5;
+			switch (role)
+			{
+				case 0: prefabs.Insert(PREFAB_USSR_RIFLEMAN); break;
+				case 1: prefabs.Insert(PREFAB_USSR_RIFLEMAN); break;
+				case 2: prefabs.Insert(PREFAB_USSR_MG); break;
+				case 3: prefabs.Insert(PREFAB_USSR_MEDIC); break;
+				case 4: prefabs.Insert(PREFAB_USSR_AT); break;
+			}
+		}
+		
+		// Add sniper at high war levels
+		if (warLevel >= 7 && count >= 6)
+			prefabs[count - 1] = PREFAB_USSR_SNIPER;
+	}
+	
+	// Get vehicle prefab for type
+	static string GetVehiclePrefab(ERBLQRFType type, int warLevel)
+	{
+		switch (type)
+		{
+			case ERBLQRFType.PATROL:
+				return (warLevel >= 5) ? PREFAB_UAZ_MG : PREFAB_UAZ;
+				
+			case ERBLQRFType.CONVOY:
+				return PREFAB_URAL;
+				
+			case ERBLQRFType.MECHANIZED:
+				return (warLevel >= 6) ? PREFAB_BMP1 : PREFAB_BTR70;
+				
+			case ERBLQRFType.HELICOPTER:
+				return PREFAB_MI8;
+		}
+		return PREFAB_UAZ;
+	}
+}
+
+// ============================================================================
+// QRF OPERATION STATE
+// ============================================================================
+enum ERBLQRFState
+{
+	SPAWNING,
+	EN_ROUTE,
+	ENGAGED,
+	ARRIVED,
+	DESTROYED,
+	TIMEOUT,
+	COMPLETE
+}
+
+// ============================================================================
+// QRF Operation - Now spawns and tracks actual units
 // ============================================================================
 class RBL_QRFOperation
 {
 	protected string m_sOperationID;
 	protected ERBLQRFType m_eType;
 	protected ERBLFactionKey m_eFaction;
+	protected ERBLQRFState m_eState;
 	protected string m_sTargetZoneID;
 	protected string m_sSourceZoneID;
 	protected vector m_vTargetPosition;
-	protected vector m_vCurrentPosition;
+	protected vector m_vSourcePosition;
 	protected float m_fTimeStarted;
-	protected bool m_bComplete;
-	protected bool m_bSuccessful;
+	protected float m_fTimeSinceUpdate;
+	protected int m_iWarLevel;
+	
+	// Spawned entities
+	protected ref array<IEntity> m_aSpawnedUnits;
+	protected ref array<IEntity> m_aSpawnedVehicles;
+	protected AIGroup m_AIGroup;
+	
+	protected const float UPDATE_INTERVAL = 2.0;
+	protected const float ARRIVAL_DISTANCE = 100.0;
+	protected const float TIMEOUT_SECONDS = 600.0;
 	
 	void RBL_QRFOperation()
 	{
-		m_sOperationID = "QRF_" + Math.RandomInt(0, 99999).ToString();
-		m_bComplete = false;
-		m_bSuccessful = false;
+		m_sOperationID = "QRF_" + Math.RandomInt(10000, 99999).ToString();
+		m_aSpawnedUnits = new array<IEntity>();
+		m_aSpawnedVehicles = new array<IEntity>();
+		m_eState = ERBLQRFState.SPAWNING;
+		m_fTimeStarted = 0;
+		m_fTimeSinceUpdate = 0;
+		m_iWarLevel = 1;
 	}
 	
 	void InitializeFromVirtual(ERBLQRFType type, RBL_VirtualZone source, RBL_VirtualZone target, ERBLFactionKey faction)
@@ -628,8 +796,16 @@ class RBL_QRFOperation
 		m_sTargetZoneID = target.GetZoneID();
 		m_sSourceZoneID = source.GetZoneID();
 		m_vTargetPosition = target.GetZonePosition();
-		m_vCurrentPosition = source.GetZonePosition();
-		m_fTimeStarted = 0;
+		m_vSourcePosition = source.GetZonePosition();
+		
+		RBL_CampaignManager campaign = RBL_CampaignManager.GetInstance();
+		if (campaign)
+			m_iWarLevel = campaign.GetWarLevel();
+		
+		PrintFormat("[RBL_QRF] Initializing %1 from %2 to %3 (WL%4)", 
+			typename.EnumToString(ERBLQRFType, type), m_sSourceZoneID, m_sTargetZoneID, m_iWarLevel);
+		
+		SpawnUnits();
 	}
 	
 	void InitializeFromEntity(ERBLQRFType type, RBL_CampaignZone source, RBL_CampaignZone target, ERBLFactionKey faction)
@@ -639,51 +815,401 @@ class RBL_QRFOperation
 		m_sTargetZoneID = target.GetZoneID();
 		m_sSourceZoneID = source.GetZoneID();
 		m_vTargetPosition = target.GetZonePosition();
-		m_vCurrentPosition = source.GetZonePosition();
-		m_fTimeStarted = 0;
+		m_vSourcePosition = source.GetZonePosition();
+		
+		RBL_CampaignManager campaign = RBL_CampaignManager.GetInstance();
+		if (campaign)
+			m_iWarLevel = campaign.GetWarLevel();
+		
+		PrintFormat("[RBL_QRF] Initializing %1 from %2 to %3 (WL%4)", 
+			typename.EnumToString(ERBLQRFType, type), m_sSourceZoneID, m_sTargetZoneID, m_iWarLevel);
+		
+		SpawnUnits();
 	}
 	
-	void Update(float timeSlice)
+	// ========================================================================
+	// UNIT SPAWNING
+	// ========================================================================
+	protected void SpawnUnits()
 	{
-		if (m_bComplete)
-			return;
-		
-		m_fTimeStarted += timeSlice;
-		
-		// Move towards target
-		vector direction = m_vTargetPosition - m_vCurrentPosition;
-		float dist = direction.Length();
-		
-		if (dist > 10)
+		BaseWorld world = GetGame().GetWorld();
+		if (!world)
 		{
-			direction.Normalize();
-			float speed = 50.0; // meters per second
-			m_vCurrentPosition = m_vCurrentPosition + direction * speed * timeSlice;
+			PrintFormat("[RBL_QRF] ERROR: No world for spawning");
+			m_eState = ERBLQRFState.DESTROYED;
+			return;
+		}
+		
+		// Get unit composition
+		array<string> infantryPrefabs;
+		RBL_QRFTemplates.GetInfantryPrefabs(m_eType, m_iWarLevel, infantryPrefabs);
+		int vehicleCount = RBL_QRFTemplates.GetVehicleCount(m_eType, m_iWarLevel);
+		
+		PrintFormat("[RBL_QRF] Spawning %1: %2 infantry, %3 vehicles", 
+			m_sOperationID, infantryPrefabs.Count(), vehicleCount);
+		
+		// Generate spawn positions around source
+		array<vector> spawnPositions = GenerateSpawnPositions(m_vSourcePosition, 20.0, infantryPrefabs.Count());
+		
+		// Spawn infantry
+		for (int i = 0; i < infantryPrefabs.Count(); i++)
+		{
+			if (i >= spawnPositions.Count())
+				break;
+				
+			IEntity unit = SpawnEntity(infantryPrefabs[i], spawnPositions[i]);
+			if (unit)
+			{
+				m_aSpawnedUnits.Insert(unit);
+				AssignToAIGroup(unit);
+			}
+		}
+		
+		// Spawn vehicles
+		for (int i = 0; i < vehicleCount; i++)
+		{
+			string vehiclePrefab = RBL_QRFTemplates.GetVehiclePrefab(m_eType, m_iWarLevel);
+			vector vehiclePos = m_vSourcePosition + Vector(Math.RandomFloat(-30, 30), 0, Math.RandomFloat(-30, 30));
+			vehiclePos[1] = world.GetSurfaceY(vehiclePos[0], vehiclePos[2]);
+			
+			IEntity vehicle = SpawnEntity(vehiclePrefab, vehiclePos);
+			if (vehicle)
+				m_aSpawnedVehicles.Insert(vehicle);
+		}
+		
+		// Set up waypoint to target
+		if (m_aSpawnedUnits.Count() > 0)
+		{
+			CreateMoveWaypoint();
+			m_eState = ERBLQRFState.EN_ROUTE;
+			PrintFormat("[RBL_QRF] %1 deployed: %2 units, %3 vehicles", 
+				m_sOperationID, m_aSpawnedUnits.Count(), m_aSpawnedVehicles.Count());
 		}
 		else
 		{
-			// Arrived at target
-			m_bComplete = true;
-			m_bSuccessful = true;
-			PrintFormat("[RBL_AI] QRF %1 arrived at target %2", m_sOperationID, m_sTargetZoneID);
-		}
-		
-		// Timeout after 5 minutes
-		if (m_fTimeStarted > 300)
-		{
-			m_bComplete = true;
-			m_bSuccessful = false;
-			PrintFormat("[RBL_AI] QRF %1 timed out", m_sOperationID);
+			m_eState = ERBLQRFState.DESTROYED;
+			PrintFormat("[RBL_QRF] %1 failed to spawn any units", m_sOperationID);
 		}
 	}
 	
+	protected IEntity SpawnEntity(string prefab, vector position)
+	{
+		if (prefab.IsEmpty())
+			return null;
+		
+		BaseWorld world = GetGame().GetWorld();
+		if (!world)
+			return null;
+		
+		// Adjust to terrain
+		position[1] = world.GetSurfaceY(position[0], position[2]);
+		
+		EntitySpawnParams params = new EntitySpawnParams();
+		params.TransformMode = ETransformMode.WORLD;
+		params.Transform[3] = position;
+		
+		// Random rotation
+		float yaw = Math.RandomFloat(0, 360);
+		vector angles = Vector(0, yaw, 0);
+		Math3D.AnglesToMatrix(angles, params.Transform);
+		params.Transform[3] = position;
+		
+		Resource resource = Resource.Load(prefab);
+		if (!resource.IsValid())
+		{
+			PrintFormat("[RBL_QRF] Invalid prefab: %1", prefab);
+			return null;
+		}
+		
+		return GetGame().SpawnEntityPrefab(resource, world, params);
+	}
+	
+	protected array<vector> GenerateSpawnPositions(vector center, float radius, int count)
+	{
+		array<vector> positions = new array<vector>();
+		BaseWorld world = GetGame().GetWorld();
+		
+		for (int i = 0; i < count; i++)
+		{
+			float angle = (i / (float)count) * Math.PI2;
+			float dist = radius * 0.5 + Math.RandomFloat(0, radius * 0.5);
+			
+			float x = center[0] + Math.Cos(angle) * dist;
+			float z = center[2] + Math.Sin(angle) * dist;
+			float y = center[1];
+			
+			if (world)
+				y = world.GetSurfaceY(x, z);
+			
+			positions.Insert(Vector(x, y, z));
+		}
+		
+		return positions;
+	}
+	
+	// ========================================================================
+	// AI GROUP & MOVEMENT
+	// ========================================================================
+	protected void AssignToAIGroup(IEntity unit)
+	{
+		if (!unit)
+			return;
+		
+		AIControlComponent aiControl = AIControlComponent.Cast(unit.FindComponent(AIControlComponent));
+		if (!aiControl)
+			return;
+		
+		AIAgent agent = aiControl.GetAIAgent();
+		if (!agent)
+			return;
+		
+		// Create group if needed
+		if (!m_AIGroup)
+		{
+			AIWorld aiWorld = GetGame().GetAIWorld();
+			if (aiWorld)
+				m_AIGroup = aiWorld.CreateGroup();
+		}
+		
+		if (m_AIGroup)
+			m_AIGroup.AddAgent(agent);
+	}
+	
+	protected void CreateMoveWaypoint()
+	{
+		if (!m_AIGroup)
+			return;
+		
+		// Create waypoint at target position
+		AIWaypoint wp = CreateWaypointEntity(m_vTargetPosition);
+		if (wp)
+		{
+			m_AIGroup.AddWaypoint(wp);
+			PrintFormat("[RBL_QRF] Waypoint created at target %1", m_sTargetZoneID);
+		}
+	}
+	
+	protected AIWaypoint CreateWaypointEntity(vector position)
+	{
+		BaseWorld world = GetGame().GetWorld();
+		if (!world)
+			return null;
+		
+		// Adjust to terrain
+		position[1] = world.GetSurfaceY(position[0], position[2]);
+		
+		EntitySpawnParams params = new EntitySpawnParams();
+		params.TransformMode = ETransformMode.WORLD;
+		params.Transform[3] = position;
+		
+		// Use move waypoint prefab
+		string wpPrefab = "{93291E72AC23930F}Prefabs/AI/Waypoints/AIWaypoint_Move.et";
+		Resource resource = Resource.Load(wpPrefab);
+		if (!resource.IsValid())
+		{
+			PrintFormat("[RBL_QRF] Failed to load waypoint prefab");
+			return null;
+		}
+		
+		IEntity wpEntity = GetGame().SpawnEntityPrefab(resource, world, params);
+		return AIWaypoint.Cast(wpEntity);
+	}
+	
+	// ========================================================================
+	// UPDATE & TRACKING
+	// ========================================================================
+	void Update(float timeSlice)
+	{
+		if (m_eState == ERBLQRFState.COMPLETE || m_eState == ERBLQRFState.DESTROYED || m_eState == ERBLQRFState.TIMEOUT)
+			return;
+		
+		m_fTimeStarted += timeSlice;
+		m_fTimeSinceUpdate += timeSlice;
+		
+		// Periodic update
+		if (m_fTimeSinceUpdate >= UPDATE_INTERVAL)
+		{
+			m_fTimeSinceUpdate = 0;
+			UpdateUnitStatus();
+		}
+		
+		// Check timeout
+		if (m_fTimeStarted > TIMEOUT_SECONDS)
+		{
+			PrintFormat("[RBL_QRF] %1 timed out after %2s", m_sOperationID, m_fTimeStarted);
+			m_eState = ERBLQRFState.TIMEOUT;
+			Cleanup();
+		}
+	}
+	
+	protected void UpdateUnitStatus()
+	{
+		// Count alive units
+		int alive = CountAliveUnits();
+		
+		if (alive == 0)
+		{
+			PrintFormat("[RBL_QRF] %1 destroyed - all units KIA", m_sOperationID);
+			m_eState = ERBLQRFState.DESTROYED;
+			Cleanup();
+			return;
+		}
+		
+		// Check if arrived at target
+		vector avgPosition = GetAverageUnitPosition();
+		float distToTarget = vector.Distance(avgPosition, m_vTargetPosition);
+		
+		if (distToTarget <= ARRIVAL_DISTANCE)
+		{
+			PrintFormat("[RBL_QRF] %1 ARRIVED at %2 with %3 units", m_sOperationID, m_sTargetZoneID, alive);
+			m_eState = ERBLQRFState.ARRIVED;
+			OnArrival();
+		}
+	}
+	
+	protected void OnArrival()
+	{
+		// Reinforce the garrison at target zone
+		RBL_GarrisonManager garMgr = RBL_GarrisonManager.GetInstance();
+		if (garMgr)
+		{
+			RBL_GarrisonData garData = garMgr.GetGarrisonData(m_sTargetZoneID);
+			if (garData)
+			{
+				// Transfer units to garrison
+				for (int i = 0; i < m_aSpawnedUnits.Count(); i++)
+				{
+					IEntity unit = m_aSpawnedUnits[i];
+					if (unit && IsUnitAlive(unit))
+						garData.SpawnedUnits.Insert(unit);
+				}
+				for (int i = 0; i < m_aSpawnedVehicles.Count(); i++)
+				{
+					IEntity veh = m_aSpawnedVehicles[i];
+					if (veh)
+						garData.SpawnedVehicles.Insert(veh);
+				}
+				
+				PrintFormat("[RBL_QRF] Units transferred to garrison at %1", m_sTargetZoneID);
+			}
+		}
+		
+		// Clear our arrays (don't delete entities - they're now part of garrison)
+		m_aSpawnedUnits.Clear();
+		m_aSpawnedVehicles.Clear();
+		m_eState = ERBLQRFState.COMPLETE;
+	}
+	
+	int CountAliveUnits()
+	{
+		int alive = 0;
+		for (int i = m_aSpawnedUnits.Count() - 1; i >= 0; i--)
+		{
+			IEntity unit = m_aSpawnedUnits[i];
+			if (!unit)
+			{
+				m_aSpawnedUnits.Remove(i);
+				continue;
+			}
+			
+			if (IsUnitAlive(unit))
+				alive++;
+			else
+				m_aSpawnedUnits.Remove(i);
+		}
+		return alive;
+	}
+	
+	protected bool IsUnitAlive(IEntity unit)
+	{
+		if (!unit)
+			return false;
+		
+		DamageManagerComponent dmgMgr = DamageManagerComponent.Cast(unit.FindComponent(DamageManagerComponent));
+		if (dmgMgr && dmgMgr.GetState() == EDamageState.DESTROYED)
+			return false;
+		
+		return true;
+	}
+	
+	vector GetAverageUnitPosition()
+	{
+		if (m_aSpawnedUnits.Count() == 0)
+			return m_vTargetPosition;
+		
+		vector sum = Vector(0, 0, 0);
+		int count = 0;
+		
+		for (int i = 0; i < m_aSpawnedUnits.Count(); i++)
+		{
+			IEntity unit = m_aSpawnedUnits[i];
+			if (unit && IsUnitAlive(unit))
+			{
+				sum = sum + unit.GetOrigin();
+				count++;
+			}
+		}
+		
+		if (count == 0)
+			return m_vTargetPosition;
+		
+		return sum * (1.0 / count);
+	}
+	
+	// ========================================================================
+	// CLEANUP
+	// ========================================================================
+	void Cleanup()
+	{
+		// Delete all spawned units
+		for (int i = m_aSpawnedUnits.Count() - 1; i >= 0; i--)
+		{
+			IEntity unit = m_aSpawnedUnits[i];
+			if (unit)
+				SCR_EntityHelper.DeleteEntityAndChildren(unit);
+		}
+		m_aSpawnedUnits.Clear();
+		
+		// Delete vehicles
+		for (int i = m_aSpawnedVehicles.Count() - 1; i >= 0; i--)
+		{
+			IEntity veh = m_aSpawnedVehicles[i];
+			if (veh)
+				SCR_EntityHelper.DeleteEntityAndChildren(veh);
+		}
+		m_aSpawnedVehicles.Clear();
+		
+		// Delete AI group
+		if (m_AIGroup)
+		{
+			m_AIGroup.Delete();
+			m_AIGroup = null;
+		}
+	}
+	
+	// ========================================================================
+	// GETTERS
+	// ========================================================================
 	string GetOperationID() { return m_sOperationID; }
 	ERBLQRFType GetQRFType() { return m_eType; }
+	ERBLQRFState GetState() { return m_eState; }
 	string GetTargetZoneID() { return m_sTargetZoneID; }
 	string GetSourceZoneID() { return m_sSourceZoneID; }
-	vector GetCurrentPosition() { return m_vCurrentPosition; }
+	vector GetCurrentPosition() { return GetAverageUnitPosition(); }
 	vector GetTargetPosition() { return m_vTargetPosition; }
 	float GetTimeStarted() { return m_fTimeStarted; }
-	bool IsComplete() { return m_bComplete; }
-	bool WasSuccessful() { return m_bSuccessful; }
+	int GetAliveCount() { return CountAliveUnits(); }
+	int GetTotalSpawned() { return m_aSpawnedUnits.Count() + m_aSpawnedVehicles.Count(); }
+	
+	bool IsComplete() 
+	{ 
+		return m_eState == ERBLQRFState.COMPLETE || 
+			   m_eState == ERBLQRFState.DESTROYED || 
+			   m_eState == ERBLQRFState.TIMEOUT; 
+	}
+	
+	bool WasSuccessful() 
+	{ 
+		return m_eState == ERBLQRFState.ARRIVED || m_eState == ERBLQRFState.COMPLETE; 
+	}
 }

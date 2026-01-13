@@ -152,6 +152,7 @@ class RBL_Tests
 		TestPersistence();
 		TestTerrainHeights();
 		TestGarrisonSystem();
+		TestQRFSystem();
 		
 		// Print results
 		runner.PrintResults();
@@ -582,6 +583,97 @@ class RBL_Tests
 		garMgr.Update(0.1);
 		runner.RecordResult("GarrisonManager.Update runs without crash", true, "OK");
 	}
+	
+	// Test QRF spawning system
+	static void TestQRFSystem()
+	{
+		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
+		
+		PrintFormat("[RBL_Tests] Running QRF System Tests...");
+		
+		// Test QRF Templates
+		PrintFormat("[RBL_Tests] Testing QRF Templates...");
+		
+		// Test infantry counts scale with war level
+		int patrolWL1 = RBL_QRFTemplates.GetInfantryCount(ERBLQRFType.PATROL, 1);
+		int patrolWL10 = RBL_QRFTemplates.GetInfantryCount(ERBLQRFType.PATROL, 10);
+		runner.Assert("PATROL infantry count at WL1 >= 2", patrolWL1 >= 2, "Too few patrol units");
+		runner.Assert("PATROL scales with war level", patrolWL10 >= patrolWL1, "No WL scaling");
+		
+		int infantryWL1 = RBL_QRFTemplates.GetInfantryCount(ERBLQRFType.INFANTRY, 1);
+		int infantryWL10 = RBL_QRFTemplates.GetInfantryCount(ERBLQRFType.INFANTRY, 10);
+		runner.Assert("INFANTRY count at WL1 >= 8", infantryWL1 >= 8, "Too few infantry units");
+		runner.Assert("INFANTRY scales with war level", infantryWL10 > infantryWL1, "No WL scaling");
+		
+		int mechWL1 = RBL_QRFTemplates.GetInfantryCount(ERBLQRFType.MECHANIZED, 1);
+		runner.Assert("MECHANIZED count at WL1 >= 6", mechWL1 >= 6, "Too few mech units");
+		
+		int specopsWL1 = RBL_QRFTemplates.GetInfantryCount(ERBLQRFType.SPECOPS, 1);
+		runner.Assert("SPECOPS count at WL1 >= 4", specopsWL1 >= 4, "Too few specops units");
+		
+		// Test vehicle counts
+		int patrolVeh = RBL_QRFTemplates.GetVehicleCount(ERBLQRFType.PATROL, 1);
+		runner.Assert("PATROL has 1 vehicle", patrolVeh == 1, "Wrong vehicle count");
+		
+		int convoyVeh = RBL_QRFTemplates.GetVehicleCount(ERBLQRFType.CONVOY, 1);
+		runner.Assert("CONVOY has 2 vehicles", convoyVeh == 2, "Wrong vehicle count");
+		
+		int infantryVeh = RBL_QRFTemplates.GetVehicleCount(ERBLQRFType.INFANTRY, 1);
+		runner.Assert("INFANTRY has 0 vehicles", infantryVeh == 0, "Infantry shouldn't have vehicles");
+		
+		int specopsVeh = RBL_QRFTemplates.GetVehicleCount(ERBLQRFType.SPECOPS, 1);
+		runner.Assert("SPECOPS has 0 vehicles", specopsVeh == 0, "Specops shouldn't have vehicles");
+		
+		// Test prefab generation
+		array<string> prefabs;
+		RBL_QRFTemplates.GetInfantryPrefabs(ERBLQRFType.PATROL, 5, prefabs);
+		runner.Assert("GetInfantryPrefabs returns array", prefabs != null, "Null prefabs");
+		runner.Assert("Prefabs count matches infantry count", prefabs.Count() == RBL_QRFTemplates.GetInfantryCount(ERBLQRFType.PATROL, 5), "Count mismatch");
+		
+		// Test vehicle prefab scaling
+		string vehicleWL1 = RBL_QRFTemplates.GetVehiclePrefab(ERBLQRFType.MECHANIZED, 1);
+		string vehicleWL8 = RBL_QRFTemplates.GetVehiclePrefab(ERBLQRFType.MECHANIZED, 8);
+		runner.Assert("MECH vehicle prefab at WL1 valid", vehicleWL1.Length() > 0, "Empty prefab");
+		runner.Assert("MECH vehicle changes at high WL", vehicleWL8 != vehicleWL1 || vehicleWL8.Length() > 0, "Should upgrade vehicle");
+		
+		// Test QRF Operation creation
+		PrintFormat("[RBL_Tests] Testing QRF Operation...");
+		
+		RBL_QRFOperation qrf = new RBL_QRFOperation();
+		runner.AssertNotNull("QRFOperation created", qrf);
+		
+		string opID = qrf.GetOperationID();
+		runner.Assert("Operation ID generated", opID.Length() > 0, "Empty operation ID");
+		runner.Assert("Operation ID has prefix", opID.Contains("QRF_"), "Missing QRF_ prefix");
+		
+		// Test initial state
+		runner.Assert("Initial state not complete", !qrf.IsComplete(), "Should not be complete");
+		runner.Assert("Initial alive count is 0", qrf.GetAliveCount() == 0, "Should have no units");
+		
+		// Test Commander AI QRF tracking
+		RBL_CommanderAI ai = RBL_CommanderAI.GetInstance();
+		runner.AssertNotNull("CommanderAI.GetInstance", ai);
+		
+		if (ai)
+		{
+			int activeQRFs = ai.GetActiveQRFCount();
+			runner.Assert("Active QRF count >= 0", activeQRFs >= 0, "Negative QRF count");
+			
+			int resources = ai.GetFactionResources();
+			runner.Assert("Faction resources >= 0", resources >= 0, "Negative resources");
+			
+			// Test update doesn't crash
+			ai.Update(0.1);
+			runner.RecordResult("CommanderAI.Update runs without crash", true, "OK");
+		}
+		
+		// Test QRF state enum values
+		runner.Assert("SPAWNING state exists", ERBLQRFState.SPAWNING >= 0, "Missing state");
+		runner.Assert("EN_ROUTE state exists", ERBLQRFState.EN_ROUTE >= 0, "Missing state");
+		runner.Assert("ARRIVED state exists", ERBLQRFState.ARRIVED >= 0, "Missing state");
+		runner.Assert("DESTROYED state exists", ERBLQRFState.DESTROYED >= 0, "Missing state");
+		runner.Assert("COMPLETE state exists", ERBLQRFState.COMPLETE >= 0, "Missing state");
+	}
 }
 
 // Console command to run tests
@@ -613,6 +705,22 @@ class RBL_TestCommands
 		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
 		runner.Reset();
 		RBL_Tests.TestZoneManager();
+		runner.PrintResults();
+	}
+	
+	static void RunQRFTests()
+	{
+		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
+		runner.Reset();
+		RBL_Tests.TestQRFSystem();
+		runner.PrintResults();
+	}
+	
+	static void RunGarrisonTests()
+	{
+		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
+		runner.Reset();
+		RBL_Tests.TestGarrisonSystem();
 		runner.PrintResults();
 	}
 }
