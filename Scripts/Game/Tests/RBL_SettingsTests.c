@@ -503,4 +503,278 @@ class RBL_SettingsTestCommands
 	}
 }
 
+// ============================================================================
+// SETTINGS DEBUG CONSOLE COMMANDS
+// ============================================================================
+class RBL_SettingsCommands
+{
+	// Print current settings
+	static void PrintSettings()
+	{
+		RBL_SettingsManager mgr = RBL_SettingsManager.GetInstance();
+		if (!mgr)
+		{
+			PrintFormat("[RBL_Settings] Settings Manager not available");
+			return;
+		}
+		
+		mgr.Initialize();
+		RBL_SettingsData settings = mgr.GetCurrentSettings();
+		
+		PrintFormat("\n========================================");
+		PrintFormat("     PROJECT REBELLION - SETTINGS");
+		PrintFormat("========================================\n");
+		
+		PrintFormat("=== GAMEPLAY ===");
+		PrintFormat("  Difficulty: %1", RBL_DifficultyPresets.GetDifficultyName(settings.m_eDifficulty));
+		PrintFormat("  Auto-Save: %1", settings.m_bAutoSaveEnabled ? "ON" : "OFF");
+		PrintFormat("  Auto-Save Interval: %1 seconds", settings.m_fAutoSaveInterval);
+		PrintFormat("  Save on Zone Capture: %1", settings.m_bSaveOnZoneCapture ? "ON" : "OFF");
+		PrintFormat("  Undercover System: %1", settings.m_bUndercoverSystemEnabled ? "ON" : "OFF");
+		PrintFormat("  Friendly Fire: %1", settings.m_bFriendlyFireEnabled ? "ON" : "OFF");
+		
+		PrintFormat("\n=== DISPLAY ===");
+		PrintFormat("  HUD Enabled: %1", settings.m_bHUDEnabled ? "ON" : "OFF");
+		PrintFormat("  HUD Opacity: %1%%", (settings.m_fHUDOpacity * 100).ToString());
+		PrintFormat("  UI Scale: %1%%", (settings.m_fUIScale * 100).ToString());
+		PrintFormat("  Notifications: %1", settings.m_bShowNotifications ? "ON" : "OFF");
+		PrintFormat("  Map Markers: %1", settings.m_bShowMapMarkers ? "ON" : "OFF");
+		
+		PrintFormat("\n=== AUDIO ===");
+		PrintFormat("  Master Volume: %1%%", (settings.m_fMasterVolume * 100).ToString());
+		PrintFormat("  Music Volume: %1%%", (settings.m_fMusicVolume * 100).ToString());
+		PrintFormat("  SFX Volume: %1%%", (settings.m_fSFXVolume * 100).ToString());
+		PrintFormat("  UI Volume: %1%%", (settings.m_fUIVolume * 100).ToString());
+		
+		PrintFormat("\n=== CONTROLS ===");
+		PrintFormat("  Mouse Sensitivity: %1", settings.m_fMouseSensitivity);
+		PrintFormat("  Invert Y: %1", settings.m_bInvertY ? "ON" : "OFF");
+		PrintFormat("  Toggle ADS: %1", settings.m_bToggleADS ? "ON" : "OFF");
+		PrintFormat("  Toggle Sprint: %1", settings.m_bToggleSprint ? "ON" : "OFF");
+		
+		PrintFormat("\n========================================");
+		
+		if (mgr.HasUnsavedChanges())
+			PrintFormat("* Has unsaved changes");
+	}
+	
+	// Open settings menu
+	static void OpenSettings()
+	{
+		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+		if (uiMgr)
+		{
+			RBL_SettingsMenuWidget menu = uiMgr.GetSettingsMenu();
+			if (menu)
+			{
+				menu.Open();
+				PrintFormat("[RBL_Settings] Settings menu opened");
+			}
+		}
+	}
+	
+	// Close settings menu
+	static void CloseSettings()
+	{
+		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+		if (uiMgr)
+		{
+			RBL_SettingsMenuWidget menu = uiMgr.GetSettingsMenu();
+			if (menu)
+			{
+				menu.ForceClose();
+				PrintFormat("[RBL_Settings] Settings menu closed");
+			}
+		}
+	}
+	
+	// Set difficulty
+	static void SetDifficulty(int diff)
+	{
+		RBL_SettingsManager mgr = RBL_SettingsManager.GetInstance();
+		if (mgr)
+		{
+			mgr.Initialize();
+			mgr.SetDifficulty(diff);
+			mgr.ApplySettings();
+			PrintFormat("[RBL_Settings] Difficulty set to: %1", RBL_DifficultyPresets.GetDifficultyName(diff));
+		}
+	}
+	
+	// Set difficulty by name
+	static void SetDifficultyEasy() { SetDifficulty(ERBLDifficulty.EASY); }
+	static void SetDifficultyNormal() { SetDifficulty(ERBLDifficulty.NORMAL); }
+	static void SetDifficultyHard() { SetDifficulty(ERBLDifficulty.HARD); }
+	static void SetDifficultyHardcore() { SetDifficulty(ERBLDifficulty.HARDCORE); }
+	
+	// Toggle auto-save
+	static void ToggleAutoSave()
+	{
+		RBL_SettingsManager mgr = RBL_SettingsManager.GetInstance();
+		if (mgr)
+		{
+			mgr.Initialize();
+			bool current = mgr.GetSettingBool("autosave_enabled");
+			mgr.SetSettingBool("autosave_enabled", !current);
+			mgr.ApplySettings();
+			PrintFormat("[RBL_Settings] Auto-save: %1", !current ? "ON" : "OFF");
+		}
+	}
+	
+	// Set auto-save interval (in minutes)
+	static void SetAutoSaveInterval(int minutes)
+	{
+		RBL_SettingsManager mgr = RBL_SettingsManager.GetInstance();
+		if (mgr)
+		{
+			mgr.Initialize();
+			mgr.SetSettingFloat("autosave_interval", minutes);
+			mgr.ApplySettings();
+			PrintFormat("[RBL_Settings] Auto-save interval set to: %1 minutes", minutes);
+		}
+	}
+	
+	// Toggle HUD
+	static void ToggleHUD()
+	{
+		RBL_SettingsManager mgr = RBL_SettingsManager.GetInstance();
+		if (mgr)
+		{
+			mgr.Initialize();
+			bool current = mgr.GetSettingBool("hud_enabled");
+			mgr.SetSettingBool("hud_enabled", !current);
+			mgr.ApplySettings();
+			PrintFormat("[RBL_Settings] HUD: %1", !current ? "ON" : "OFF");
+		}
+	}
+	
+	// Set HUD opacity (0-100)
+	static void SetHUDOpacity(int percent)
+	{
+		RBL_SettingsManager mgr = RBL_SettingsManager.GetInstance();
+		if (mgr)
+		{
+			mgr.Initialize();
+			float opacity = percent / 100.0;
+			mgr.SetSettingFloat("hud_opacity", opacity);
+			mgr.ApplySettings();
+			PrintFormat("[RBL_Settings] HUD Opacity set to: %1%%", percent);
+		}
+	}
+	
+	// Set UI scale (75-150)
+	static void SetUIScale(int percent)
+	{
+		RBL_SettingsManager mgr = RBL_SettingsManager.GetInstance();
+		if (mgr)
+		{
+			mgr.Initialize();
+			float scale = percent / 100.0;
+			mgr.SetSettingFloat("ui_scale", scale);
+			mgr.ApplySettings();
+			PrintFormat("[RBL_Settings] UI Scale set to: %1%%", percent);
+		}
+	}
+	
+	// Toggle undercover system
+	static void ToggleUndercover()
+	{
+		RBL_SettingsManager mgr = RBL_SettingsManager.GetInstance();
+		if (mgr)
+		{
+			mgr.Initialize();
+			bool current = mgr.GetSettingBool("undercover_enabled");
+			mgr.SetSettingBool("undercover_enabled", !current);
+			mgr.ApplySettings();
+			PrintFormat("[RBL_Settings] Undercover System: %1", !current ? "ON" : "OFF");
+		}
+	}
+	
+	// Reset all settings to defaults
+	static void ResetSettings()
+	{
+		RBL_SettingsManager mgr = RBL_SettingsManager.GetInstance();
+		if (mgr)
+		{
+			mgr.Initialize();
+			mgr.ResetAndApplyDefaults();
+			PrintFormat("[RBL_Settings] All settings reset to defaults");
+		}
+	}
+	
+	// Delete settings file
+	static void DeleteSettingsFile()
+	{
+		RBL_SettingsPersistence persistence = RBL_SettingsPersistence.GetInstance();
+		if (persistence)
+		{
+			persistence.DeleteSettings();
+			PrintFormat("[RBL_Settings] Settings file deleted");
+		}
+	}
+	
+	// Print difficulty multipliers
+	static void PrintDifficultyInfo()
+	{
+		RBL_SettingsManager mgr = RBL_SettingsManager.GetInstance();
+		if (!mgr)
+			return;
+		
+		mgr.Initialize();
+		
+		PrintFormat("\n=== CURRENT DIFFICULTY MULTIPLIERS ===");
+		PrintFormat("Aggression Multiplier: %1x", mgr.GetAggressionMultiplier());
+		PrintFormat("Income Multiplier: %1x", mgr.GetIncomeMultiplier());
+		PrintFormat("Detection Multiplier: %1x", mgr.GetDetectionMultiplier());
+		PrintFormat("QRF Response Multiplier: %1x", mgr.GetQRFResponseMultiplier());
+		PrintFormat("\n");
+	}
+	
+	// Print help
+	static void Help()
+	{
+		PrintFormat("\n========================================");
+		PrintFormat("   RBL SETTINGS CONSOLE COMMANDS");
+		PrintFormat("========================================\n");
+		
+		PrintFormat("RBL_SettingsCommands.PrintSettings()");
+		PrintFormat("  - Print current settings values");
+		PrintFormat("");
+		PrintFormat("RBL_SettingsCommands.OpenSettings()");
+		PrintFormat("  - Open settings menu (K key)");
+		PrintFormat("");
+		PrintFormat("RBL_SettingsCommands.SetDifficultyEasy()");
+		PrintFormat("RBL_SettingsCommands.SetDifficultyNormal()");
+		PrintFormat("RBL_SettingsCommands.SetDifficultyHard()");
+		PrintFormat("RBL_SettingsCommands.SetDifficultyHardcore()");
+		PrintFormat("  - Set difficulty preset");
+		PrintFormat("");
+		PrintFormat("RBL_SettingsCommands.ToggleAutoSave()");
+		PrintFormat("  - Toggle auto-save on/off");
+		PrintFormat("");
+		PrintFormat("RBL_SettingsCommands.SetAutoSaveInterval(minutes)");
+		PrintFormat("  - Set auto-save interval (1-30 minutes)");
+		PrintFormat("");
+		PrintFormat("RBL_SettingsCommands.ToggleHUD()");
+		PrintFormat("  - Toggle HUD on/off");
+		PrintFormat("");
+		PrintFormat("RBL_SettingsCommands.SetHUDOpacity(percent)");
+		PrintFormat("  - Set HUD opacity (25-100)");
+		PrintFormat("");
+		PrintFormat("RBL_SettingsCommands.SetUIScale(percent)");
+		PrintFormat("  - Set UI scale (75-150)");
+		PrintFormat("");
+		PrintFormat("RBL_SettingsCommands.ToggleUndercover()");
+		PrintFormat("  - Toggle undercover system on/off");
+		PrintFormat("");
+		PrintFormat("RBL_SettingsCommands.ResetSettings()");
+		PrintFormat("  - Reset all settings to defaults");
+		PrintFormat("");
+		PrintFormat("RBL_SettingsCommands.PrintDifficultyInfo()");
+		PrintFormat("  - Print current difficulty multipliers");
+		PrintFormat("");
+		PrintFormat("========================================\n");
+	}
+}
+
 
