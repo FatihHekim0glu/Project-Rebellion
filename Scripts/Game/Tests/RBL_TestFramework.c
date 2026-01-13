@@ -158,6 +158,9 @@ class RBL_Tests
 		TestMissionSystem();
 		TestVictorySystem();
 		
+		// Input System Tests
+		RBL_InputTests.RunAll();
+		
 		// Print results
 		runner.PrintResults();
 		
@@ -187,6 +190,9 @@ class RBL_Tests
 		runner.AssertNotNull("ScreenHUD.GetInstance", RBL_ScreenHUD.GetInstance());
 		runner.AssertNotNull("HUDManager.GetInstance", RBL_HUDManager.GetInstance());
 		runner.AssertNotNull("GarrisonManager.GetInstance", RBL_GarrisonManager.GetInstance());
+		runner.AssertNotNull("InputManager.GetInstance", RBL_InputManager.GetInstance());
+		runner.AssertNotNull("InputBindingRegistry.GetInstance", RBL_InputBindingRegistry.GetInstance());
+		runner.AssertNotNull("InputHandler.GetInstance", RBL_InputHandler.GetInstance());
 		
 		// Test HUD systems handle null player gracefully
 		RBL_ScreenHUD screenHUD = RBL_ScreenHUD.GetInstance();
