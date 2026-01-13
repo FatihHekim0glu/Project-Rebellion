@@ -841,4 +841,144 @@ class RBL_ItemDelivery
 	
 	ScriptInvoker GetOnItemDelivered() { return m_OnItemDelivered; }
 	ScriptInvoker GetOnDeliveryFailed() { return m_OnDeliveryFailed; }
+	
+	// ========================================================================
+	// NOTIFICATIONS
+	// ========================================================================
+	
+	// Show notification for successful delivery
+	void NotifyDeliverySuccess(string itemName, string category)
+	{
+		string message = "";
+		
+		switch (category)
+		{
+			case "Weapons":
+				message = "Weapon received: " + itemName;
+				break;
+			case "Equipment":
+				message = "Equipment received: " + itemName;
+				break;
+			case "Vehicles":
+				message = "Vehicle delivered: " + itemName;
+				break;
+			case "Recruits":
+				message = "Recruit joined: " + itemName;
+				break;
+			default:
+				message = "Item received: " + itemName;
+		}
+		
+		ShowNotification(message, true);
+	}
+	
+	// Show notification for failed delivery
+	void NotifyDeliveryFailed(string itemName, ERBLDeliveryResult reason)
+	{
+		string message = "Delivery failed: " + itemName;
+		
+		switch (reason)
+		{
+			case ERBLDeliveryResult.FAILED_NO_PLAYER:
+				message += " (No valid player)";
+				break;
+			case ERBLDeliveryResult.FAILED_NO_PREFAB:
+				message += " (Invalid item)";
+				break;
+			case ERBLDeliveryResult.FAILED_SPAWN_ERROR:
+				message += " (Spawn error)";
+				break;
+			case ERBLDeliveryResult.FAILED_INVENTORY_FULL:
+				message += " (Inventory full)";
+				break;
+			case ERBLDeliveryResult.FAILED_NO_SPACE:
+				message += " (No space)";
+				break;
+		}
+		
+		ShowNotification(message, false);
+	}
+	
+	// Show on-screen notification
+	protected void ShowNotification(string message, bool success)
+	{
+		// Log to console
+		if (success)
+			PrintFormat("[RBL_Delivery] SUCCESS: %1", message);
+		else
+			PrintFormat("[RBL_Delivery] FAILED: %1", message);
+		
+		// Try to show HUD notification
+		SCR_HintUIInfo hint = SCR_HintUIInfo.CreateInfo(message, success ? "Delivery" : "Error", 3.0);
+		if (hint)
+		{
+			SCR_HintManagerComponent hintMgr = SCR_HintManagerComponent.GetInstance();
+			if (hintMgr)
+				hintMgr.Show(hint);
+		}
+	}
+}
+
+// ============================================================================
+// DEBUG COMMANDS
+// ============================================================================
+class RBL_DeliveryCommands
+{
+	// Test weapon delivery
+	static void TestWeapon()
+	{
+		RBL_ShopManager shop = RBL_ShopManager.GetInstance();
+		if (shop)
+			shop.PurchaseItem("akm");
+	}
+	
+	// Test vehicle delivery
+	static void TestVehicle()
+	{
+		RBL_ShopManager shop = RBL_ShopManager.GetInstance();
+		if (shop)
+			shop.PurchaseItem("uaz");
+	}
+	
+	// Test recruit delivery
+	static void TestRecruit()
+	{
+		RBL_ShopManager shop = RBL_ShopManager.GetInstance();
+		if (shop)
+			shop.PurchaseItem("rifleman");
+	}
+	
+	// Give player free money for testing
+	static void GiveTestMoney()
+	{
+		RBL_EconomyManager econ = RBL_EconomyManager.GetInstance();
+		if (econ)
+		{
+			econ.AddMoney(10000);
+			econ.AddHR(50);
+			PrintFormat("[RBL_Delivery] Added $10000 and 50 HR for testing");
+		}
+	}
+	
+	// Print delivery system status
+	static void PrintStatus()
+	{
+		RBL_ItemDelivery delivery = RBL_ItemDelivery.GetInstance();
+		if (!delivery)
+		{
+			PrintFormat("[RBL_Delivery] System not initialized");
+			return;
+		}
+		
+		IEntity player = delivery.GetLocalPlayerEntity();
+		if (player)
+		{
+			PrintFormat("[RBL_Delivery] Player found at %1", player.GetOrigin().ToString());
+			PrintFormat("[RBL_Delivery] Valid target: %1", delivery.IsValidDeliveryTarget(player));
+		}
+		else
+		{
+			PrintFormat("[RBL_Delivery] No local player found");
+		}
+	}
 }
