@@ -580,22 +580,25 @@ class RBL_ShopMenuWidgetImpl : RBL_PanelWidget
 			return;
 		}
 		
-		// Execute purchase through economy manager
-		RBL_EconomyManager econMgr = RBL_EconomyManager.GetInstance();
-		if (!econMgr)
+		// Execute purchase through ShopManager (handles delivery)
+		RBL_ShopManager shopMgr = RBL_ShopManager.GetInstance();
+		if (!shopMgr)
+		{
+			RBL_Notifications.Show("Shop system unavailable");
 			return;
+		}
 		
-		bool success = econMgr.TryPurchase(item.m_sID, item.m_iMoneyCost, item.m_iHRCost);
+		bool success = shopMgr.PurchaseItem(item.m_sID);
 		
 		if (success)
 		{
 			RBL_Notifications.MoneySpent(item.m_iMoneyCost, item.m_sName);
 			RefreshPlayerResources();
-			PrintFormat("[RBL_Shop] Purchased: %1", item.m_sName);
+			PrintFormat("[RBL_ShopWidget] Purchased & delivered: %1", item.m_sName);
 		}
 		else
 		{
-			RBL_Notifications.Show("Purchase failed");
+			RBL_Notifications.Show("Purchase or delivery failed");
 		}
 	}
 	
