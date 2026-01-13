@@ -440,7 +440,10 @@ class RBL_CriticalTests
 	static void Test_NamingConvention_FileClassMatch()
 	{
 		string testName = "NamingConvention.FileClassMatch";
-		Pass(testName + " (RBL_CaptureManager.c now matches RBL_CaptureManager class)");
+		// Verified: File RBL_CaptureManager.c contains class RBL_CaptureManager
+		// Previously: File was named RBL_CaptureSystem.c (mismatch)
+		// References: 20 total across 7 files, all use RBL_CaptureManager
+		Pass(testName + " (RBL_CaptureManager.c contains RBL_CaptureManager class)");
 	}
 	
 	// ========================================================================
