@@ -131,6 +131,17 @@ enum ERBLGarrisonState
 	REINFORCED
 }
 
+enum ERBLQRFState
+{
+	SPAWNING = 0,
+	EN_ROUTE,
+	ENGAGED,
+	ARRIVED,
+	DESTROYED,
+	TIMEOUT,
+	COMPLETE
+}
+
 enum ERBLResourceType
 {
 	MONEY = 0,

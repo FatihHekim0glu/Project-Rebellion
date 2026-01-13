@@ -741,19 +741,9 @@ class RBL_QRFTemplates
 // ============================================================================
 // QRF OPERATION STATE
 // ============================================================================
-enum ERBLQRFState
-{
-	SPAWNING,
-	EN_ROUTE,
-	ENGAGED,
-	ARRIVED,
-	DESTROYED,
-	TIMEOUT,
-	COMPLETE
-}
-
 // ============================================================================
 // QRF Operation - Now spawns and tracks actual units
+// ERBLQRFState enum moved to RBL_Enums.c for centralization
 // ============================================================================
 class RBL_QRFOperation
 {
