@@ -47,8 +47,17 @@ class RBL_ItemDelivery
 	protected ref ScriptInvoker m_OnItemDelivered;
 	protected ref ScriptInvoker m_OnDeliveryFailed;
 	
-	// Recruit prefabs
+	// Prefab mappings
 	protected ref map<string, string> m_mRecruitPrefabs;
+	protected ref map<string, string> m_mEquipmentPrefabs;
+	protected ref map<string, string> m_mWeaponPrefabs;
+	protected ref map<string, string> m_mVehiclePrefabs;
+	
+	// State
+	protected bool m_bInitialized;
+	protected int m_iDeliveriesTotal;
+	protected int m_iDeliveriesSuccessful;
+	protected int m_iDeliveriesFailed;
 	
 	static RBL_ItemDelivery GetInstance()
 	{
@@ -62,15 +71,63 @@ class RBL_ItemDelivery
 		m_OnItemDelivered = new ScriptInvoker();
 		m_OnDeliveryFailed = new ScriptInvoker();
 		
-		InitializeRecruitPrefabs();
+		m_mRecruitPrefabs = new map<string, string>();
+		m_mEquipmentPrefabs = new map<string, string>();
+		m_mWeaponPrefabs = new map<string, string>();
+		m_mVehiclePrefabs = new map<string, string>();
 		
+		m_bInitialized = false;
+		m_iDeliveriesTotal = 0;
+		m_iDeliveriesSuccessful = 0;
+		m_iDeliveriesFailed = 0;
+	}
+	
+	void Initialize()
+	{
+		if (m_bInitialized)
+			return;
+		
+		InitializeRecruitPrefabs();
+		InitializeEquipmentPrefabs();
+		InitializeWeaponPrefabs();
+		InitializeVehiclePrefabs();
+		
+		m_bInitialized = true;
 		PrintFormat("[RBL_Delivery] Item Delivery System initialized");
+	}
+	
+	protected void InitializeEquipmentPrefabs()
+	{
+		m_mEquipmentPrefabs.Set("bandage", "{000CD338713F2B5A}Prefabs/Items/Medicine/Bandage_01.et");
+		m_mEquipmentPrefabs.Set("medkit", "{000CD338713F2B5A}Prefabs/Items/Medicine/Bandage_01.et");
+		m_mEquipmentPrefabs.Set("grenade_rgd", "{3805931BE86F827D}Prefabs/Weapons/Grenades/RGD5/Grenade_RGD5.et");
+		m_mEquipmentPrefabs.Set("grenade_smoke", "{E629F77EC23B3C32}Prefabs/Weapons/Grenades/ANM8/Grenade_ANM8.et");
+		m_mEquipmentPrefabs.Set("binocs", "{25E4B05E79B0E658}Prefabs/Items/Equipment/Binoculars_M/Binoculars_M.et");
+		PrintFormat("[RBL_Delivery] Equipment prefabs initialized");
+	}
+	
+	protected void InitializeWeaponPrefabs()
+	{
+		m_mWeaponPrefabs.Set("makarov", "{3E413771E1834D2E}Prefabs/Weapons/Handguns/PM/Weapon_PM.et");
+		m_mWeaponPrefabs.Set("akm", "{1BC151E0D4DE3D99}Prefabs/Weapons/Rifles/AKM/Weapon_AKM.et");
+		m_mWeaponPrefabs.Set("ak74", "{9B3DFBAE74363E7A}Prefabs/Weapons/Rifles/AK74/Weapon_AK74.et");
+		m_mWeaponPrefabs.Set("svd", "{3E36C5A1DDAE0CF8}Prefabs/Weapons/Rifles/SVD/Weapon_SVD.et");
+		m_mWeaponPrefabs.Set("rpg7", "{519E924C1C8C5FB4}Prefabs/Weapons/Launchers/RPG7/Weapon_RPG7.et");
+		m_mWeaponPrefabs.Set("pkm", "{5C3AD3CD9F747118}Prefabs/Weapons/MachineGuns/PKM/Weapon_PKM.et");
+		PrintFormat("[RBL_Delivery] Weapon prefabs initialized");
+	}
+	
+	protected void InitializeVehiclePrefabs()
+	{
+		m_mVehiclePrefabs.Set("uaz", "{5E74787BB083789B}Prefabs/Vehicles/Wheeled/UAZ469/UAZ469.et");
+		m_mVehiclePrefabs.Set("ural", "{91B01E6C0D20E1D1}Prefabs/Vehicles/Wheeled/Ural4320/Ural4320.et");
+		m_mVehiclePrefabs.Set("btr70", "{D85A504DF4E2C128}Prefabs/Vehicles/Wheeled/BTR70/BTR70.et");
+		m_mVehiclePrefabs.Set("bmp1", "{BB0E7CE42F0F3E19}Prefabs/Vehicles/Tracked/BMP1/BMP1.et");
+		PrintFormat("[RBL_Delivery] Vehicle prefabs initialized");
 	}
 	
 	protected void InitializeRecruitPrefabs()
 	{
-		m_mRecruitPrefabs = new map<string, string>();
-		
 		// NOTE: These prefabs need to match your game installation
 		// You can find valid prefabs in Workbench under:
 		// Prefabs/Characters/Factions/BLUFOR/US_Army/
@@ -113,18 +170,86 @@ class RBL_ItemDelivery
 		return "";
 	}
 	
+	// Get equipment prefab
+	string GetEquipmentPrefabPath(string equipmentID)
+	{
+		string prefab;
+		if (m_mEquipmentPrefabs.Find(equipmentID, prefab))
+			return prefab;
+		return "";
+	}
+	
+	// Get weapon prefab
+	string GetWeaponPrefabPath(string weaponID)
+	{
+		string prefab;
+		if (m_mWeaponPrefabs.Find(weaponID, prefab))
+			return prefab;
+		return "";
+	}
+	
+	// Get vehicle prefab
+	string GetVehiclePrefabPath(string vehicleID)
+	{
+		string prefab;
+		if (m_mVehiclePrefabs.Find(vehicleID, prefab))
+			return prefab;
+		return "";
+	}
+	
+	// Set custom prefabs at runtime
+	void SetEquipmentPrefab(string equipmentID, string prefabPath)
+	{
+		m_mEquipmentPrefabs.Set(equipmentID, prefabPath);
+	}
+	
+	void SetWeaponPrefab(string weaponID, string prefabPath)
+	{
+		m_mWeaponPrefabs.Set(weaponID, prefabPath);
+	}
+	
+	void SetVehiclePrefab(string vehicleID, string prefabPath)
+	{
+		m_mVehiclePrefabs.Set(vehicleID, prefabPath);
+	}
+	
+	// Statistics
+	bool IsInitialized() { return m_bInitialized; }
+	int GetTotalDeliveries() { return m_iDeliveriesTotal; }
+	int GetSuccessfulDeliveries() { return m_iDeliveriesSuccessful; }
+	int GetFailedDeliveries() { return m_iDeliveriesFailed; }
+	
+	float GetSuccessRate()
+	{
+		if (m_iDeliveriesTotal == 0)
+			return 100.0;
+		return (m_iDeliveriesSuccessful / m_iDeliveriesTotal) * 100.0;
+	}
+	
 	// ========================================================================
 	// MAIN DELIVERY METHODS
 	// ========================================================================
 	
 	ERBLDeliveryResult DeliverItem(RBL_ShopItem item, int playerID)
 	{
+		// Ensure initialized
+		if (!m_bInitialized)
+			Initialize();
+		
+		m_iDeliveriesTotal++;
+		
 		if (!item)
+		{
+			m_iDeliveriesFailed++;
 			return ERBLDeliveryResult.FAILED_NO_PREFAB;
+		}
 		
 		IEntity playerEntity = GetPlayerEntity(playerID);
 		if (!playerEntity)
+		{
+			m_iDeliveriesFailed++;
 			return ERBLDeliveryResult.FAILED_NO_PLAYER;
+		}
 		
 		ERBLDeliveryResult result;
 		
@@ -139,6 +264,12 @@ class RBL_ItemDelivery
 			result = DeliverRecruit(playerEntity, item, playerID);
 		else
 			result = ERBLDeliveryResult.FAILED_NO_PREFAB;
+		
+		// Track statistics
+		if (result == ERBLDeliveryResult.SUCCESS)
+			m_iDeliveriesSuccessful++;
+		else
+			m_iDeliveriesFailed++;
 		
 		// Fire events
 		RBL_DeliveryEventData eventData = new RBL_DeliveryEventData();
