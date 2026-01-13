@@ -299,21 +299,107 @@ class RBL_ItemDelivery
 		if (!playerEntity || item.PrefabPath.IsEmpty())
 			return ERBLDeliveryResult.FAILED_NO_PREFAB;
 		
+		// Check if valid target
+		if (!IsValidDeliveryTarget(playerEntity))
+			return ERBLDeliveryResult.FAILED_NO_PLAYER;
+		
 		// Calculate spawn position in front of player
 		vector spawnPos = GetVehicleSpawnPosition(playerEntity);
 		
+		// Verify spawn position is valid (not inside terrain/buildings)
+		if (!IsValidVehicleSpawnPosition(spawnPos))
+		{
+			// Try alternative positions
+			spawnPos = FindAlternativeVehicleSpawn(playerEntity);
+		}
+		
 		// Spawn the vehicle
-		IEntity vehicleEntity = SpawnEntity(item.PrefabPath, spawnPos);
+		IEntity vehicleEntity = SpawnVehicle(item.PrefabPath, spawnPos, playerEntity.GetAngles()[1]);
 		if (!vehicleEntity)
 			return ERBLDeliveryResult.FAILED_SPAWN_ERROR;
 		
-		// Orient vehicle to face same direction as player
-		vector playerAngles = playerEntity.GetAngles();
-		vehicleEntity.SetAngles(playerAngles);
-		
-		PrintFormat("[RBL_Delivery] Vehicle spawned at %1", spawnPos.ToString());
+		PrintFormat("[RBL_Delivery] Vehicle %1 spawned at %2", item.DisplayName, spawnPos.ToString());
 		
 		return ERBLDeliveryResult.SUCCESS;
+	}
+	
+	// Spawn vehicle with proper orientation and physics
+	protected IEntity SpawnVehicle(string prefab, vector position, float yaw)
+	{
+		if (prefab.IsEmpty())
+			return null;
+		
+		BaseWorld world = GetGame().GetWorld();
+		if (!world)
+			return null;
+		
+		// Ensure vehicle is on terrain with slight offset
+		position[1] = world.GetSurfaceY(position[0], position[2]) + VEHICLE_SPAWN_HEIGHT_OFFSET;
+		
+		EntitySpawnParams params = new EntitySpawnParams();
+		params.TransformMode = ETransformMode.WORLD;
+		
+		// Set rotation to match player facing
+		vector angles = Vector(0, yaw, 0);
+		Math3D.AnglesToMatrix(angles, params.Transform);
+		params.Transform[3] = position;
+		
+		Resource resource = Resource.Load(prefab);
+		if (!resource.IsValid())
+		{
+			PrintFormat("[RBL_Delivery] Invalid vehicle prefab: %1", prefab);
+			return null;
+		}
+		
+		IEntity vehicle = GetGame().SpawnEntityPrefab(resource, world, params);
+		
+		// Initialize vehicle physics if needed
+		if (vehicle)
+		{
+			Physics physics = vehicle.GetPhysics();
+			if (physics)
+			{
+				physics.SetActive(ActiveState.ACTIVE);
+			}
+		}
+		
+		return vehicle;
+	}
+	
+	// Check if vehicle spawn position is valid
+	protected bool IsValidVehicleSpawnPosition(vector position)
+	{
+		BaseWorld world = GetGame().GetWorld();
+		if (!world)
+			return false;
+		
+		// Check terrain height
+		float terrainY = world.GetSurfaceY(position[0], position[2]);
+		if (Math.AbsFloat(position[1] - terrainY) > 5.0)
+			return false;
+		
+		// Could add building/obstacle check here
+		return true;
+	}
+	
+	// Find alternative spawn position if primary is blocked
+	protected vector FindAlternativeVehicleSpawn(IEntity playerEntity)
+	{
+		vector playerPos = playerEntity.GetOrigin();
+		
+		// Try different angles
+		for (int i = 0; i < 8; i++)
+		{
+			float angle = i * 45.0 * Math.DEG2RAD;
+			vector offset = Vector(Math.Sin(angle), 0, Math.Cos(angle)) * VEHICLE_SPAWN_DISTANCE;
+			vector testPos = playerPos + offset;
+			
+			if (IsValidVehicleSpawnPosition(testPos))
+				return testPos;
+		}
+		
+		// Fallback: just return front position
+		return GetVehicleSpawnPosition(playerEntity);
 	}
 	
 	// ========================================================================
