@@ -580,6 +580,40 @@ class RBL_UndercoverSystem
 		return state;
 	}
 	
+	RBL_PlayerCoverState GetPlayerState(IEntity playerEntity)
+	{
+		if (!playerEntity)
+			return null;
+		
+		int playerID = GetPlayerIDFromEntity(playerEntity);
+		if (playerID < 0)
+			return null;
+		
+		return GetPlayerState(playerID);
+	}
+	
+	protected int GetPlayerIDFromEntity(IEntity entity)
+	{
+		if (!entity)
+			return -1;
+		
+		PlayerManager pm = GetGame().GetPlayerManager();
+		if (!pm)
+			return -1;
+		
+		array<int> playerIds = new array<int>();
+		pm.GetPlayers(playerIds);
+		
+		for (int i = 0; i < playerIds.Count(); i++)
+		{
+			IEntity playerEntity = pm.GetPlayerControlledEntity(playerIds[i]);
+			if (playerEntity == entity)
+				return playerIds[i];
+		}
+		
+		return -1;
+	}
+	
 	void ResetPlayerCover(int playerID)
 	{
 		RBL_PlayerCoverState state;
@@ -642,6 +676,7 @@ class RBL_PlayerCoverState
 	bool m_bNearEnemy;
 	bool m_bInRestrictedZone;
 	float m_fNearestEnemyDistance;
+	int m_iNearbyEnemyCount;
 	
 	void RBL_PlayerCoverState()
 	{
@@ -660,7 +695,20 @@ class RBL_PlayerCoverState
 		m_bNearEnemy = false;
 		m_bInRestrictedZone = false;
 		m_fNearestEnemyDistance = 99999;
+		m_iNearbyEnemyCount = 0;
 	}
+	
+	// Getters for UI
+	ERBLCoverStatus GetStatus() { return m_eCurrentStatus; }
+	float GetSuspicion() { return m_fSuspicionLevel * 100.0; }
+	float GetSuspicionNormalized() { return m_fSuspicionLevel; }
+	int GetNearbyEnemyCount() { return m_iNearbyEnemyCount; }
+	float GetClosestEnemyDistance() { return m_fNearestEnemyDistance; }
+	bool HasIllegalWeapon() { return m_bHasIllegalWeapon; }
+	bool HasMilitaryClothing() { return m_bHasMilitaryClothing; }
+	bool IsInMilitaryVehicle() { return m_bInMilitaryVehicle; }
+	bool IsNearEnemy() { return m_bNearEnemy; }
+	bool IsInRestrictedZone() { return m_bInRestrictedZone; }
 	
 	void SetStatus(ERBLCoverStatus newStatus)
 	{
