@@ -282,11 +282,17 @@ class RBL_ItemDelivery
 		{
 			m_OnItemDelivered.Invoke(eventData);
 			PrintFormat("[RBL_Delivery] Delivered %1 to player %2", item.DisplayName, playerID);
+			
+			// Show category-specific notifications
+			NotifyDeliverySuccess(item.DisplayName, item.Category);
 		}
 		else
 		{
 			m_OnDeliveryFailed.Invoke(eventData);
 			PrintFormat("[RBL_Delivery] Failed to deliver %1: %2", item.DisplayName, typename.EnumToString(ERBLDeliveryResult, result));
+			
+			// Show failure notification
+			RBL_Notifications.DeliveryFailed(item.DisplayName);
 		}
 		
 		return result;
@@ -1014,27 +1020,27 @@ class RBL_ItemDelivery
 	// Show notification for successful delivery
 	void NotifyDeliverySuccess(string itemName, string category)
 	{
-		string message = "";
-		
-		switch (category)
+		// Use RBL_Notifications for consistent UI
+		if (category == "Weapons")
 		{
-			case "Weapons":
-				message = "Weapon received: " + itemName;
-				break;
-			case "Equipment":
-				message = "Equipment received: " + itemName;
-				break;
-			case "Vehicles":
-				message = "Vehicle delivered: " + itemName;
-				break;
-			case "Recruits":
-				message = "Recruit joined: " + itemName;
-				break;
-			default:
-				message = "Item received: " + itemName;
+			RBL_Notifications.ItemDelivered(itemName);
 		}
-		
-		ShowNotification(message, true);
+		else if (category == "Equipment")
+		{
+			RBL_Notifications.ItemDelivered(itemName);
+		}
+		else if (category == "Vehicles")
+		{
+			RBL_Notifications.VehicleDelivered(itemName);
+		}
+		else if (category == "Recruits")
+		{
+			RBL_Notifications.RecruitJoined(itemName);
+		}
+		else
+		{
+			RBL_Notifications.ItemDelivered(itemName);
+		}
 	}
 	
 	// Show notification for failed delivery
