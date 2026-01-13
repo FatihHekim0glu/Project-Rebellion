@@ -65,6 +65,8 @@ class RBL_GameMode : SCR_BaseGameMode
 	protected void InitializeSystems()
 	{
 		PrintFormat("[RBL] Initializing Rebellion systems...");
+		PrintFormat("[RBL] Network Mode: %1", RBL_NetworkUtils.IsSinglePlayer() ? "Singleplayer" : "Multiplayer");
+		PrintFormat("[RBL] Authority: %1", RBL_NetworkUtils.IsServer() ? "Server" : "Client");
 		
 		if (m_bAutoInitialize)
 		{
@@ -85,7 +87,7 @@ class RBL_GameMode : SCR_BaseGameMode
 		RBL_ShopManager.GetInstance();
 		RBL_GarrisonManager.GetInstance();
 		
-		// Initialize Mission System
+		// Initialize Mission System (server generates missions)
 		RBL_MissionManager missionMgr = RBL_MissionManager.GetInstance();
 		if (missionMgr)
 			missionMgr.Initialize();
@@ -98,7 +100,7 @@ class RBL_GameMode : SCR_BaseGameMode
 		// Wire campaign events to missions
 		WireCampaignEventsToMissions();
 		
-		// Initialize NEW UI System
+		// Initialize NEW UI System (all clients)
 		if (m_bShowHUD)
 		{
 			RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
@@ -112,14 +114,26 @@ class RBL_GameMode : SCR_BaseGameMode
 		if (inputHandler)
 			inputHandler.Initialize();
 		
-		// Spawn garrisons at all enemy zones
-		GetGame().GetCallqueue().CallLater(SpawnInitialGarrisons, 5000, false);
+		// Server-only: Spawn garrisons at all enemy zones
+		if (RBL_NetworkUtils.IsServer())
+			GetGame().GetCallqueue().CallLater(SpawnInitialGarrisons, 5000, false);
 		
 		// Show welcome notification
 		GetGame().GetCallqueue().CallLater(ShowWelcomeNotifications, 1000, false);
 		
 		PrintZoneInfo();
 		PrintHelp();
+		PrintNetworkInfo();
+	}
+	
+	protected void PrintNetworkInfo()
+	{
+		PrintFormat("[RBL] ========================================");
+		PrintFormat("[RBL] NETWORK STATUS");
+		PrintFormat("[RBL] Mode: %1", RBL_NetworkUtils.IsSinglePlayer() ? "Singleplayer" : "Multiplayer");
+		PrintFormat("[RBL] Role: %1", RBL_NetworkUtils.IsServer() ? "Server/Host" : "Client");
+		PrintFormat("[RBL] Players: %1", RBL_NetworkUtils.GetPlayerCount());
+		PrintFormat("[RBL] ========================================");
 	}
 	
 	protected void SpawnInitialGarrisons()
@@ -362,6 +376,8 @@ class RBL_GameModeAddon
 	{
 		PrintFormat("[RBL] ========================================");
 		PrintFormat("[RBL] PROJECT REBELLION - ACTIVE");
+		PrintFormat("[RBL] Network Mode: %1", RBL_NetworkUtils.IsSinglePlayer() ? "Singleplayer" : "Multiplayer");
+		PrintFormat("[RBL] Authority: %1", RBL_NetworkUtils.IsServer() ? "Server" : "Client");
 		PrintFormat("[RBL] ========================================");
 		
 		// Initialize Input System FIRST
@@ -381,7 +397,7 @@ class RBL_GameModeAddon
 		RBL_ShopManager.GetInstance();
 		RBL_GarrisonManager.GetInstance();
 		
-		// Mission System
+		// Mission System (server generates missions)
 		RBL_MissionManager missionMgr = RBL_MissionManager.GetInstance();
 		if (missionMgr)
 			missionMgr.Initialize();
@@ -394,7 +410,7 @@ class RBL_GameModeAddon
 		// Wire campaign events
 		WireCampaignEvents();
 		
-		// NEW UI System
+		// NEW UI System (all clients)
 		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
 		uiMgr.Initialize();
 		
@@ -404,8 +420,9 @@ class RBL_GameModeAddon
 		if (inputHandler)
 			inputHandler.Initialize();
 		
-		// Spawn garrisons after delay
-		GetGame().GetCallqueue().CallLater(SpawnGarrisons, 5000, false);
+		// Server-only: Spawn garrisons after delay
+		if (RBL_NetworkUtils.IsServer())
+			GetGame().GetCallqueue().CallLater(SpawnGarrisons, 5000, false);
 		
 		// Welcome notifications
 		GetGame().GetCallqueue().CallLater(ShowWelcome, 1000, false);
