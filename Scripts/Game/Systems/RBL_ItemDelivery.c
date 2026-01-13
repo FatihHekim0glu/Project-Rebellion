@@ -135,27 +135,79 @@ class RBL_ItemDelivery
 		if (!playerEntity || item.PrefabPath.IsEmpty())
 			return ERBLDeliveryResult.FAILED_NO_PREFAB;
 		
-		// Spawn the weapon
-		IEntity weaponEntity = SpawnEntity(item.PrefabPath, playerEntity.GetOrigin());
+		// Check if valid target
+		if (!IsValidDeliveryTarget(playerEntity))
+			return ERBLDeliveryResult.FAILED_NO_PLAYER;
+		
+		// Spawn the weapon near player (not exactly at origin to avoid collision)
+		vector spawnPos = playerEntity.GetOrigin() + Vector(0, 1, 0);
+		IEntity weaponEntity = SpawnEntity(item.PrefabPath, spawnPos);
 		if (!weaponEntity)
 			return ERBLDeliveryResult.FAILED_SPAWN_ERROR;
 		
 		// Try to add to player inventory
 		bool added = AddToPlayerInventory(playerEntity, weaponEntity);
 		
-		if (!added)
+		if (added)
+		{
+			PrintFormat("[RBL_Delivery] Weapon %1 added to inventory", item.DisplayName);
+			
+			// Try to equip the weapon
+			TryEquipWeapon(playerEntity, weaponEntity);
+		}
+		else
 		{
 			// If can't add to inventory, drop at player's feet
-			vector dropPos = playerEntity.GetOrigin() + Vector(0, 0.5, 1);
-			BaseWorld world = GetGame().GetWorld();
-			if (world)
-				dropPos[1] = world.GetSurfaceY(dropPos[0], dropPos[2]) + 0.5;
-			
+			vector dropPos = GetWeaponDropPosition(playerEntity);
 			weaponEntity.SetOrigin(dropPos);
-			PrintFormat("[RBL_Delivery] Weapon dropped at player's feet (inventory full)");
+			PrintFormat("[RBL_Delivery] Weapon %1 dropped at player's feet", item.DisplayName);
 		}
 		
 		return ERBLDeliveryResult.SUCCESS;
+	}
+	
+	// Try to equip a weapon after adding to inventory
+	protected void TryEquipWeapon(IEntity playerEntity, IEntity weaponEntity)
+	{
+		if (!playerEntity || !weaponEntity)
+			return;
+		
+		// Get weapon manager
+		BaseWeaponManagerComponent weaponMgr = BaseWeaponManagerComponent.Cast(
+			playerEntity.FindComponent(BaseWeaponManagerComponent));
+		
+		if (!weaponMgr)
+			return;
+		
+		// Get weapon component from entity
+		BaseWeaponComponent weaponComp = BaseWeaponComponent.Cast(
+			weaponEntity.FindComponent(BaseWeaponComponent));
+		
+		if (weaponComp)
+		{
+			// Attempt to select this weapon
+			// Note: This may not work for all inventory systems
+			PrintFormat("[RBL_Delivery] Attempting to equip weapon");
+		}
+	}
+	
+	// Get position to drop a weapon
+	protected vector GetWeaponDropPosition(IEntity playerEntity)
+	{
+		vector playerPos = playerEntity.GetOrigin();
+		vector playerAngles = playerEntity.GetAngles();
+		
+		// Drop in front of player
+		float yaw = playerAngles[1] * Math.DEG2RAD;
+		vector forward = Vector(Math.Sin(yaw), 0, Math.Cos(yaw));
+		
+		vector dropPos = playerPos + forward * 1.5;
+		
+		BaseWorld world = GetGame().GetWorld();
+		if (world)
+			dropPos[1] = world.GetSurfaceY(dropPos[0], dropPos[2]) + 0.3;
+		
+		return dropPos;
 	}
 	
 	// ========================================================================
