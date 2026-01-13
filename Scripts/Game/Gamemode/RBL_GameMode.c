@@ -65,21 +65,35 @@ class RBL_GameMode : SCR_BaseGameMode
 	protected void InitializeSystems()
 	{
 		PrintFormat("[RBL] Initializing Rebellion systems...");
-
+		
 		if (m_bAutoInitialize)
 		{
 			RBL_AutoInitializer autoInit = RBL_AutoInitializer.GetInstance();
 			autoInit.Initialize();
 		}
-
+		
 		// Initialize new systems
 		RBL_CaptureManager.GetInstance();
 		RBL_ShopManager.GetInstance();
 		RBL_ScreenHUD.GetInstance();
 		RBL_InputHandler.GetInstance();
-
+		RBL_GarrisonManager.GetInstance();
+		
+		// Spawn garrisons at all enemy zones
+		GetGame().GetCallqueue().CallLater(SpawnInitialGarrisons, 5000, false);
+		
 		PrintZoneInfo();
 		PrintHelp();
+	}
+	
+	protected void SpawnInitialGarrisons()
+	{
+		RBL_GarrisonManager garMgr = RBL_GarrisonManager.GetInstance();
+		if (garMgr)
+		{
+			garMgr.SpawnAllGarrisons();
+			PrintFormat("[RBL] Initial garrisons spawned");
+		}
 	}
 
 	protected void UpdateAllSystems(float timeSlice)
@@ -88,20 +102,25 @@ class RBL_GameMode : SCR_BaseGameMode
 		RBL_CommanderAI commanderAI = RBL_CommanderAI.GetInstance();
 		if (commanderAI)
 			commanderAI.Update(timeSlice);
-
+		
 		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
 		if (zoneMgr)
 			zoneMgr.Update(timeSlice);
-
+		
 		RBL_PersistenceManager persistence = RBL_PersistenceManager.GetInstance();
 		if (persistence)
 			persistence.Update(timeSlice);
-
+		
 		// Capture system
 		RBL_CaptureManager captureMgr = RBL_CaptureManager.GetInstance();
 		if (captureMgr)
 			captureMgr.Update(timeSlice);
-
+		
+		// Garrison system
+		RBL_GarrisonManager garrisonMgr = RBL_GarrisonManager.GetInstance();
+		if (garrisonMgr)
+			garrisonMgr.Update(timeSlice);
+		
 		// HUD system
 		if (m_bShowDebugHUD)
 		{
@@ -109,7 +128,7 @@ class RBL_GameMode : SCR_BaseGameMode
 			if (hud)
 				hud.Update(timeSlice);
 		}
-
+		
 		// Input
 		RBL_InputHandler input = RBL_InputHandler.GetInstance();
 		if (input)
@@ -213,18 +232,29 @@ class RBL_GameModeAddon
 		PrintFormat("[RBL] ========================================");
 		PrintFormat("[RBL] PROJECT REBELLION - ACTIVE");
 		PrintFormat("[RBL] ========================================");
-
+		
 		// Core initialization
 		RBL_AutoInitializer autoInit = RBL_AutoInitializer.GetInstance();
 		autoInit.Initialize();
-
+		
 		// New systems
 		RBL_CaptureManager.GetInstance();
 		RBL_ShopManager.GetInstance();
 		RBL_ScreenHUD.GetInstance();
 		RBL_InputHandler.GetInstance();
-
+		RBL_GarrisonManager.GetInstance();
+		
+		// Spawn garrisons after delay
+		GetGame().GetCallqueue().CallLater(SpawnGarrisons, 5000, false);
+		
 		PrintHelp();
+	}
+	
+	protected void SpawnGarrisons()
+	{
+		RBL_GarrisonManager garMgr = RBL_GarrisonManager.GetInstance();
+		if (garMgr)
+			garMgr.SpawnAllGarrisons();
 	}
 
 	protected void PrintHelp()
@@ -245,25 +275,30 @@ class RBL_GameModeAddon
 		RBL_CommanderAI commanderAI = RBL_CommanderAI.GetInstance();
 		if (commanderAI)
 			commanderAI.Update(timeSlice);
-
+		
 		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
 		if (zoneMgr)
 			zoneMgr.Update(timeSlice);
-
+		
 		RBL_PersistenceManager persistence = RBL_PersistenceManager.GetInstance();
 		if (persistence)
 			persistence.Update(timeSlice);
-
+		
 		// Capture
 		RBL_CaptureManager captureMgr = RBL_CaptureManager.GetInstance();
 		if (captureMgr)
 			captureMgr.Update(timeSlice);
-
+		
+		// Garrison
+		RBL_GarrisonManager garrisonMgr = RBL_GarrisonManager.GetInstance();
+		if (garrisonMgr)
+			garrisonMgr.Update(timeSlice);
+		
 		// HUD
 		RBL_ScreenHUD hud = RBL_ScreenHUD.GetInstance();
 		if (hud)
 			hud.Update(timeSlice);
-
+		
 		// Input
 		RBL_InputHandler input = RBL_InputHandler.GetInstance();
 		if (input)

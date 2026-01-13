@@ -139,15 +139,37 @@ class RBL_CampaignZone : GenericEntity
 	
 	void SpawnGarrison()
 	{
-		// Simplified garrison spawn
-		PrintFormat("[RBL] Spawning garrison for zone: %1", m_sZoneID);
+		RBL_GarrisonManager garMgr = RBL_GarrisonManager.GetInstance();
+		if (garMgr)
+		{
+			garMgr.SpawnGarrisonForZone(
+				m_sZoneID,
+				GetOrigin(),
+				m_fCaptureRadius,
+				m_eZoneType,
+				m_eOwnerFaction,
+				m_iMaxGarrison
+			);
+		}
 	}
 	
 	void ClearGarrison()
 	{
+		RBL_GarrisonManager garMgr = RBL_GarrisonManager.GetInstance();
+		if (garMgr)
+			garMgr.ClearGarrison(m_sZoneID);
+		
 		m_aSpawnedEntities.Clear();
 		m_aGarrisonUnits.Clear();
 		m_iCurrentGarrison = 0;
+	}
+	
+	int GetGarrisonStrength()
+	{
+		RBL_GarrisonManager garMgr = RBL_GarrisonManager.GetInstance();
+		if (garMgr)
+			return garMgr.GetGarrisonStrength(m_sZoneID);
+		return m_iCurrentGarrison;
 	}
 	
 	int CalculateResourceIncome()

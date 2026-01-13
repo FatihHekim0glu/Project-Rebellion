@@ -157,10 +157,15 @@ class RBL_CaptureManager
 	{
 		string zoneID = zone.GetZoneID();
 		ERBLFactionKey previousOwner = zone.GetOwnerFaction();
-
+		
+		// Clear enemy garrison before transfer
+		RBL_GarrisonManager garMgr = RBL_GarrisonManager.GetInstance();
+		if (garMgr)
+			garMgr.ClearGarrison(zoneID);
+		
 		// Transfer ownership
 		zone.SetOwnerFaction(newOwner);
-
+		
 		// Reset progress
 		m_mCaptureProgress.Set(zoneID, 0);
 		m_mCapturingFaction.Remove(zoneID);

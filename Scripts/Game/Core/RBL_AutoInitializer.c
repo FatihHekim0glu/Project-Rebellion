@@ -203,7 +203,32 @@ class RBL_VirtualZone
 
 	void SpawnGarrison()
 	{
-		PrintFormat("[RBL] Would spawn garrison at %1", m_sZoneID);
-		// Actual spawning would go here
+		RBL_GarrisonManager garMgr = RBL_GarrisonManager.GetInstance();
+		if (garMgr)
+		{
+			garMgr.SpawnGarrisonForZone(
+				m_sZoneID,
+				m_vPosition,
+				m_fCaptureRadius,
+				m_eZoneType,
+				m_eOwnerFaction,
+				m_iMaxGarrison
+			);
+		}
+	}
+	
+	void ClearGarrison()
+	{
+		RBL_GarrisonManager garMgr = RBL_GarrisonManager.GetInstance();
+		if (garMgr)
+			garMgr.ClearGarrison(m_sZoneID);
+	}
+	
+	int GetGarrisonStrength()
+	{
+		RBL_GarrisonManager garMgr = RBL_GarrisonManager.GetInstance();
+		if (garMgr)
+			return garMgr.GetGarrisonStrength(m_sZoneID);
+		return 0;
 	}
 }

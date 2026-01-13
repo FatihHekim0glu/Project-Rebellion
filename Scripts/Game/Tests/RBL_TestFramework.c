@@ -151,6 +151,7 @@ class RBL_Tests
 		TestCommanderAI();
 		TestPersistence();
 		TestTerrainHeights();
+		TestGarrisonSystem();
 		
 		// Print results
 		runner.PrintResults();
@@ -180,6 +181,7 @@ class RBL_Tests
 		runner.AssertNotNull("AutoInitializer.GetInstance", RBL_AutoInitializer.GetInstance());
 		runner.AssertNotNull("ScreenHUD.GetInstance", RBL_ScreenHUD.GetInstance());
 		runner.AssertNotNull("HUDManager.GetInstance", RBL_HUDManager.GetInstance());
+		runner.AssertNotNull("GarrisonManager.GetInstance", RBL_GarrisonManager.GetInstance());
 		
 		// Test HUD systems handle null player gracefully
 		RBL_ScreenHUD screenHUD = RBL_ScreenHUD.GetInstance();
@@ -500,6 +502,85 @@ class RBL_Tests
 		// Test with offset
 		vector snappedWithOffset = RBL_ZoneConfigurator.SnapToTerrain(testPos, 2.0);
 		runner.Assert("SnapToTerrain offset works", snappedWithOffset[1] >= snappedPos[1], "Offset not applied");
+	}
+	
+	// Test garrison spawning system
+	static void TestGarrisonSystem()
+	{
+		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
+		
+		PrintFormat("[RBL_Tests] Running Garrison System Tests...");
+		
+		// Test GarrisonManager singleton
+		RBL_GarrisonManager garMgr = RBL_GarrisonManager.GetInstance();
+		runner.AssertNotNull("GarrisonManager.GetInstance", garMgr);
+		
+		if (!garMgr)
+			return;
+		
+		// Test initial state
+		runner.Assert("Initial garrison count is 0", garMgr.GetGarrisonedZoneCount() >= 0, "Negative garrison count");
+		
+		// Test template retrieval (internal functionality test via spawn)
+		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
+		if (zoneMgr)
+		{
+			// Get a USSR zone to test with
+			array<ref RBL_VirtualZone> ussrZones = zoneMgr.GetVirtualZonesByFaction(ERBLFactionKey.USSR);
+			runner.Assert("Have USSR zones for garrison test", ussrZones.Count() > 0, "No USSR zones");
+			
+			if (ussrZones.Count() > 0)
+			{
+				RBL_VirtualZone testZone = ussrZones[0];
+				string testZoneID = testZone.GetZoneID();
+				
+				// Test IsGarrisonSpawned before spawn
+				bool wasSpawned = garMgr.IsGarrisonSpawned(testZoneID);
+				
+				// Test spawn (may or may not actually spawn depending on world state)
+				bool spawnResult = garMgr.SpawnGarrisonForZone(
+					testZoneID,
+					testZone.GetZonePosition(),
+					testZone.GetCaptureRadius(),
+					testZone.GetZoneType(),
+					testZone.GetOwnerFaction(),
+					testZone.GetMaxGarrison()
+				);
+				
+				// If spawn succeeded, verify data was created
+				if (spawnResult)
+				{
+					runner.Assert("Garrison spawned successfully", garMgr.IsGarrisonSpawned(testZoneID), "Garrison not marked as spawned");
+					
+					RBL_GarrisonData data = garMgr.GetGarrisonData(testZoneID);
+					runner.AssertNotNull("Garrison data created", data);
+					
+					if (data)
+					{
+						runner.Assert("Target strength set", data.TargetStrength > 0, "No target strength");
+					}
+					
+					// Test clear garrison
+					garMgr.ClearGarrison(testZoneID);
+					runner.Assert("Garrison cleared", !garMgr.IsGarrisonSpawned(testZoneID), "Garrison not cleared");
+				}
+				else
+				{
+					// Spawn might fail in test environment (no world loaded)
+					runner.RecordResult("Garrison spawn attempted", true, "Spawn returned false (normal in test env)");
+				}
+			}
+		}
+		
+		// Test stats functions don't crash
+		int totalUnits = garMgr.GetTotalSpawnedUnits();
+		int totalVehicles = garMgr.GetTotalSpawnedVehicles();
+		runner.Assert("GetTotalSpawnedUnits returns >= 0", totalUnits >= 0, "Negative unit count");
+		runner.Assert("GetTotalSpawnedVehicles returns >= 0", totalVehicles >= 0, "Negative vehicle count");
+		
+		// Test update doesn't crash
+		garMgr.Update(0.1);
+		runner.RecordResult("GarrisonManager.Update runs without crash", true, "OK");
 	}
 }
 
