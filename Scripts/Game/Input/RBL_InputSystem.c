@@ -8,6 +8,7 @@ class RBL_InputActions
 {
 	// Custom Project Rebellion actions (defined in RBL_InputActions.conf)
 	static const string TOGGLE_SHOP = "RBL_ToggleShop";
+	static const string TOGGLE_SETTINGS = "RBL_ToggleSettings";
 	static const string TOGGLE_HUD = "RBL_ToggleHUD";
 	static const string QUICK_SAVE = "RBL_QuickSave";
 	static const string QUICK_LOAD = "RBL_QuickLoad";
@@ -19,6 +20,7 @@ class RBL_InputActions
 	
 	// Fallback to vanilla actions if custom not available
 	static const string FALLBACK_SHOP = "CharacterInspect";
+	static const string FALLBACK_SETTINGS = "InventoryOpen";
 	static const string FALLBACK_MAP = "ToggleMap";
 	static const string FALLBACK_ESCAPE = "MenuOpen";
 	static const string FALLBACK_USE = "CharacterAction";
@@ -236,6 +238,14 @@ class RBL_InputBindingRegistry
 			RBL_InputActions.TOGGLE_SHOP,
 			"Toggle Shop",
 			RBL_KeyCodes.KEY_J,
+			0.3
+		));
+		
+		// Settings toggle - K key
+		RegisterBinding(new RBL_Keybind(
+			RBL_InputActions.TOGGLE_SETTINGS,
+			"Toggle Settings",
+			RBL_KeyCodes.KEY_K,
 			0.3
 		));
 		
@@ -509,6 +519,7 @@ class RBL_InputManager
 		
 		// Process each registered action
 		ProcessAction(inputMgr, RBL_InputActions.TOGGLE_SHOP, RBL_InputActions.FALLBACK_SHOP);
+		ProcessAction(inputMgr, RBL_InputActions.TOGGLE_SETTINGS, RBL_InputActions.FALLBACK_SETTINGS);
 		ProcessAction(inputMgr, RBL_InputActions.TOGGLE_HUD, null);
 		ProcessAction(inputMgr, RBL_InputActions.QUICK_SAVE, null);
 		ProcessAction(inputMgr, RBL_InputActions.QUICK_LOAD, null);
@@ -551,6 +562,9 @@ class RBL_InputManager
 			case RBL_InputActions.TOGGLE_SHOP:
 				OnToggleShop();
 				break;
+			case RBL_InputActions.TOGGLE_SETTINGS:
+				OnToggleSettings();
+				break;
 			case RBL_InputActions.TOGGLE_HUD:
 				OnToggleHUD();
 				break;
@@ -588,6 +602,21 @@ class RBL_InputManager
 		RBL_ShopManager shop = RBL_ShopManager.GetInstance();
 		if (shop)
 			shop.ToggleMenu();
+	}
+	
+	protected void OnToggleSettings()
+	{
+		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+		if (uiMgr)
+		{
+			RBL_SettingsMenuWidget settingsMenu = uiMgr.GetSettingsMenu();
+			if (settingsMenu)
+			{
+				settingsMenu.Toggle();
+				SetMenuOpen(settingsMenu.IsVisible());
+				PrintFormat("[RBL_Input] Settings %1", settingsMenu.IsVisible() ? "opened" : "closed");
+			}
+		}
 	}
 	
 	protected void OnToggleHUD()
@@ -636,12 +665,23 @@ class RBL_InputManager
 			RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
 			if (uiMgr)
 			{
+				// Close settings menu first
+				RBL_SettingsMenuWidget settingsMenu = uiMgr.GetSettingsMenu();
+				if (settingsMenu && settingsMenu.IsVisible())
+				{
+					settingsMenu.Close();
+					SetMenuOpen(false);
+					PrintFormat("[RBL_Input] Settings closed via ESC");
+					return;
+				}
+				
+				// Then close shop menu
 				RBL_ShopMenuWidgetImpl shopMenu = uiMgr.GetShopMenu();
 				if (shopMenu && shopMenu.IsVisible())
 				{
 					shopMenu.Close();
 					SetMenuOpen(false);
-					PrintFormat("[RBL_Input] Menu closed via ESC");
+					PrintFormat("[RBL_Input] Shop closed via ESC");
 				}
 			}
 		}

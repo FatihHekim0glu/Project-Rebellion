@@ -17,6 +17,7 @@ class RBL_UIManager
 	protected ref RBL_NotificationManagerImpl m_Notifications;
 	protected ref RBL_ShopMenuWidgetImpl m_ShopMenu;
 	protected ref RBL_KeybindHintsImpl m_KeybindHints;
+	protected ref RBL_SettingsMenuWidget m_SettingsMenu;
 	
 	protected bool m_bInitialized;
 	protected bool m_bVisible;
@@ -49,6 +50,10 @@ class RBL_UIManager
 		m_Notifications = new RBL_NotificationManagerImpl();
 		m_ShopMenu = new RBL_ShopMenuWidgetImpl();
 		m_KeybindHints = new RBL_KeybindHintsImpl();
+		m_SettingsMenu = new RBL_SettingsMenuWidget();
+		
+		// Initialize settings manager
+		RBL_SettingsManager.GetInstance().Initialize();
 		
 		m_bInitialized = true;
 		PrintFormat("[RBL_UI] UI Manager initialized");
@@ -77,6 +82,9 @@ class RBL_UIManager
 		
 		if (m_KeybindHints)
 			m_KeybindHints.Update(timeSlice);
+		
+		if (m_SettingsMenu)
+			m_SettingsMenu.Update(timeSlice);
 	}
 	
 	void Draw()
@@ -103,6 +111,9 @@ class RBL_UIManager
 		if (m_ShopMenu && m_ShopMenu.IsVisible())
 			m_ShopMenu.Draw();
 		
+		if (m_SettingsMenu && m_SettingsMenu.IsVisible())
+			m_SettingsMenu.Draw();
+		
 		if (m_KeybindHints)
 			m_KeybindHints.Draw();
 	}
@@ -111,6 +122,27 @@ class RBL_UIManager
 	{
 		if (m_ShopMenu)
 			m_ShopMenu.Toggle();
+	}
+	
+	void ToggleSettings()
+	{
+		if (m_SettingsMenu)
+			m_SettingsMenu.Toggle();
+	}
+	
+	bool IsSettingsMenuOpen()
+	{
+		return m_SettingsMenu && m_SettingsMenu.IsVisible();
+	}
+	
+	bool IsShopMenuOpen()
+	{
+		return m_ShopMenu && m_ShopMenu.IsVisible();
+	}
+	
+	bool IsAnyMenuOpen()
+	{
+		return IsShopMenuOpen() || IsSettingsMenuOpen();
 	}
 	
 	void ShowNotification(string message, int color, float duration)
@@ -128,6 +160,7 @@ class RBL_UIManager
 	RBL_UndercoverWidgetImpl GetUndercoverIndicator() { return m_UndercoverIndicator; }
 	RBL_NotificationManagerImpl GetNotifications() { return m_Notifications; }
 	RBL_ShopMenuWidgetImpl GetShopMenu() { return m_ShopMenu; }
+	RBL_SettingsMenuWidget GetSettingsMenu() { return m_SettingsMenu; }
 }
 
 // ============================================================================

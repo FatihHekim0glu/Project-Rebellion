@@ -11,6 +11,7 @@ class RBL_InputHandler
 	protected ref RBL_InputManager m_InputManager;
 	protected bool m_bInitialized;
 	protected bool m_bShopOpen;
+	protected bool m_bSettingsOpen;
 	
 	static RBL_InputHandler GetInstance()
 	{
@@ -33,6 +34,7 @@ class RBL_InputHandler
 	{
 		PrintFormat("[RBL_Input] Keybinds:");
 		PrintFormat("[RBL_Input]   %1 - Toggle Shop", GetKeyForAction(RBL_InputActions.TOGGLE_SHOP));
+		PrintFormat("[RBL_Input]   %1 - Toggle Settings", GetKeyForAction(RBL_InputActions.TOGGLE_SETTINGS));
 		PrintFormat("[RBL_Input]   %1 - Toggle HUD", GetKeyForAction(RBL_InputActions.TOGGLE_HUD));
 		PrintFormat("[RBL_Input]   %1 - Quick Save", GetKeyForAction(RBL_InputActions.QUICK_SAVE));
 		PrintFormat("[RBL_Input]   %1 - Quick Load", GetKeyForAction(RBL_InputActions.QUICK_LOAD));
@@ -49,6 +51,7 @@ class RBL_InputHandler
 		
 		// Fallback to default display names
 		if (actionName == RBL_InputActions.TOGGLE_SHOP) return "J";
+		if (actionName == RBL_InputActions.TOGGLE_SETTINGS) return "K";
 		if (actionName == RBL_InputActions.TOGGLE_HUD) return "H";
 		if (actionName == RBL_InputActions.QUICK_SAVE) return "F5";
 		if (actionName == RBL_InputActions.QUICK_LOAD) return "F9";
@@ -108,17 +111,49 @@ class RBL_InputHandler
 	
 	void HandleEscape()
 	{
+		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+		if (!uiMgr)
+			return;
+		
+		// Close settings menu first
+		if (m_bSettingsOpen)
+		{
+			RBL_SettingsMenuWidget settingsMenu = uiMgr.GetSettingsMenu();
+			if (settingsMenu && settingsMenu.IsVisible())
+			{
+				settingsMenu.Close();
+				m_bSettingsOpen = false;
+				return;
+			}
+		}
+		
+		// Then close shop menu
 		if (m_bShopOpen)
 		{
-			RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
-			if (uiMgr)
+			RBL_ShopMenuWidgetImpl shopMenu = uiMgr.GetShopMenu();
+			if (shopMenu && shopMenu.IsVisible())
 			{
-				RBL_ShopMenuWidgetImpl shopMenu = uiMgr.GetShopMenu();
-				if (shopMenu && shopMenu.IsVisible())
-				{
-					shopMenu.Close();
-					m_bShopOpen = false;
-				}
+				shopMenu.Close();
+				m_bShopOpen = false;
+			}
+		}
+	}
+	
+	void HandleSettingsToggle()
+	{
+		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+		if (uiMgr)
+		{
+			RBL_SettingsMenuWidget settingsMenu = uiMgr.GetSettingsMenu();
+			if (settingsMenu)
+			{
+				settingsMenu.Toggle();
+				m_bSettingsOpen = settingsMenu.IsVisible();
+				
+				if (m_bSettingsOpen)
+					PrintFormat("[RBL_Input] Settings opened");
+				else
+					PrintFormat("[RBL_Input] Settings closed");
 			}
 		}
 	}
@@ -156,7 +191,8 @@ class RBL_InputHandler
 	
 	// State queries
 	bool IsShopOpen() { return m_bShopOpen; }
-	bool IsAnyMenuOpen() { return m_bShopOpen; }
+	bool IsSettingsOpen() { return m_bSettingsOpen; }
+	bool IsAnyMenuOpen() { return m_bShopOpen || m_bSettingsOpen; }
 	bool IsInitialized() { return m_bInitialized; }
 	
 	// Get the input manager for direct access
