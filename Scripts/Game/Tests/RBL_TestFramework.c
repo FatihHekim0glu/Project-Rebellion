@@ -149,6 +149,7 @@ class RBL_Tests
 		TestCampaignManager();
 		TestIncomeCalculations();
 		TestCommanderAI();
+		TestPersistence();
 		
 		// Print results
 		runner.PrintResults();
@@ -428,6 +429,44 @@ class RBL_Tests
 			array<ref RBL_VirtualZone> ussrZones = zoneMgr.GetVirtualZonesByFaction(ERBLFactionKey.USSR);
 			runner.Assert("AI can find USSR virtual zones", ussrZones.Count() > 0, "No USSR zones for AI");
 		}
+	}
+	
+	// Test persistence system
+	static void TestPersistence()
+	{
+		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
+		
+		PrintFormat("[RBL_Tests] Running Persistence Tests...");
+		
+		RBL_PersistenceManager persistence = RBL_PersistenceManager.GetInstance();
+		if (!persistence)
+		{
+			runner.RecordResult("PersistenceManager exists", false, "Manager is null");
+			return;
+		}
+		
+		// Test save data structure
+		RBL_CampaignSaveData saveData = persistence.GetCurrentSaveData();
+		runner.AssertNotNull("SaveData structure exists", saveData);
+		
+		if (saveData)
+		{
+			runner.AssertNotNull("CampaignInfo exists", saveData.CampaignInfo);
+			runner.AssertNotNull("Zones array exists", saveData.Zones);
+			runner.AssertNotNull("Arsenal array exists", saveData.Arsenal);
+		}
+		
+		// Test save operation (will create file)
+		bool saveResult = persistence.SaveCampaign();
+		runner.Assert("SaveCampaign returns true", saveResult, "Save failed");
+		
+		// Test HasExistingSave after save
+		bool hasSave = persistence.HasExistingSave();
+		runner.Assert("HasExistingSave returns true after save", hasSave, "No save detected after saving");
+		
+		// Test time tracking
+		float timeSinceSave = persistence.GetTimeSinceLastSave();
+		runner.Assert("Time since save is near 0 after save", timeSinceSave < 1.0, "Time since save incorrect");
 	}
 }
 
