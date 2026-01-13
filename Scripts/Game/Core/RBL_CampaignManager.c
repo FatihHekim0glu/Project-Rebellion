@@ -299,6 +299,39 @@ class RBL_CampaignManager : GenericEntity
 	int GetDayNumber() { return m_iDayNumber; }
 	float GetTotalPlayTime() { return m_fTotalPlayTime; }
 	bool IsCampaignActive() { return m_bCampaignActive; }
+	int GetEnemyKillCount() { return m_iEnemyKillCount; }
+	int GetZonesCaptured() { return m_iZonesCaptured; }
+
+	void SetTotalPlayTime(float time) { m_fTotalPlayTime = time; }
+	void SetEnemyKillCount(int count) { m_iEnemyKillCount = count; }
+	void SetZonesCaptured(int count) { m_iZonesCaptured = count; }
+
+	void OnGameLoaded()
+	{
+		PrintFormat("[RBL] Campaign state restored from save");
+		PrintFormat("[RBL] War Level: %1, Aggression: %2, Day: %3", m_iWarLevel, m_iAggression, m_iDayNumber);
+		PrintFormat("[RBL] Kills: %1, Zones Captured: %2", m_iEnemyKillCount, m_iZonesCaptured);
+		
+		m_bCampaignActive = true;
+		m_bInitialized = true;
+		
+		m_OnWarLevelChanged.Invoke(m_iWarLevel);
+		m_OnAggressionChanged.Invoke(m_iAggression);
+		
+		OnCampaignEvent(ERBLCampaignEvent.GAME_LOADED, null);
+	}
+
+	void RestoreFromSaveData(int warLevel, int aggression, int dayNumber, float playTime, int kills, int zones)
+	{
+		m_iWarLevel = Math.Clamp(warLevel, 1, 10);
+		m_iAggression = Math.Clamp(aggression, 0, 100);
+		m_iDayNumber = dayNumber;
+		m_fTotalPlayTime = playTime;
+		m_iEnemyKillCount = kills;
+		m_iZonesCaptured = zones;
+		
+		OnGameLoaded();
+	}
 
 	ScriptInvoker GetOnWarLevelChanged() { return m_OnWarLevelChanged; }
 	ScriptInvoker GetOnAggressionChanged() { return m_OnAggressionChanged; }
