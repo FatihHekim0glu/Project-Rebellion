@@ -36,6 +36,7 @@ class RBL_ZoneMarker
 class RBL_MapMarkerManagerImpl : RBL_BaseWidget
 {
 	protected ref map<string, ref RBL_ZoneMarker> m_mMarkers;
+	protected ref array<string> m_aMarkerIDs;
 	protected float m_fMaxDrawDistance;
 	protected float m_fMinDrawDistance;
 	protected float m_fFadeStartDistance;
@@ -48,9 +49,10 @@ class RBL_MapMarkerManagerImpl : RBL_BaseWidget
 	void RBL_MapMarkerManagerImpl()
 	{
 		m_mMarkers = new map<string, ref RBL_ZoneMarker>();
-		m_fMaxDrawDistance = 3000.0;    // Max distance to show markers
-		m_fMinDrawDistance = 50.0;      // Min distance (too close = hide)
-		m_fFadeStartDistance = 2500.0;  // Start fading
+		m_aMarkerIDs = new array<string>();
+		m_fMaxDrawDistance = 3000.0;
+		m_fMinDrawDistance = 50.0;
+		m_fFadeStartDistance = 2500.0;
 		m_bShowAllMarkers = true;
 		m_bShowDistantMarkers = true;
 		
@@ -90,6 +92,7 @@ class RBL_MapMarkerManagerImpl : RBL_BaseWidget
 			{
 				marker = new RBL_ZoneMarker(zoneID);
 				m_mMarkers.Insert(zoneID, marker);
+				m_aMarkerIDs.Insert(zoneID);
 			}
 			
 			// Update marker data from virtual zone
@@ -122,6 +125,7 @@ class RBL_MapMarkerManagerImpl : RBL_BaseWidget
 			{
 				marker = new RBL_ZoneMarker(zoneID);
 				m_mMarkers.Insert(zoneID, marker);
+				m_aMarkerIDs.Insert(zoneID);
 			}
 			
 			// Update marker data from entity zone
@@ -180,14 +184,14 @@ class RBL_MapMarkerManagerImpl : RBL_BaseWidget
 		if (!IsVisible())
 			return;
 		
-		// Draw all visible markers
-		array<string> keys = new array<string>();
-		m_mMarkers.GetKeyArray(keys);
-		
-		for (int i = 0; i < keys.Count(); i++)
+		// Draw all visible markers using our tracked ID array
+		for (int i = 0; i < m_aMarkerIDs.Count(); i++)
 		{
-			RBL_ZoneMarker marker = m_mMarkers.Get(keys[i]);
-			if (!marker || !marker.m_bIsVisible)
+			RBL_ZoneMarker marker;
+			if (!m_mMarkers.Find(m_aMarkerIDs[i], marker))
+				continue;
+			
+			if (!marker.m_bIsVisible)
 				continue;
 			
 			DrawMarker(marker);
@@ -358,16 +362,23 @@ class RBL_MapMarkerManagerImpl : RBL_BaseWidget
 	int GetVisibleMarkerCount()
 	{
 		int count = 0;
-		array<string> keys = new array<string>();
-		m_mMarkers.GetKeyArray(keys);
 		
-		for (int i = 0; i < keys.Count(); i++)
+		for (int i = 0; i < m_aMarkerIDs.Count(); i++)
 		{
-			RBL_ZoneMarker marker = m_mMarkers.Get(keys[i]);
-			if (marker && marker.m_bIsVisible)
+			RBL_ZoneMarker marker;
+			if (!m_mMarkers.Find(m_aMarkerIDs[i], marker))
+				continue;
+			
+			if (marker.m_bIsVisible)
 				count++;
 		}
 		return count;
+	}
+	
+	// Get total marker count
+	int GetTotalMarkerCount()
+	{
+		return m_aMarkerIDs.Count();
 	}
 }
 
