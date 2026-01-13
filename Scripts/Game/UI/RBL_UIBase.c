@@ -10,13 +10,13 @@ class RBL_UIManager
 {
 	protected static ref RBL_UIManager s_Instance;
 	
-	protected ref RBL_MainHUD m_MainHUD;
-	protected ref RBL_ZoneInfoWidget m_ZoneInfo;
-	protected ref RBL_CaptureBarWidget m_CaptureBar;
-	protected ref RBL_UndercoverWidget m_UndercoverIndicator;
-	protected ref RBL_NotificationManager m_Notifications;
-	protected ref RBL_ShopMenuWidget m_ShopMenu;
-	protected ref RBL_KeybindHints m_KeybindHints;
+	protected ref RBL_MainHUDWidget m_MainHUD;
+	protected ref RBL_ZoneInfoWidgetImpl m_ZoneInfo;
+	protected ref RBL_CaptureBarWidgetImpl m_CaptureBar;
+	protected ref RBL_UndercoverWidgetImpl m_UndercoverIndicator;
+	protected ref RBL_NotificationManagerImpl m_Notifications;
+	protected ref RBL_ShopMenuWidgetImpl m_ShopMenu;
+	protected ref RBL_KeybindHintsImpl m_KeybindHints;
 	
 	protected bool m_bInitialized;
 	protected bool m_bVisible;
@@ -41,14 +41,14 @@ class RBL_UIManager
 		
 		PrintFormat("[RBL_UI] Initializing UI Manager...");
 		
-		// Create UI components
-		m_MainHUD = new RBL_MainHUD();
-		m_ZoneInfo = new RBL_ZoneInfoWidget();
-		m_CaptureBar = new RBL_CaptureBarWidget();
-		m_UndercoverIndicator = new RBL_UndercoverWidget();
-		m_Notifications = new RBL_NotificationManager();
-		m_ShopMenu = new RBL_ShopMenuWidget();
-		m_KeybindHints = new RBL_KeybindHints();
+		// Create UI components (using implemented versions)
+		m_MainHUD = new RBL_MainHUDWidget();
+		m_ZoneInfo = new RBL_ZoneInfoWidgetImpl();
+		m_CaptureBar = new RBL_CaptureBarWidgetImpl();
+		m_UndercoverIndicator = new RBL_UndercoverWidgetImpl();
+		m_Notifications = new RBL_NotificationManagerImpl();
+		m_ShopMenu = new RBL_ShopMenuWidgetImpl();
+		m_KeybindHints = new RBL_KeybindHintsImpl();
 		
 		m_bInitialized = true;
 		PrintFormat("[RBL_UI] UI Manager initialized");
@@ -122,12 +122,12 @@ class RBL_UIManager
 	void SetVisible(bool visible) { m_bVisible = visible; }
 	bool IsVisible() { return m_bVisible; }
 	
-	RBL_MainHUD GetMainHUD() { return m_MainHUD; }
-	RBL_ZoneInfoWidget GetZoneInfo() { return m_ZoneInfo; }
-	RBL_CaptureBarWidget GetCaptureBar() { return m_CaptureBar; }
-	RBL_UndercoverWidget GetUndercoverIndicator() { return m_UndercoverIndicator; }
-	RBL_NotificationManager GetNotifications() { return m_Notifications; }
-	RBL_ShopMenuWidget GetShopMenu() { return m_ShopMenu; }
+	RBL_MainHUDWidget GetMainHUD() { return m_MainHUD; }
+	RBL_ZoneInfoWidgetImpl GetZoneInfo() { return m_ZoneInfo; }
+	RBL_CaptureBarWidgetImpl GetCaptureBar() { return m_CaptureBar; }
+	RBL_UndercoverWidgetImpl GetUndercoverIndicator() { return m_UndercoverIndicator; }
+	RBL_NotificationManagerImpl GetNotifications() { return m_Notifications; }
+	RBL_ShopMenuWidgetImpl GetShopMenu() { return m_ShopMenu; }
 }
 
 // ============================================================================
@@ -368,73 +368,13 @@ void DrawProgressBar(float x, float y, float w, float h, float progress, int bgC
 }
 
 // ============================================================================
-// PLACEHOLDER WIDGET CLASSES (Will be implemented in separate files)
+// NOTE: Widget implementations are in separate files:
+// - RBL_MainHUDWidget.c
+// - RBL_ZoneInfoWidget.c (implementation below - will be in separate file)
+// - RBL_CaptureBarWidget.c (implementation below - will be in separate file)
+// - RBL_UndercoverWidget.c (implementation below - will be in separate file)
+// - RBL_NotificationWidget.c (implementation below - will be in separate file)
+// - RBL_ShopMenuWidget.c
+// - RBL_KeybindHintsWidget.c (implementation below - will be in separate file)
 // ============================================================================
-
-class RBL_MainHUD : RBL_PanelWidget
-{
-	void RBL_MainHUD()
-	{
-		SetPosition(RBL_UISizes.HUD_MARGIN, RBL_UISizes.HUD_MARGIN);
-		SetSize(RBL_UISizes.HUD_PANEL_WIDTH, RBL_UISizes.HUD_PANEL_HEIGHT);
-	}
-	
-	override void OnUpdate() {}
-	override void Draw() {}
-}
-
-class RBL_ZoneInfoWidget : RBL_PanelWidget
-{
-	void RBL_ZoneInfoWidget() {}
-	override void OnUpdate() {}
-	override void Draw() {}
-}
-
-class RBL_CaptureBarWidget : RBL_BaseWidget
-{
-	void RBL_CaptureBarWidget() {}
-	override void OnUpdate() {}
-	override void Draw() {}
-}
-
-class RBL_UndercoverWidget : RBL_BaseWidget
-{
-	void RBL_UndercoverWidget() {}
-	override void OnUpdate() {}
-	override void Draw() {}
-}
-
-class RBL_NotificationManager : RBL_BaseWidget
-{
-	void RBL_NotificationManager() {}
-	void ShowNotification(string msg, int color, float duration) {}
-	override void OnUpdate() {}
-	override void Draw() {}
-}
-
-class RBL_ShopMenuWidget : RBL_PanelWidget
-{
-	protected bool m_bMenuVisible;
-	
-	void RBL_ShopMenuWidget()
-	{
-		m_bMenuVisible = false;
-	}
-	
-	void Toggle()
-	{
-		m_bMenuVisible = !m_bMenuVisible;
-	}
-	
-	override bool IsVisible() { return m_bMenuVisible; }
-	override void OnUpdate() {}
-	override void Draw() {}
-}
-
-class RBL_KeybindHints : RBL_BaseWidget
-{
-	void RBL_KeybindHints() {}
-	override void OnUpdate() {}
-	override void Draw() {}
-}
 
