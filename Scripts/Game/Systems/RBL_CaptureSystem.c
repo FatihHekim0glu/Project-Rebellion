@@ -1,6 +1,7 @@
 // ============================================================================
 // PROJECT REBELLION - Capture System
 // Handles zone capture when players stand in zones
+// Server-authoritative capture calculations with progress broadcast
 // ============================================================================
 
 class RBL_CaptureManager
@@ -17,6 +18,10 @@ class RBL_CaptureManager
 	protected ref ScriptInvoker m_OnCaptureStarted;
 	protected ref ScriptInvoker m_OnCaptureProgress;
 	protected ref ScriptInvoker m_OnCaptureComplete;
+	
+	// Network: progress broadcast timer
+	protected float m_fTimeSinceBroadcast;
+	protected const float BROADCAST_INTERVAL = 0.5;
 
 	static RBL_CaptureManager GetInstance()
 	{
@@ -28,6 +33,7 @@ class RBL_CaptureManager
 	void RBL_CaptureManager()
 	{
 		m_fTimeSinceCheck = 0;
+		m_fTimeSinceBroadcast = 0;
 		m_mCaptureProgress = new map<string, float>();
 		m_mCapturingFaction = new map<string, ERBLFactionKey>();
 
@@ -35,9 +41,22 @@ class RBL_CaptureManager
 		m_OnCaptureProgress = new ScriptInvoker();
 		m_OnCaptureComplete = new ScriptInvoker();
 	}
+	
+	// ========================================================================
+	// NETWORK HELPERS
+	// ========================================================================
+	
+	protected bool IsServer()
+	{
+		return RBL_NetworkUtils.IsSinglePlayer() || RBL_NetworkUtils.IsServer();
+	}
 
 	void Update(float timeSlice)
 	{
+		// Capture calculations are server-authoritative
+		if (!IsServer())
+			return;
+		
 		m_fTimeSinceCheck += timeSlice;
 		// Check zones every second
 		if (m_fTimeSinceCheck < 1.0)
@@ -45,6 +64,39 @@ class RBL_CaptureManager
 
 		m_fTimeSinceCheck = 0;
 		CheckAllZones();
+		
+		// Broadcast progress to clients
+		m_fTimeSinceBroadcast += m_fTimeSinceCheck;
+		if (m_fTimeSinceBroadcast >= BROADCAST_INTERVAL)
+		{
+			m_fTimeSinceBroadcast = 0;
+			BroadcastAllCaptureProgress();
+		}
+	}
+	
+	protected void BroadcastAllCaptureProgress()
+	{
+		RBL_NetworkManager netMgr = RBL_NetworkManager.GetInstance();
+		if (!netMgr)
+			return;
+		
+		array<string> zoneIDs = new array<string>();
+		m_mCaptureProgress.GetKeyArray(zoneIDs);
+		
+		for (int i = 0; i < zoneIDs.Count(); i++)
+		{
+			string zoneID = zoneIDs[i];
+			float progress = 0;
+			m_mCaptureProgress.Find(zoneID, progress);
+			
+			if (progress > 0)
+			{
+				ERBLFactionKey capturingFaction = ERBLFactionKey.NONE;
+				m_mCapturingFaction.Find(zoneID, capturingFaction);
+				
+				netMgr.BroadcastCaptureProgress(zoneID, progress, capturingFaction);
+			}
+		}
 	}
 
 	protected void CheckAllZones()
@@ -155,6 +207,9 @@ class RBL_CaptureManager
 
 	protected void CompleteCapture(RBL_VirtualZone zone, ERBLFactionKey newOwner)
 	{
+		if (!IsServer())
+			return;
+		
 		string zoneID = zone.GetZoneID();
 		ERBLFactionKey previousOwner = zone.GetOwnerFaction();
 		
@@ -163,14 +218,16 @@ class RBL_CaptureManager
 		if (garMgr)
 			garMgr.ClearGarrison(zoneID);
 		
-		// Transfer ownership
-		zone.SetOwnerFaction(newOwner);
+		// Transfer ownership using network-aware method
+		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
+		if (zoneMgr)
+			zoneMgr.SetZoneOwner(zoneID, newOwner);
 		
 		// Reset progress
 		m_mCaptureProgress.Set(zoneID, 0);
 		m_mCapturingFaction.Remove(zoneID);
 
-		// Award resources
+		// Award resources (server only)
 		RBL_EconomyManager econMgr = RBL_EconomyManager.GetInstance();
 		if (econMgr && newOwner == ERBLFactionKey.FIA)
 		{
@@ -191,6 +248,29 @@ class RBL_CaptureManager
 
 		PrintFormat("[RBL] *** ZONE CAPTURED: %1 ***", zoneID);
 		PrintFormat("[RBL] New owner: %1", typename.EnumToString(ERBLFactionKey, newOwner));
+	}
+	
+	// ========================================================================
+	// CLIENT: RECEIVE PROGRESS UPDATES
+	// ========================================================================
+	
+	void SetCaptureProgressLocal(string zoneID, float progress, ERBLFactionKey capturingFaction)
+	{
+		m_mCaptureProgress.Set(zoneID, progress);
+		
+		if (capturingFaction != ERBLFactionKey.NONE)
+			m_mCapturingFaction.Set(zoneID, capturingFaction);
+		else
+			m_mCapturingFaction.Remove(zoneID);
+		
+		// Trigger progress event for UI updates
+		RBL_ZoneManager zoneMgr = RBL_ZoneManager.GetInstance();
+		if (zoneMgr)
+		{
+			RBL_VirtualZone zone = zoneMgr.GetVirtualZoneByID(zoneID);
+			if (zone)
+				m_OnCaptureProgress.Invoke(zone, progress, MAX_CAPTURE_PROGRESS);
+		}
 	}
 
 	protected void DecayCaptureProgress(string zoneID)
