@@ -153,6 +153,7 @@ class RBL_Tests
 		TestTerrainHeights();
 		TestGarrisonSystem();
 		TestQRFSystem();
+		TestEnumDefinitions();
 		TestUndercoverSystem();
 		TestItemDelivery();
 		TestMissionSystem();
@@ -166,6 +167,9 @@ class RBL_Tests
 		
 		// Capture Progress UI Tests
 		RBL_CaptureProgressTests.RunAll();
+		
+		// Settings System Tests
+		RBL_SettingsTests.RunAll();
 		
 		// Critical Tests (naming conventions, API parity, etc.)
 		RBL_CriticalTests.RunAll();
@@ -686,12 +690,73 @@ class RBL_Tests
 			runner.RecordResult("CommanderAI.Update runs without crash", true, "OK");
 		}
 		
-		// Test QRF state enum values
+		// Test QRF state enum values (now in RBL_Enums.c)
 		runner.Assert("SPAWNING state exists", ERBLQRFState.SPAWNING >= 0, "Missing state");
 		runner.Assert("EN_ROUTE state exists", ERBLQRFState.EN_ROUTE >= 0, "Missing state");
+		runner.Assert("ENGAGED state exists", ERBLQRFState.ENGAGED >= 0, "Missing state");
 		runner.Assert("ARRIVED state exists", ERBLQRFState.ARRIVED >= 0, "Missing state");
 		runner.Assert("DESTROYED state exists", ERBLQRFState.DESTROYED >= 0, "Missing state");
+		runner.Assert("TIMEOUT state exists", ERBLQRFState.TIMEOUT >= 0, "Missing state");
 		runner.Assert("COMPLETE state exists", ERBLQRFState.COMPLETE >= 0, "Missing state");
+	}
+	
+	// Test all enum definitions in RBL_Enums.c
+	static void TestEnumDefinitions()
+	{
+		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
+		
+		PrintFormat("[RBL_Tests] Running Enum Definition Tests...");
+		
+		// Test ERBLFactionKey - all values including CIVILIAN
+		runner.Assert("FactionKey.NONE exists", ERBLFactionKey.NONE >= 0, "Missing enum");
+		runner.Assert("FactionKey.FIA exists", ERBLFactionKey.FIA > 0, "Missing enum");
+		runner.Assert("FactionKey.USSR exists", ERBLFactionKey.USSR > 0, "Missing enum");
+		runner.Assert("FactionKey.US exists", ERBLFactionKey.US > 0, "Missing enum");
+		runner.Assert("FactionKey.CIVILIAN exists", ERBLFactionKey.CIVILIAN > 0, "Missing CIVILIAN enum");
+		
+		// Test faction key values are unique
+		runner.Assert("FIA != USSR", ERBLFactionKey.FIA != ERBLFactionKey.USSR, "Duplicate values");
+		runner.Assert("FIA != US", ERBLFactionKey.FIA != ERBLFactionKey.US, "Duplicate values");
+		runner.Assert("USSR != US", ERBLFactionKey.USSR != ERBLFactionKey.US, "Duplicate values");
+		runner.Assert("CIVILIAN unique", ERBLFactionKey.CIVILIAN != ERBLFactionKey.FIA, "Duplicate values");
+		
+		// Test ERBLZoneType
+		runner.Assert("ZoneType.Town exists", ERBLZoneType.Town >= 0, "Missing enum");
+		runner.Assert("ZoneType.Outpost exists", ERBLZoneType.Outpost >= 0, "Missing enum");
+		runner.Assert("ZoneType.Airbase exists", ERBLZoneType.Airbase >= 0, "Missing enum");
+		runner.Assert("ZoneType.HQ exists", ERBLZoneType.HQ >= 0, "Missing enum");
+		
+		// Test ERBLAlertState
+		runner.Assert("AlertState.RELAXED exists", ERBLAlertState.RELAXED >= 0, "Missing enum");
+		runner.Assert("AlertState.COMBAT exists", ERBLAlertState.COMBAT >= 0, "Missing enum");
+		
+		// Test ERBLQRFType
+		runner.Assert("QRFType.PATROL exists", ERBLQRFType.PATROL >= 0, "Missing enum");
+		runner.Assert("QRFType.MECHANIZED exists", ERBLQRFType.MECHANIZED >= 0, "Missing enum");
+		runner.Assert("QRFType.SPECOPS exists", ERBLQRFType.SPECOPS >= 0, "Missing enum");
+		
+		// Test ERBLMissionType
+		runner.Assert("MissionType.ATTACK exists", ERBLMissionType.ATTACK >= 0, "Missing enum");
+		runner.Assert("MissionType.DEFEND exists", ERBLMissionType.DEFEND >= 0, "Missing enum");
+		runner.Assert("MissionType.SABOTAGE exists", ERBLMissionType.SABOTAGE >= 0, "Missing enum");
+		
+		// Test ERBLMissionStatus
+		runner.Assert("MissionStatus.AVAILABLE exists", ERBLMissionStatus.AVAILABLE >= 0, "Missing enum");
+		runner.Assert("MissionStatus.COMPLETED exists", ERBLMissionStatus.COMPLETED >= 0, "Missing enum");
+		
+		// Test ERBLGarrisonState
+		runner.Assert("GarrisonState.EMPTY exists", ERBLGarrisonState.EMPTY >= 0, "Missing enum");
+		runner.Assert("GarrisonState.FULL exists", ERBLGarrisonState.FULL >= 0, "Missing enum");
+		
+		// Test ERBLResourceType
+		runner.Assert("ResourceType.MONEY exists", ERBLResourceType.MONEY >= 0, "Missing enum");
+		runner.Assert("ResourceType.HUMAN_RESOURCES exists", ERBLResourceType.HUMAN_RESOURCES >= 0, "Missing enum");
+		
+		// Test ERBLCoverStatus
+		runner.Assert("CoverStatus.HIDDEN exists", ERBLCoverStatus.HIDDEN >= 0, "Missing enum");
+		runner.Assert("CoverStatus.COMPROMISED exists", ERBLCoverStatus.COMPROMISED >= 0, "Missing enum");
+		
+		PrintFormat("[RBL_Tests] Enum definition tests complete.");
 	}
 	
 	// Test undercover detection system
@@ -1021,6 +1086,14 @@ class RBL_TestCommands
 		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
 		runner.Reset();
 		RBL_Tests.TestItemDelivery();
+		runner.PrintResults();
+	}
+	
+	static void RunSettingsTests()
+	{
+		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
+		runner.Reset();
+		RBL_SettingsTests.RunAll();
 		runner.PrintResults();
 	}
 }
