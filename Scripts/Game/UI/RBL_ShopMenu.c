@@ -188,17 +188,46 @@ class RBL_ShopManager
 			return false;
 		}
 		
-		// Process purchase
-		econMgr.SpendMoney(item.Price);
-		if (item.HRCost > 0)
-			econMgr.SpendHR(item.HRCost);
+		// Get player ID for delivery
+		int playerID = -1;
+		PlayerController pc = GetGame().GetPlayerController();
+		if (pc)
+			playerID = pc.GetPlayerId();
 		
-		m_OnPurchase.Invoke(item);
+		// Deliver the item
+		RBL_ItemDelivery delivery = RBL_ItemDelivery.GetInstance();
+		ERBLDeliveryResult result = ERBLDeliveryResult.FAILED_NO_PLAYER;
 		
-		PrintFormat("[RBL_Shop] *** PURCHASED: %1 for $%2 ***", item.DisplayName, item.Price);
-		PrintFormat("[RBL_Shop] Remaining: $%1, HR: %2", econMgr.GetMoney(), econMgr.GetHR());
+		if (delivery && playerID >= 0)
+		{
+			result = delivery.DeliverItem(item, playerID);
+		}
 		
-		return true;
+		// Only deduct money if delivery succeeded
+		if (result == ERBLDeliveryResult.SUCCESS)
+		{
+			econMgr.SpendMoney(item.Price);
+			if (item.HRCost > 0)
+				econMgr.SpendHR(item.HRCost);
+			
+			m_OnPurchase.Invoke(item);
+			
+			PrintFormat("[RBL_Shop] *** PURCHASED & DELIVERED: %1 for $%2 ***", item.DisplayName, item.Price);
+			PrintFormat("[RBL_Shop] Remaining: $%1, HR: %2", econMgr.GetMoney(), econMgr.GetHR());
+			
+			return true;
+		}
+		else
+		{
+			PrintFormat("[RBL_Shop] Purchase failed - delivery error: %1", typename.EnumToString(ERBLDeliveryResult, result));
+			return false;
+		}
+	}
+	
+	// Quick purchase for local player (simplified API)
+	bool Buy(string itemID)
+	{
+		return PurchaseItem(itemID);
 	}
 	
 	protected RBL_ShopItem FindItemByID(string itemID)
