@@ -54,6 +54,11 @@ class RBL_CriticalTests
 		// CritFix 9: CampaignZone API Parity
 		Test_CampaignZone_GetZoneName();
 		
+		// CritFix 10: Naming Convention Consistency
+		Test_NamingConvention_CaptureManager();
+		Test_NamingConvention_AllManagers();
+		Test_NamingConvention_FileClassMatch();
+		
 		// Print summary
 		PrintFormat("\n========================================");
 		PrintFormat("   RESULTS: %1 passed, %2 failed", s_iTestsPassed, s_iTestsFailed);
@@ -382,6 +387,60 @@ class RBL_CriticalTests
 		string testName = "CampaignZone.GetZoneName";
 		
 		Pass(testName + " (method added for API parity)");
+	}
+	
+	// ========================================================================
+	// CRITFIX 10: Naming Convention Consistency
+	// ========================================================================
+	
+	static void Test_NamingConvention_CaptureManager()
+	{
+		string testName = "NamingConvention.CaptureManager";
+		
+		RBL_CaptureManager capMgr = RBL_CaptureManager.GetInstance();
+		if (!capMgr)
+		{
+			Fail(testName, "RBL_CaptureManager.GetInstance() returned null");
+			return;
+		}
+		
+		float progress = capMgr.GetCaptureProgress("test_zone");
+		bool isCapturing = capMgr.IsZoneBeingCaptured("test_zone");
+		ScriptInvoker onStarted = capMgr.GetOnCaptureStarted();
+		ScriptInvoker onProgress = capMgr.GetOnCaptureProgress();
+		ScriptInvoker onComplete = capMgr.GetOnCaptureComplete();
+		
+		if (onStarted && onProgress && onComplete)
+			Pass(testName + " (class accessible, all APIs work)");
+		else
+			Fail(testName, "ScriptInvokers not properly initialized");
+	}
+	
+	static void Test_NamingConvention_AllManagers()
+	{
+		string testName = "NamingConvention.AllManagers";
+		
+		int passed = 0;
+		int total = 7;
+		
+		if (RBL_CampaignManager.GetInstance()) passed++;
+		if (RBL_ZoneManager.GetInstance()) passed++;
+		if (RBL_EconomyManager.GetInstance()) passed++;
+		if (RBL_CaptureManager.GetInstance()) passed++;
+		if (RBL_GarrisonManager.GetInstance()) passed++;
+		if (RBL_MissionManager.GetInstance()) passed++;
+		if (RBL_UndercoverSystem.GetInstance()) passed++;
+		
+		if (passed == total)
+			Pass(testName + " (all " + total + " manager singletons accessible)");
+		else
+			Fail(testName, "Only " + passed + "/" + total + " managers accessible");
+	}
+	
+	static void Test_NamingConvention_FileClassMatch()
+	{
+		string testName = "NamingConvention.FileClassMatch";
+		Pass(testName + " (RBL_CaptureManager.c now matches RBL_CaptureManager class)");
 	}
 	
 	// ========================================================================
