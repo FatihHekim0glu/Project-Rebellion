@@ -155,6 +155,8 @@ class RBL_Tests
 		TestQRFSystem();
 		TestUndercoverSystem();
 		TestItemDelivery();
+		TestMissionSystem();
+		TestVictorySystem();
 		
 		// Print results
 		runner.PrintResults();
@@ -864,6 +866,82 @@ class RBL_Tests
 		runner.AssertNotNull("DeliveryEventData created", eventData);
 		runner.Assert("EventData default PlayerID is -1", eventData.PlayerID == -1, "Wrong default");
 		runner.Assert("EventData default Result is SUCCESS", eventData.Result == ERBLDeliveryResult.SUCCESS, "Wrong default");
+	}
+	
+	// Test mission system
+	static void TestMissionSystem()
+	{
+		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
+		
+		PrintFormat("[RBL_Tests] Running Mission System Tests...");
+		
+		// Test Mission Manager singleton
+		RBL_MissionManager missionMgr = RBL_MissionManager.GetInstance();
+		runner.AssertNotNull("MissionManager.GetInstance", missionMgr);
+		
+		if (!missionMgr)
+			return;
+		
+		// Test initialization
+		missionMgr.Initialize();
+		runner.Assert("Mission manager initialized", missionMgr.IsInitialized(), "Not initialized");
+		
+		// Test mission generation
+		RBL_Mission mission = RBL_MissionGenerator.GenerateRandomMission();
+		runner.AssertNotNull("GenerateRandomMission returns mission", mission);
+		
+		if (mission)
+		{
+			runner.Assert("Mission has ID", mission.GetID().Length() > 0, "Empty ID");
+			runner.Assert("Mission has name", mission.GetName().Length() > 0, "Empty name");
+			runner.Assert("Mission has objectives", mission.GetObjectiveCount() > 0, "No objectives");
+		}
+		
+		// Test event invokers
+		runner.AssertNotNull("OnMissionStarted invoker", missionMgr.GetOnMissionStarted());
+		runner.AssertNotNull("OnMissionCompleted invoker", missionMgr.GetOnMissionCompleted());
+		runner.AssertNotNull("OnMissionFailed invoker", missionMgr.GetOnMissionFailed());
+		
+		// Test update
+		missionMgr.Update(0.1);
+		runner.RecordResult("MissionManager.Update runs", true, "OK");
+	}
+	
+	// Test victory system
+	static void TestVictorySystem()
+	{
+		RBL_TestRunner runner = RBL_TestRunner.GetInstance();
+		
+		PrintFormat("[RBL_Tests] Running Victory System Tests...");
+		
+		// Test Victory Manager singleton
+		RBL_VictoryManager victoryMgr = RBL_VictoryManager.GetInstance();
+		runner.AssertNotNull("VictoryManager.GetInstance", victoryMgr);
+		
+		if (!victoryMgr)
+			return;
+		
+		// Test initial state
+		runner.Assert("Campaign starts active", victoryMgr.IsActive(), "Not active");
+		runner.Assert("Not victory initially", !victoryMgr.IsVictory(), "Started victory");
+		runner.Assert("Not defeat initially", !victoryMgr.IsDefeat(), "Started defeat");
+		
+		// Test configuration
+		victoryMgr.SetMaxPlayerDeaths(50);
+		runner.Assert("Max deaths configurable", victoryMgr.GetMaxPlayerDeaths() == 50, "Config failed");
+		
+		// Test death tracking
+		int initialDeaths = victoryMgr.GetPlayerDeaths();
+		victoryMgr.OnPlayerDeath();
+		runner.Assert("Death tracked", victoryMgr.GetPlayerDeaths() == initialDeaths + 1, "Death not counted");
+		
+		// Test event invokers
+		runner.AssertNotNull("OnVictory invoker", victoryMgr.GetOnVictory());
+		runner.AssertNotNull("OnDefeat invoker", victoryMgr.GetOnDefeat());
+		
+		// Test update
+		victoryMgr.Update(0.1);
+		runner.RecordResult("VictoryManager.Update runs", true, "OK");
 	}
 }
 
