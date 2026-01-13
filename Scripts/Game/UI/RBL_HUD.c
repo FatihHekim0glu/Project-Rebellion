@@ -1,6 +1,7 @@
 // ============================================================================
 // PROJECT REBELLION - HUD System
-// Displays money, HR, zone info, war level on screen
+// Unified HUD - delegates to RBL_ScreenHUD for display
+// Widget support preserved for future proper UI implementation
 // ============================================================================
 
 class RBL_HUDManager
@@ -11,7 +12,7 @@ class RBL_HUDManager
 	protected float m_fUpdateInterval;
 	protected float m_fTimeSinceUpdate;
 	
-	// Cached display values
+	// Cached display values (for widget access)
 	protected int m_iDisplayMoney;
 	protected int m_iDisplayHR;
 	protected int m_iDisplayWarLevel;
@@ -48,8 +49,10 @@ class RBL_HUDManager
 		{
 			m_fTimeSinceUpdate = 0;
 			RefreshData();
-			DrawHUD();
 		}
+		
+		// Delegate display to ScreenHUD (uses DbgUI)
+		// Widget-based UI will be added in future
 	}
 	
 	protected void RefreshData()
@@ -79,9 +82,12 @@ class RBL_HUDManager
 			
 			// Find nearest zone to player (with null safety)
 			IEntity player = null;
-			PlayerController playerController = GetGame().GetPlayerController();
-			if (playerController)
-				player = playerController.GetControlledEntity();
+			if (GetGame())
+			{
+				PlayerController playerController = GetGame().GetPlayerController();
+				if (playerController)
+					player = playerController.GetControlledEntity();
+			}
 			
 			if (player)
 			{
@@ -106,24 +112,28 @@ class RBL_HUDManager
 		}
 	}
 	
-	protected void DrawHUD()
-	{
-		// Use debug shapes to draw on screen (simple approach)
-		int screenW = 1920;
-		int screenH = 1080;
-		
-		// Draw to console for now (visible HUD requires layout files)
-		// This will be replaced with proper UI widgets
-	}
-	
 	void ToggleVisibility()
 	{
 		m_bVisible = !m_bVisible;
+		
+		// Also toggle ScreenHUD
+		RBL_ScreenHUD screenHUD = RBL_ScreenHUD.GetInstance();
+		if (screenHUD)
+			screenHUD.SetEnabled(m_bVisible);
+	}
+	
+	void SetVisible(bool visible)
+	{
+		m_bVisible = visible;
+		
+		RBL_ScreenHUD screenHUD = RBL_ScreenHUD.GetInstance();
+		if (screenHUD)
+			screenHUD.SetEnabled(visible);
 	}
 	
 	bool IsVisible() { return m_bVisible; }
 	
-	// Getters for UI widgets
+	// Getters for UI widgets (future proper UI implementation)
 	int GetDisplayMoney() { return m_iDisplayMoney; }
 	int GetDisplayHR() { return m_iDisplayHR; }
 	int GetDisplayWarLevel() { return m_iDisplayWarLevel; }
@@ -136,7 +146,8 @@ class RBL_HUDManager
 }
 
 // ============================================================================
-// HUD Component - Attach to player or game mode
+// HUD Component - Attach to layout files for proper UI (future)
+// Currently DbgUI is used via RBL_ScreenHUD
 // ============================================================================
 class RBL_HUDComponent : ScriptedWidgetComponent
 {
@@ -183,4 +194,3 @@ class RBL_HUDComponent : ScriptedWidgetComponent
 			m_wScoreText.SetText("FIA: " + hud.GetFIAZoneCount().ToString() + " | Enemy: " + hud.GetEnemyZoneCount().ToString());
 	}
 }
-
