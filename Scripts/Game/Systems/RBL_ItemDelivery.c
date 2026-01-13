@@ -262,7 +262,7 @@ class RBL_ItemDelivery
 	}
 	
 	// ========================================================================
-	// HELPER METHODS
+	// HELPER METHODS - PLAYER ACCESS
 	// ========================================================================
 	
 	protected IEntity GetPlayerEntity(int playerID)
@@ -273,6 +273,65 @@ class RBL_ItemDelivery
 		
 		return pm.GetPlayerControlledEntity(playerID);
 	}
+	
+	// Get local player entity (for single player or local client)
+	IEntity GetLocalPlayerEntity()
+	{
+		PlayerController pc = GetGame().GetPlayerController();
+		if (!pc)
+			return null;
+		
+		return pc.GetControlledEntity();
+	}
+	
+	// Get local player ID
+	int GetLocalPlayerID()
+	{
+		PlayerController pc = GetGame().GetPlayerController();
+		if (!pc)
+			return -1;
+		
+		return pc.GetPlayerId();
+	}
+	
+	// Check if player entity is valid for delivery
+	bool IsValidDeliveryTarget(IEntity playerEntity)
+	{
+		if (!playerEntity)
+			return false;
+		
+		// Check if alive
+		DamageManagerComponent dmgMgr = DamageManagerComponent.Cast(
+			playerEntity.FindComponent(DamageManagerComponent));
+		
+		if (dmgMgr && dmgMgr.GetState() == EDamageState.DESTROYED)
+			return false;
+		
+		return true;
+	}
+	
+	// Get player position with terrain check
+	vector GetPlayerPosition(IEntity playerEntity)
+	{
+		if (!playerEntity)
+			return vector.Zero;
+		
+		vector pos = playerEntity.GetOrigin();
+		
+		BaseWorld world = GetGame().GetWorld();
+		if (world)
+		{
+			float terrainY = world.GetSurfaceY(pos[0], pos[2]);
+			if (pos[1] < terrainY)
+				pos[1] = terrainY;
+		}
+		
+		return pos;
+	}
+	
+	// ========================================================================
+	// HELPER METHODS - SPAWNING
+	// ========================================================================
 	
 	protected IEntity SpawnEntity(string prefab, vector position)
 	{
