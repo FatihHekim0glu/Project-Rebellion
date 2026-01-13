@@ -1,10 +1,47 @@
 // ============================================================================
 // PROJECT REBELLION - Notifications Helper
 // Static helper class for showing common game notifications
+// With multiplayer broadcast support
 // ============================================================================
 
 class RBL_Notifications
 {
+	// ========================================================================
+	// NETWORK BROADCAST HELPERS
+	// ========================================================================
+	
+	protected static void BroadcastNotification(string message, int color, float duration)
+	{
+		if (RBL_NetworkUtils.IsServer())
+		{
+			RBL_NetworkManager netMgr = RBL_NetworkManager.GetInstance();
+			if (netMgr)
+			{
+				netMgr.BroadcastNotification(message, color, duration);
+				return;
+			}
+		}
+		
+		// Fallback to local notification
+		ShowNotification(message, color, duration);
+	}
+	
+	protected static void SendToPlayer(int playerID, string message, int color, float duration)
+	{
+		if (RBL_NetworkUtils.IsServer())
+		{
+			RBL_NetworkManager netMgr = RBL_NetworkManager.GetInstance();
+			if (netMgr)
+			{
+				netMgr.SendNotificationToPlayer(playerID, message, color, duration);
+				return;
+			}
+		}
+		
+		// Fallback to local if we're that player
+		if (playerID == RBL_NetworkUtils.GetLocalPlayerID())
+			ShowNotification(message, color, duration);
+	}
 	// ========================================================================
 	// GAME STATE NOTIFICATIONS
 	// ========================================================================
@@ -39,24 +76,24 @@ class RBL_Notifications
 	}
 	
 	// ========================================================================
-	// ZONE NOTIFICATIONS
+	// ZONE NOTIFICATIONS (Broadcast to all)
 	// ========================================================================
 	
 	static void ZoneCaptured(string zoneName)
 	{
-		ShowNotification("ZONE CAPTURED: " + zoneName, RBL_UIColors.COLOR_ACCENT_GREEN, 4.0);
+		BroadcastNotification("ZONE CAPTURED: " + zoneName, RBL_UIColors.COLOR_ACCENT_GREEN, 4.0);
 		PrintFormat("[RBL] Zone captured: %1", zoneName);
 	}
 	
 	static void ZoneLost(string zoneName)
 	{
-		ShowNotification("ZONE LOST: " + zoneName, RBL_UIColors.COLOR_ACCENT_RED, 4.0);
+		BroadcastNotification("ZONE LOST: " + zoneName, RBL_UIColors.COLOR_ACCENT_RED, 4.0);
 		PrintFormat("[RBL] Zone lost: %1", zoneName);
 	}
 	
 	static void ZoneContested(string zoneName)
 	{
-		ShowNotification("Zone Contested: " + zoneName, RBL_UIColors.COLOR_ACCENT_YELLOW, 3.0);
+		BroadcastNotification("Zone Contested: " + zoneName, RBL_UIColors.COLOR_ACCENT_YELLOW, 3.0);
 	}
 	
 	static void CaptureStarted(string zoneName)
@@ -65,23 +102,23 @@ class RBL_Notifications
 	}
 	
 	// ========================================================================
-	// COMBAT NOTIFICATIONS
+	// COMBAT NOTIFICATIONS (Broadcast to all)
 	// ========================================================================
 	
 	static void QRFIncoming(string type, string targetZone)
 	{
-		ShowNotification("ENEMY QRF INCOMING: " + type, RBL_UIColors.COLOR_ACCENT_RED, 5.0);
+		BroadcastNotification("ENEMY QRF INCOMING: " + type, RBL_UIColors.COLOR_ACCENT_RED, 5.0);
 		PrintFormat("[RBL] QRF incoming: %1 to %2", type, targetZone);
 	}
 	
 	static void QRFDefeated()
 	{
-		ShowNotification("Enemy QRF Eliminated", RBL_UIColors.COLOR_ACCENT_GREEN, 3.0);
+		BroadcastNotification("Enemy QRF Eliminated", RBL_UIColors.COLOR_ACCENT_GREEN, 3.0);
 	}
 	
 	static void WarLevelIncreased(int newLevel)
 	{
-		ShowNotification("WAR LEVEL: " + newLevel.ToString(), RBL_UIColors.COLOR_ACCENT_YELLOW, 4.0);
+		BroadcastNotification("WAR LEVEL: " + newLevel.ToString(), RBL_UIColors.COLOR_ACCENT_YELLOW, 4.0);
 		PrintFormat("[RBL] War level increased to %1", newLevel);
 	}
 	
@@ -159,22 +196,22 @@ class RBL_Notifications
 	}
 	
 	// ========================================================================
-	// MISSION NOTIFICATIONS
+	// MISSION NOTIFICATIONS (Broadcast to all)
 	// ========================================================================
 	
 	static void MissionReceived(string missionName)
 	{
-		ShowNotification("NEW MISSION: " + missionName, RBL_UIColors.COLOR_ACCENT_BLUE, 4.0);
+		BroadcastNotification("NEW MISSION: " + missionName, RBL_UIColors.COLOR_ACCENT_BLUE, 4.0);
 	}
 	
 	static void MissionComplete(string missionName)
 	{
-		ShowNotification("MISSION COMPLETE: " + missionName, RBL_UIColors.COLOR_ACCENT_GREEN, 4.0);
+		BroadcastNotification("MISSION COMPLETE: " + missionName, RBL_UIColors.COLOR_ACCENT_GREEN, 4.0);
 	}
 	
 	static void MissionFailed(string missionName)
 	{
-		ShowNotification("MISSION FAILED: " + missionName, RBL_UIColors.COLOR_ACCENT_RED, 4.0);
+		BroadcastNotification("MISSION FAILED: " + missionName, RBL_UIColors.COLOR_ACCENT_RED, 4.0);
 	}
 	
 	// ========================================================================
