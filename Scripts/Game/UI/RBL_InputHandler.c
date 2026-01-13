@@ -1,45 +1,200 @@
 // ============================================================================
 // PROJECT REBELLION - Input Handler
-// Handles keybinds for HUD, Shop, etc.
+// Handles keybinds for HUD, Shop, Persistence, etc.
 // ============================================================================
+
+class RBL_InputConfig
+{
+	// Keybind definitions (used with InputManager.GetActionTriggered)
+	// These map to existing Arma Reforger actions or can be custom
+	
+	static const string ACTION_SHOP = "CharacterInspect";       // J key - opens shop
+	static const string ACTION_MAP = "ToggleMap";               // M key - toggle map
+	static const string ACTION_INVENTORY = "Inventory";         // I key - inventory
+	static const string ACTION_ESCAPE = "MenuOpen";             // ESC key - escape/close
+	static const string ACTION_USE = "CharacterAction";         // F key - interact
+	static const string ACTION_QUICK_SAVE = "QuickSave";        // F5 - quick save
+	static const string ACTION_QUICK_LOAD = "QuickLoad";        // F9 - quick load
+	
+	// Cooldowns to prevent spam
+	static const float SHOP_COOLDOWN = 0.3;
+	static const float SAVE_COOLDOWN = 1.0;
+}
 
 class RBL_InputHandler
 {
 	protected static ref RBL_InputHandler s_Instance;
-
-	protected const string ACTION_TOGGLE_SHOP = "RBL_ToggleShop";
-	protected const string ACTION_TOGGLE_HUD = "RBL_ToggleHUD";
-	protected const string ACTION_DEBUG_STATUS = "RBL_DebugStatus";
-
+	
+	// Cooldown timers
+	protected float m_fShopCooldown;
+	protected float m_fSaveCooldown;
+	protected float m_fLoadCooldown;
+	
+	// State
+	protected bool m_bShopOpen;
+	protected bool m_bInitialized;
+	
 	static RBL_InputHandler GetInstance()
 	{
 		if (!s_Instance)
 			s_Instance = new RBL_InputHandler();
 		return s_Instance;
 	}
-
+	
 	void RBL_InputHandler()
 	{
+		m_fShopCooldown = 0;
+		m_fSaveCooldown = 0;
+		m_fLoadCooldown = 0;
+		m_bShopOpen = false;
+		m_bInitialized = false;
+		
 		PrintFormat("[RBL_Input] Input handler initialized");
-		PrintFormat("[RBL_Input] Press J to toggle shop (in console)");
-		PrintFormat("[RBL_Input] Press K to show debug status");
+		PrintFormat("[RBL_Input] Keybinds:");
+		PrintFormat("[RBL_Input]   J - Toggle Shop");
+		PrintFormat("[RBL_Input]   H - Toggle HUD");
+		PrintFormat("[RBL_Input]   F5 - Quick Save");
+		PrintFormat("[RBL_Input]   F9 - Quick Load");
+		PrintFormat("[RBL_Input]   ESC - Close menus");
 	}
-
-	void Update()
+	
+	void Initialize()
 	{
-		// Manual key checking since custom actions need config
+		if (m_bInitialized)
+			return;
+		
+		m_bInitialized = true;
+		PrintFormat("[RBL_Input] Input handler ready");
+	}
+	
+	void Update(float timeSlice)
+	{
+		// Decay cooldowns
+		if (m_fShopCooldown > 0)
+			m_fShopCooldown -= timeSlice;
+		if (m_fSaveCooldown > 0)
+			m_fSaveCooldown -= timeSlice;
+		if (m_fLoadCooldown > 0)
+			m_fLoadCooldown -= timeSlice;
+		
+		// Get input manager
 		InputManager inputMgr = GetGame().GetInputManager();
 		if (!inputMgr)
 			return;
-
-		// J key for shop
-		if (inputMgr.GetActionTriggered("CharacterInspect"))
+		
+		// Handle shop toggle (J key via CharacterInspect)
+		if (inputMgr.GetActionTriggered(RBL_InputConfig.ACTION_SHOP) && m_fShopCooldown <= 0)
 		{
-			RBL_ShopManager shop = RBL_ShopManager.GetInstance();
-			if (shop)
-				shop.ToggleMenu();
+			HandleShopToggle();
+			m_fShopCooldown = RBL_InputConfig.SHOP_COOLDOWN;
+		}
+		
+		// Handle escape (close menus)
+		if (inputMgr.GetActionTriggered(RBL_InputConfig.ACTION_ESCAPE))
+		{
+			HandleEscape();
 		}
 	}
+	
+	protected void HandleShopToggle()
+	{
+		// Toggle via new UI system
+		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+		if (uiMgr)
+		{
+			RBL_ShopMenuWidgetImpl shopMenu = uiMgr.GetShopMenu();
+			if (shopMenu)
+			{
+				shopMenu.Toggle();
+				m_bShopOpen = shopMenu.IsVisible();
+				
+				if (m_bShopOpen)
+					PrintFormat("[RBL_Input] Shop opened");
+				else
+					PrintFormat("[RBL_Input] Shop closed");
+			}
+		}
+		
+		// Also try legacy shop manager
+		RBL_ShopManager shop = RBL_ShopManager.GetInstance();
+		if (shop)
+			shop.ToggleMenu();
+	}
+	
+	protected void HandleEscape()
+	{
+		// Close any open menus
+		if (m_bShopOpen)
+		{
+			RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
+			if (uiMgr)
+			{
+				RBL_ShopMenuWidgetImpl shopMenu = uiMgr.GetShopMenu();
+				if (shopMenu && shopMenu.IsVisible())
+				{
+					shopMenu.Close();
+					m_bShopOpen = false;
+				}
+			}
+		}
+	}
+	
+	void HandleQuickSave()
+	{
+		if (m_fSaveCooldown > 0)
+		{
+			PrintFormat("[RBL_Input] Save on cooldown");
+			return;
+		}
+		
+		m_fSaveCooldown = RBL_InputConfig.SAVE_COOLDOWN;
+		
+		RBL_PersistenceIntegration persistence = RBL_PersistenceIntegration.GetInstance();
+		if (persistence)
+		{
+			persistence.QuickSave();
+			RBL_Notifications.GameSaved();
+		}
+	}
+	
+	void HandleQuickLoad()
+	{
+		if (m_fLoadCooldown > 0)
+		{
+			PrintFormat("[RBL_Input] Load on cooldown");
+			return;
+		}
+		
+		m_fLoadCooldown = RBL_InputConfig.SAVE_COOLDOWN;
+		
+		RBL_PersistenceIntegration persistence = RBL_PersistenceIntegration.GetInstance();
+		if (persistence)
+		{
+			persistence.QuickLoad();
+		}
+	}
+	
+	void HandleToggleHUD()
+	{
+		RBL_HUDManager hud = RBL_HUDManager.GetInstance();
+		if (hud)
+			hud.ToggleVisibility();
+		
+		PrintFormat("[RBL_Input] HUD toggled");
+	}
+	
+	void HandleToggleDebugHUD()
+	{
+		RBL_ScreenHUD screenHUD = RBL_ScreenHUD.GetInstance();
+		if (screenHUD)
+			screenHUD.Toggle();
+		
+		PrintFormat("[RBL_Input] Debug HUD toggled");
+	}
+	
+	// State queries
+	bool IsShopOpen() { return m_bShopOpen; }
+	bool IsAnyMenuOpen() { return m_bShopOpen; }
 }
 
 // ============================================================================
