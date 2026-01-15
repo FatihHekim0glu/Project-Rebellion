@@ -3,8 +3,14 @@
 		"GUID": "5C77E08B3B95A5E1",
 		"Name": "Rebellion",
 		"AddonTitle": "Project Rebellion",
-		"AddonDescription": "Antistasi-style guerrilla warfare for Arma Reforger",
+		"AddonDescription": "Antistasi-style guerrilla warfare for Arma Reforger. Lead the FIA resistance to liberate Everon from Soviet occupation.",
 		"AddonAuthor": "FatihHekim0glu",
 		"AddonVersion": "0.1.0"
-	}
+	},
+	"scenarios": [
+		{
+			"gameId": "{5C77E08B3B95A5E1}Missions/RBL_Rebellion_Everon.conf",
+			"name": "Project Rebellion - Everon"
+		}
+	]
 }

@@ -16,7 +16,7 @@ class RBL_UIManager
 	protected ref RBL_UndercoverWidgetImpl m_UndercoverIndicator;
 	protected ref RBL_NotificationManagerImpl m_Notifications;
 	protected ref RBL_ShopMenuWidgetImpl m_ShopMenu;
-	//protected ref RBL_KeybindHintsImpl m_KeybindHints;
+	protected ref RBL_KeybindHintsWidgetImpl m_KeybindHints;
 	protected ref RBL_SettingsMenuWidget m_SettingsMenu;
 	
 	protected bool m_bInitialized;
@@ -49,7 +49,7 @@ class RBL_UIManager
 		m_UndercoverIndicator = new RBL_UndercoverWidgetImpl();
 		m_Notifications = new RBL_NotificationManagerImpl();
 		m_ShopMenu = new RBL_ShopMenuWidgetImpl();
-		m_KeybindHints = new RBL_KeybindHintsImpl();
+		m_KeybindHints = new RBL_KeybindHintsWidgetImpl();
 		m_SettingsMenu = new RBL_SettingsMenuWidget();
 		
 		// Initialize settings manager
