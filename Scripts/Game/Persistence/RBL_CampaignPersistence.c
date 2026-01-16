@@ -134,11 +134,167 @@ class RBL_CampaignPersistence
 	
 	int RestoreActiveMissions(array<ref RBL_MissionSaveData> missions)
 	{
-		if (!missions)
+		if (!missions || missions.Count() == 0)
 			return 0;
 		
-		// Mission restoration is not implemented; return 0 to continue load flow.
-		return 0;
+		RBL_MissionManager missionMgr = RBL_MissionManager.GetInstance();
+		if (!missionMgr)
+		{
+			PrintFormat("[RBL_CampaignPersistence] Mission Manager not available for restoration");
+			return 0;
+		}
+		
+		int restoredCount = 0;
+		
+		for (int i = 0; i < missions.Count(); i++)
+		{
+			RBL_MissionSaveData saveData = missions[i];
+			if (!saveData)
+				continue;
+			
+			// Only restore active missions
+			if (!saveData.m_bIsActive || saveData.m_bIsCompleted || saveData.m_bIsFailed)
+				continue;
+			
+			// Create mission from save data
+			RBL_Mission mission = RestoreMissionFromSaveData(saveData);
+			if (mission)
+			{
+				// Add to active missions
+				missionMgr.RestoreActiveMission(mission);
+				restoredCount++;
+				PrintFormat("[RBL_CampaignPersistence] Restored mission: %1", mission.GetName());
+			}
+		}
+		
+		PrintFormat("[RBL_CampaignPersistence] Restored %1/%2 active missions", restoredCount, missions.Count());
+		return restoredCount;
+	}
+	
+	protected static RBL_Mission RestoreMissionFromSaveData(RBL_MissionSaveData saveData)
+	{
+		if (!saveData)
+			return null;
+		
+		// Create mission object
+		RBL_Mission mission = new RBL_Mission();
+		
+		// Restore basic info
+		mission.SetID(saveData.m_sMissionID);
+		mission.SetName(saveData.m_sMissionName);
+		
+		// Restore mission type from string
+		ERBLMissionType missionType = ParseMissionType(saveData.m_sMissionType);
+		mission.SetType(missionType);
+		
+		// Restore target zone
+		if (saveData.m_sTargetZone.Length() > 0)
+			mission.SetTargetZone(saveData.m_sTargetZone);
+		
+		// Restore mission area
+		if (saveData.m_vTargetPosition != vector.Zero)
+			mission.SetMissionArea(saveData.m_vTargetPosition, 500.0);
+		
+		// Restore time limit
+		if (saveData.m_fTimeLimit > 0)
+		{
+			mission.SetTimeLimit(saveData.m_fTimeLimit);
+			// Restore remaining time
+			mission.SetTimeRemaining(saveData.m_fTimeRemaining);
+		}
+		
+		// Restore reward
+		if (saveData.m_iMoneyReward > 0 || saveData.m_iHRReward > 0)
+		{
+			RBL_MissionReward reward = RBL_MissionReward.Create(
+				saveData.m_iMoneyReward,
+				saveData.m_iHRReward
+			);
+			mission.SetReward(reward);
+		}
+		
+		// Restore objectives based on mission type
+		RestoreMissionObjectives(mission, saveData);
+		
+		// Start the mission (it was active when saved)
+		mission.Start();
+		
+		// Restore progress
+		mission.SetTimeElapsed(saveData.m_fStartTime);
+		
+		return mission;
+	}
+	
+	protected static ERBLMissionType ParseMissionType(string typeString)
+	{
+		if (typeString == "Attack") return ERBLMissionType.ATTACK;
+		if (typeString == "Defend") return ERBLMissionType.DEFEND;
+		if (typeString == "Patrol") return ERBLMissionType.PATROL;
+		if (typeString == "Ambush") return ERBLMissionType.AMBUSH;
+		if (typeString == "Sabotage") return ERBLMissionType.SABOTAGE;
+		if (typeString == "Rescue") return ERBLMissionType.RESCUE;
+		if (typeString == "Assassination") return ERBLMissionType.ASSASSINATION;
+		if (typeString == "Intelligence") return ERBLMissionType.INTEL;
+		return ERBLMissionType.PATROL;
+	}
+	
+	protected static void RestoreMissionObjectives(RBL_Mission mission, RBL_MissionSaveData saveData)
+	{
+		if (!mission || !saveData)
+			return;
+		
+		// Restore objectives based on mission type and progress
+		ERBLMissionType type = mission.GetType();
+		int completed = saveData.m_iObjectivesCompleted;
+		int total = saveData.m_iTotalObjectives;
+		
+		// Create objectives based on mission type
+		switch (type)
+		{
+			case ERBLMissionType.ATTACK:
+			{
+				if (saveData.m_sTargetZone.Length() > 0)
+				{
+					RBL_MissionObjective obj = RBL_MissionObjective.CreateCaptureZone(
+						saveData.m_sTargetZone,
+						"Capture " + saveData.m_sTargetZone
+					);
+					if (completed > 0)
+						obj.SetCompleted(true);
+					mission.AddObjective(obj);
+				}
+				break;
+			}
+			case ERBLMissionType.DEFEND:
+			{
+				if (saveData.m_sTargetZone.Length() > 0)
+				{
+					RBL_MissionObjective obj = RBL_MissionObjective.CreateDefendZone(
+						saveData.m_sTargetZone,
+						saveData.m_fTimeLimit,
+						"Defend " + saveData.m_sTargetZone
+					);
+					if (completed > 0)
+						obj.SetCompleted(true);
+					mission.AddObjective(obj);
+				}
+				break;
+			}
+			case ERBLMissionType.PATROL:
+			{
+				if (saveData.m_vTargetPosition != vector.Zero)
+				{
+					RBL_MissionObjective obj = RBL_MissionObjective.CreateReachLocation(
+						saveData.m_vTargetPosition,
+						"Reach patrol location"
+					);
+					if (completed > 0)
+						obj.SetCompleted(true);
+					mission.AddObjective(obj);
+				}
+				break;
+			}
+		}
 	}
 	
 	protected static string GetCurrentDateString()

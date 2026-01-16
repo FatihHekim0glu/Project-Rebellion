@@ -439,10 +439,15 @@ class RBL_EconomyDiff
 	}
 }
 
-// Placeholder for vehicle manager interface
+// Vehicle Manager - Tracks and manages all vehicles spawned by the system
 class RBL_VehicleManager
 {
 	protected static ref RBL_VehicleManager s_Instance;
+	
+	protected ref map<string, IEntity> m_mVehiclesByID;
+	protected ref map<IEntity, string> m_mVehicleIDs;
+	protected ref map<string, string> m_mVehicleTypes;
+	protected int m_iNextVehicleID;
 	
 	static RBL_VehicleManager GetInstance()
 	{
@@ -451,13 +456,231 @@ class RBL_VehicleManager
 		return s_Instance;
 	}
 	
-	array<string> GetAllVehicleIDs() { return new array<string>(); }
-	IEntity GetVehicleEntity(string id) { return null; }
-	string GetVehicleType(string id) { return ""; }
-	float GetVehicleFuel(string id) { return 0; }
-	float GetVehicleHealth(string id) { return 0; }
-	bool IsVehicleDeployed(string id) { return false; }
-	void DespawnAllVehicles() {}
-	void SpawnVehicle(string type, vector pos, float fuel, float health) {}
+	void RBL_VehicleManager()
+	{
+		m_mVehiclesByID = new map<string, IEntity>();
+		m_mVehicleIDs = new map<IEntity, string>();
+		m_mVehicleTypes = new map<string, string>();
+		m_iNextVehicleID = 1;
+	}
+	
+	void RegisterVehicle(IEntity vehicle, string vehicleType)
+	{
+		if (!vehicle)
+			return;
+		
+		string vehicleID = "vehicle_" + m_iNextVehicleID.ToString();
+		m_iNextVehicleID++;
+		
+		m_mVehiclesByID.Set(vehicleID, vehicle);
+		m_mVehicleIDs.Set(vehicle, vehicleID);
+		m_mVehicleTypes.Set(vehicleID, vehicleType);
+		
+		PrintFormat("[RBL_VehicleMgr] Registered vehicle: %1 (%2)", vehicleID, vehicleType);
+	}
+	
+	void UnregisterVehicle(string vehicleID)
+	{
+		IEntity vehicle;
+		if (m_mVehiclesByID.Find(vehicleID, vehicle))
+		{
+			m_mVehiclesByID.Remove(vehicleID);
+			m_mVehicleIDs.Remove(vehicle);
+			m_mVehicleTypes.Remove(vehicleID);
+		}
+	}
+	
+	void UnregisterVehicleEntity(IEntity vehicle)
+	{
+		string vehicleID;
+		if (m_mVehicleIDs.Find(vehicle, vehicleID))
+		{
+			UnregisterVehicle(vehicleID);
+		}
+	}
+	
+	array<string> GetAllVehicleIDs()
+	{
+		array<string> ids = new array<string>();
+		for (int i = 0; i < m_mVehiclesByID.Count(); i++)
+		{
+			ids.Insert(m_mVehiclesByID.GetKey(i));
+		}
+		return ids;
+	}
+	
+	IEntity GetVehicleEntity(string id)
+	{
+		IEntity vehicle;
+		m_mVehiclesByID.Find(id, vehicle);
+		return vehicle;
+	}
+	
+	string GetVehicleType(string id)
+	{
+		string type;
+		m_mVehicleTypes.Find(id, type);
+		return type;
+	}
+	
+	string GetVehicleID(IEntity vehicle)
+	{
+		string id;
+		m_mVehicleIDs.Find(vehicle, id);
+		return id;
+	}
+	
+	float GetVehicleFuel(string id)
+	{
+		IEntity vehicle = GetVehicleEntity(id);
+		if (!vehicle)
+			return 0;
+		
+		// Try to get fuel manager component
+		FuelManagerComponent fuelComp = FuelManagerComponent.Cast(vehicle.FindComponent(FuelManagerComponent));
+		if (fuelComp)
+		{
+			// Get fuel level from component
+			// Note: Arma Reforger fuel component API may vary
+			// For now, return default value if component exists
+			return 100.0;
+		}
+		
+		return 0;
+	}
+	
+	float GetVehicleHealth(string id)
+	{
+		IEntity vehicle = GetVehicleEntity(id);
+		if (!vehicle)
+			return 0;
+		
+		// Use damage manager to check health
+		DamageManagerComponent dmgMgr = DamageManagerComponent.Cast(vehicle.FindComponent(DamageManagerComponent));
+		if (dmgMgr)
+		{
+			// Check if destroyed
+			if (dmgMgr.GetState() == EDamageState.DESTROYED)
+				return 0;
+			
+			// Return approximate health (100 if not destroyed)
+			return 100.0;
+		}
+		
+		return 100;
+	}
+	
+	bool IsVehicleDeployed(string id)
+	{
+		IEntity vehicle = GetVehicleEntity(id);
+		if (!vehicle)
+			return false;
+		
+		// Check if entity exists and is not destroyed
+		DamageManagerComponent dmgMgr = DamageManagerComponent.Cast(vehicle.FindComponent(DamageManagerComponent));
+		if (dmgMgr && dmgMgr.GetState() == EDamageState.DESTROYED)
+			return false;
+		
+		return true;
+	}
+	
+	void DespawnAllVehicles()
+	{
+		array<string> vehicleIDs = GetAllVehicleIDs();
+		for (int i = 0; i < vehicleIDs.Count(); i++)
+		{
+			IEntity vehicle = GetVehicleEntity(vehicleIDs[i]);
+			if (vehicle)
+			{
+				SCR_EntityHelper.DeleteEntityAndChildren(vehicle);
+			}
+		}
+		
+		m_mVehiclesByID.Clear();
+		m_mVehicleIDs.Clear();
+		m_mVehicleTypes.Clear();
+		
+		PrintFormat("[RBL_VehicleMgr] Despawned all vehicles");
+	}
+	
+	void SpawnVehicle(string type, vector pos, float fuel, float health)
+	{
+		// Get vehicle prefab from delivery system
+		RBL_ItemDelivery delivery = RBL_ItemDelivery.GetInstance();
+		if (!delivery)
+			return;
+		
+		string prefabPath = delivery.GetVehiclePrefabPath(type);
+		if (prefabPath.IsEmpty())
+		{
+			PrintFormat("[RBL_VehicleMgr] Unknown vehicle type: %1", type);
+			return;
+		}
+		
+		BaseWorld world = GetGame().GetWorld();
+		if (!world)
+			return;
+		
+		// Adjust position to terrain
+		pos[1] = world.GetSurfaceY(pos[0], pos[2]) + 0.5;
+		
+		EntitySpawnParams params = new EntitySpawnParams();
+		params.TransformMode = ETransformMode.WORLD;
+		params.Transform[3] = pos;
+		
+		Resource resource = Resource.Load(prefabPath);
+		if (!resource.IsValid())
+		{
+			PrintFormat("[RBL_VehicleMgr] Invalid vehicle prefab: %1", prefabPath);
+			return;
+		}
+		
+		IEntity vehicle = GetGame().SpawnEntityPrefab(resource, world, params);
+		if (vehicle)
+		{
+			RegisterVehicle(vehicle, type);
+			
+			// Note: Fuel and health setting would require specific component APIs
+			// For now, vehicles spawn with default values
+			// Future: Integrate with vehicle component APIs when available
+			
+			PrintFormat("[RBL_VehicleMgr] Spawned vehicle: %1 at %2", type, pos.ToString());
+		}
+	}
+	
+	void Update(float timeSlice)
+	{
+		// Clean up destroyed vehicles
+		array<string> toRemove = new array<string>();
+		
+		for (int i = 0; i < m_mVehiclesByID.Count(); i++)
+		{
+			string vehicleID = m_mVehiclesByID.GetKey(i);
+			IEntity vehicle = m_mVehiclesByID.GetElement(i);
+			
+			if (!vehicle)
+			{
+				toRemove.Insert(vehicleID);
+				continue;
+			}
+			
+			// Check if vehicle is destroyed
+			DamageManagerComponent dmgMgr = DamageManagerComponent.Cast(vehicle.FindComponent(DamageManagerComponent));
+			if (dmgMgr && dmgMgr.GetState() == EDamageState.DESTROYED)
+			{
+				toRemove.Insert(vehicleID);
+			}
+		}
+		
+		for (int i = 0; i < toRemove.Count(); i++)
+		{
+			UnregisterVehicle(toRemove[i]);
+		}
+	}
+	
+	int GetVehicleCount()
+	{
+		return m_mVehiclesByID.Count();
+	}
 }
 

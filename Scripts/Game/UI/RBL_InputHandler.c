@@ -50,8 +50,8 @@ class RBL_InputHandler
 			return m_InputManager.GetKeyForAction(actionName);
 		
 		// Fallback to default display names
-		if (actionName == RBL_InputActions.TOGGLE_SHOP) return "J";
-		if (actionName == RBL_InputActions.TOGGLE_SETTINGS) return "K";
+		if (actionName == RBL_InputActions.TOGGLE_SHOP) return "F7";
+		if (actionName == RBL_InputActions.TOGGLE_SETTINGS) return "F8";
 		if (actionName == RBL_InputActions.TOGGLE_HUD) return "H";
 		if (actionName == RBL_InputActions.QUICK_SAVE) return "F5";
 		if (actionName == RBL_InputActions.QUICK_LOAD) return "F9";
@@ -436,5 +436,164 @@ class RBL_DebugCommands
 		}
 		
 		PrintFormat("\n========================================");
+	}
+}
+
+// ============================================================================
+// Input Test Commands
+// ============================================================================
+class RBL_InputTestCommands
+{
+	static void RunInputTests()
+	{
+		PrintFormat("\n========================================");
+		PrintFormat("     INPUT SYSTEM TESTS");
+		PrintFormat("========================================\n");
+		
+		int testsPassed = 0;
+		int testsFailed = 0;
+		
+		// Test 1: Input Manager Existence
+		PrintFormat("[TEST 1] Checking Input Manager...");
+		RBL_InputManager inputMgr = RBL_InputManager.GetInstance();
+		if (inputMgr)
+		{
+			PrintFormat("  [PASS] Input Manager exists");
+			testsPassed++;
+		}
+		else
+		{
+			PrintFormat("  [FAIL] Input Manager not found");
+			testsFailed++;
+			PrintFormat("\n========================================");
+			PrintFormat("Tests completed: %1 passed, %2 failed", testsPassed, testsFailed);
+			PrintFormat("========================================\n");
+			return;
+		}
+		
+		// Test 2: Input Manager Initialization
+		PrintFormat("[TEST 2] Checking Input Manager initialization...");
+		if (inputMgr.IsInitialized())
+		{
+			PrintFormat("  [PASS] Input Manager is initialized");
+			testsPassed++;
+		}
+		else
+		{
+			PrintFormat("  [FAIL] Input Manager not initialized");
+			testsFailed++;
+		}
+		
+		// Test 3: Input Manager State
+		PrintFormat("[TEST 3] Checking Input Manager state...");
+		PrintFormat("  Enabled: %1", inputMgr.IsEnabled());
+		PrintFormat("  Menu Open: %1", inputMgr.IsMenuOpen());
+		testsPassed++;
+		
+		// Test 4: Input Binding Registry
+		PrintFormat("[TEST 4] Checking Input Binding Registry...");
+		RBL_InputBindingRegistry registry = inputMgr.GetRegistry();
+		if (registry)
+		{
+			PrintFormat("  [PASS] Registry exists");
+			PrintFormat("  Initialized: %1", registry.IsInitialized());
+			PrintFormat("  Using Custom Actions: %1", registry.IsUsingCustomActions());
+			PrintFormat("  Binding Count: %1", registry.GetBindingCount());
+			testsPassed++;
+		}
+		else
+		{
+			PrintFormat("  [FAIL] Registry not found");
+			testsFailed++;
+		}
+		
+		// Test 5: Required Actions
+		PrintFormat("[TEST 5] Checking required actions...");
+		array<string> requiredActions = {
+			RBL_InputActions.TOGGLE_SHOP,
+			RBL_InputActions.TOGGLE_SETTINGS,
+			RBL_InputActions.TOGGLE_HUD,
+			RBL_InputActions.QUICK_SAVE,
+			RBL_InputActions.QUICK_LOAD,
+			RBL_InputActions.TOGGLE_MAP,
+			RBL_InputActions.TOGGLE_MISSIONS,
+			RBL_InputActions.CLOSE_MENU
+		};
+		
+		int actionsFound = 0;
+		foreach (string action : requiredActions)
+		{
+			string keyDisplay = inputMgr.GetKeyForAction(action);
+			if (keyDisplay != "?" && keyDisplay.Length() > 0)
+			{
+				PrintFormat("  [OK] %1 -> %2", action, keyDisplay);
+				actionsFound++;
+			}
+			else
+			{
+				PrintFormat("  [WARN] %1 -> Not bound", action);
+			}
+		}
+		
+		if (actionsFound == requiredActions.Count())
+		{
+			PrintFormat("  [PASS] All required actions have bindings");
+			testsPassed++;
+		}
+		else if (actionsFound > 0)
+		{
+			PrintFormat("  [PARTIAL] %1/%2 actions have bindings", actionsFound, requiredActions.Count());
+			testsPassed++;
+		}
+		else
+		{
+			PrintFormat("  [FAIL] No actions have bindings");
+			testsFailed++;
+		}
+		
+		// Test 6: Input Handler
+		PrintFormat("[TEST 6] Checking Input Handler...");
+		RBL_InputHandler handler = RBL_InputHandler.GetInstance();
+		if (handler)
+		{
+			PrintFormat("  [PASS] Input Handler exists");
+			PrintFormat("  Initialized: %1", handler.IsInitialized());
+			testsPassed++;
+		}
+		else
+		{
+			PrintFormat("  [FAIL] Input Handler not found");
+			testsFailed++;
+		}
+		
+		// Test 7: Input Config Compatibility
+		PrintFormat("[TEST 7] Checking Input Config compatibility...");
+		string shopKey = RBL_InputConfig.GetKeyDisplay(RBL_InputActions.TOGGLE_SHOP);
+		if (shopKey != "?")
+		{
+			PrintFormat("  [PASS] RBL_InputConfig.GetKeyDisplay() works");
+			PrintFormat("  Shop key: %1", shopKey);
+			testsPassed++;
+		}
+		else
+		{
+			PrintFormat("  [WARN] RBL_InputConfig.GetKeyDisplay() returned '?'");
+			testsPassed++;
+		}
+		
+		// Summary
+		PrintFormat("\n========================================");
+		PrintFormat("TEST SUMMARY");
+		PrintFormat("========================================");
+		PrintFormat("Tests Passed: %1", testsPassed);
+		PrintFormat("Tests Failed: %1", testsFailed);
+		PrintFormat("Total Tests: %1", testsPassed + testsFailed);
+		
+		if (testsFailed == 0)
+			PrintFormat("\n[SUCCESS] All input tests passed!");
+		else
+			PrintFormat("\n[WARNING] Some tests failed. Check output above.");
+		
+		PrintFormat("========================================\n");
 	}
 }

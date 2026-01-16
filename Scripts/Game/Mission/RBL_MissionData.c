@@ -277,6 +277,8 @@ class RBL_Mission
 	void SetDifficulty(ERBLMissionDifficulty diff) { m_eDifficulty = diff; }
 	void SetReward(RBL_MissionReward reward) { m_pReward = reward; }
 	void SetTimeLimit(float time) { m_fTimeLimit = time; m_fTimeRemaining = time; }
+	void SetTimeRemaining(float time) { m_fTimeRemaining = time; }
+	void SetTimeElapsed(float time) { m_fTimeElapsed = time; }
 	void SetTargetZone(string zoneID) { m_sTargetZoneID = zoneID; }
 	void SetMissionArea(vector center, float radius) { m_vMissionArea = center; m_fMissionRadius = radius; }
 	void SetMinWarLevel(int level) { m_iMinWarLevel = level; }

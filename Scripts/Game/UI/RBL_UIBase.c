@@ -18,6 +18,7 @@ class RBL_UIManager
 	protected ref RBL_ShopMenuWidgetImpl m_ShopMenu;
 	protected ref RBL_KeybindHintsWidgetImpl m_KeybindHints;
 	protected ref RBL_SettingsMenuWidget m_SettingsMenu;
+	protected ref RBL_MapOverlayWidget m_MapOverlay;
 	
 	protected bool m_bInitialized;
 	protected bool m_bVisible;
@@ -63,6 +64,8 @@ class RBL_UIManager
 		PrintFormat("[RBL_UI] UI Manager initialized");
 	}
 	
+	bool IsInitialized() { return m_bInitialized; }
+	
 	void Update(float timeSlice)
 	{
 		if (!m_bInitialized || !m_bVisible)
@@ -89,6 +92,9 @@ class RBL_UIManager
 		
 		if (m_SettingsMenu)
 			m_SettingsMenu.Update(timeSlice);
+		
+		if (m_MapOverlay)
+			m_MapOverlay.Update(timeSlice);
 	}
 	
 	void Draw()
@@ -120,6 +126,9 @@ class RBL_UIManager
 		
 		if (m_KeybindHints)
 			m_KeybindHints.Draw();
+		
+		if (m_MapOverlay)
+			m_MapOverlay.Draw();
 	}
 	
 	void ToggleShop()

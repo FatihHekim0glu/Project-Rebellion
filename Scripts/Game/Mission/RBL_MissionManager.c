@@ -182,6 +182,31 @@ class RBL_MissionManager
 		OnMissionFail(mission);
 	}
 	
+	void RestoreActiveMission(RBL_Mission mission)
+	{
+		if (!mission)
+			return;
+		
+		// Only server can restore missions
+		if (!IsServer())
+			return;
+		
+		// Check if at max active missions
+		if (m_aActiveMissions.Count() >= MAX_ACTIVE_MISSIONS)
+		{
+			PrintFormat("[RBL_MissionMgr] Cannot restore mission - max active missions reached");
+			return;
+		}
+		
+		// Add to active missions (mission is already started)
+		m_aActiveMissions.Insert(mission);
+		
+		// Notify locally
+		m_OnMissionStarted.Invoke(mission);
+		
+		PrintFormat("[RBL_MissionMgr] Mission restored: %1", mission.GetName());
+	}
+	
 	protected void OnMissionComplete(RBL_Mission mission)
 	{
 		if (!mission)

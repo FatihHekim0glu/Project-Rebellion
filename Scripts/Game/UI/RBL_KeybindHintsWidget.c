@@ -76,10 +76,11 @@ class RBL_KeybindHintsWidgetImpl : RBL_BaseWidget
 		// Use dynamic hints that look up keys from the input system
 		// Format: RBL_KeybindHint(fallbackKey, description, priority, actionName)
 		
-		m_aHints.Insert(new RBL_KeybindHint("J", "Shop", 10, RBL_InputActions.TOGGLE_SHOP));
+		m_aHints.Insert(new RBL_KeybindHint("F7", "Shop", 10, RBL_InputActions.TOGGLE_SHOP));
 		m_aHints.Insert(new RBL_KeybindHint("M", "Map", 9, RBL_InputActions.TOGGLE_MAP));
 		m_aHints.Insert(new RBL_KeybindHint("H", "Toggle HUD", 5, RBL_InputActions.TOGGLE_HUD));
 		m_aHints.Insert(new RBL_KeybindHint("L", "Missions", 6, RBL_InputActions.TOGGLE_MISSIONS));
+		m_aHints.Insert(new RBL_KeybindHint("F8", "Settings", 8, RBL_InputActions.TOGGLE_SETTINGS));
 	}
 	
 	protected void CheckInputSystemReady()

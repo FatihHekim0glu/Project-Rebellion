@@ -181,7 +181,50 @@ class RBL_ZoneManager
 
 	void RefreshZoneStates()
 	{
-		// Placeholder for re-syncing zone state after load.
+		PrintFormat("[RBL_ZoneManager] Refreshing zone states...");
+		
+		// Re-sync zone states after load by notifying all listeners of current state
+		// This ensures zone ownership, support, and garrison are properly synchronized
+		
+		int entityZonesRefreshed = 0;
+		int virtualZonesRefreshed = 0;
+		
+		// Refresh entity zones
+		for (int i = 0; i < m_aAllZones.Count(); i++)
+		{
+			RBL_CampaignZone zone = m_aAllZones[i];
+			if (zone)
+			{
+				// Notify listeners of current state to trigger UI updates
+				ERBLFactionKey owner = zone.GetOwnerFaction();
+				m_OnZoneOwnershipChanged.Invoke(zone.GetZoneID(), owner, owner);
+				
+				// Notify support changes
+				int support = zone.GetSupportLevel();
+				m_OnZoneSupportChanged.Invoke(zone.GetZoneID(), support);
+				
+				entityZonesRefreshed++;
+			}
+		}
+		
+		// Refresh virtual zones
+		for (int i = 0; i < m_aVirtualZones.Count(); i++)
+		{
+			RBL_VirtualZone zone = m_aVirtualZones[i];
+			if (zone)
+			{
+				ERBLFactionKey owner = zone.GetOwnerFaction();
+				m_OnZoneOwnershipChanged.Invoke(zone.GetZoneID(), owner, owner);
+				
+				int support = zone.GetCivilianSupport();
+				m_OnZoneSupportChanged.Invoke(zone.GetZoneID(), support);
+				
+				virtualZonesRefreshed++;
+			}
+		}
+		
+		PrintFormat("[RBL_ZoneManager] Zone states refreshed: %1 entity zones, %2 virtual zones", 
+			entityZonesRefreshed, virtualZonesRefreshed);
 	}
 
 	array<RBL_CampaignZone> GetZonesByFaction(ERBLFactionKey faction)

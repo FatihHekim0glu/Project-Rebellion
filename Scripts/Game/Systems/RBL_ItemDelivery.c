@@ -98,31 +98,31 @@ class RBL_ItemDelivery
 	
 	protected void InitializeEquipmentPrefabs()
 	{
-		m_mEquipmentPrefabs.Set("bandage", "{000CD338713F2B5A}Prefabs/Items/Medicine/Bandage_01.et");
-		m_mEquipmentPrefabs.Set("medkit", "{000CD338713F2B5A}Prefabs/Items/Medicine/Bandage_01.et");
-		m_mEquipmentPrefabs.Set("grenade_rgd", "{3805931BE86F827D}Prefabs/Weapons/Grenades/RGD5/Grenade_RGD5.et");
-		m_mEquipmentPrefabs.Set("grenade_smoke", "{E629F77EC23B3C32}Prefabs/Weapons/Grenades/ANM8/Grenade_ANM8.et");
-		m_mEquipmentPrefabs.Set("binocs", "{25E4B05E79B0E658}Prefabs/Items/Equipment/Binoculars_M/Binoculars_M.et");
+		m_mEquipmentPrefabs.Set("bandage", "Prefabs/Items/Medicine/Bandage_01.et");
+		m_mEquipmentPrefabs.Set("medkit", "Prefabs/Items/Medicine/Bandage_01.et");
+		m_mEquipmentPrefabs.Set("grenade_rgd", "Prefabs/Weapons/Grenades/RGD5/Grenade_RGD5.et");
+		m_mEquipmentPrefabs.Set("grenade_smoke", "Prefabs/Weapons/Grenades/ANM8/Grenade_ANM8.et");
+		m_mEquipmentPrefabs.Set("binocs", "Prefabs/Items/Equipment/Binoculars_M/Binoculars_M.et");
 		PrintFormat("[RBL_Delivery] Equipment prefabs initialized");
 	}
 	
 	protected void InitializeWeaponPrefabs()
 	{
-		m_mWeaponPrefabs.Set("makarov", "{3E413771E1834D2E}Prefabs/Weapons/Handguns/PM/Weapon_PM.et");
-		m_mWeaponPrefabs.Set("akm", "{1BC151E0D4DE3D99}Prefabs/Weapons/Rifles/AKM/Weapon_AKM.et");
-		m_mWeaponPrefabs.Set("ak74", "{9B3DFBAE74363E7A}Prefabs/Weapons/Rifles/AK74/Weapon_AK74.et");
-		m_mWeaponPrefabs.Set("svd", "{3E36C5A1DDAE0CF8}Prefabs/Weapons/Rifles/SVD/Weapon_SVD.et");
-		m_mWeaponPrefabs.Set("rpg7", "{519E924C1C8C5FB4}Prefabs/Weapons/Launchers/RPG7/Weapon_RPG7.et");
-		m_mWeaponPrefabs.Set("pkm", "{5C3AD3CD9F747118}Prefabs/Weapons/MachineGuns/PKM/Weapon_PKM.et");
+		m_mWeaponPrefabs.Set("makarov", "Prefabs/Weapons/Handguns/PM/Weapon_PM.et");
+		m_mWeaponPrefabs.Set("akm", "Prefabs/Weapons/Rifles/AKM/Weapon_AKM.et");
+		m_mWeaponPrefabs.Set("ak74", "Prefabs/Weapons/Rifles/AK74/Weapon_AK74.et");
+		m_mWeaponPrefabs.Set("svd", "Prefabs/Weapons/Rifles/SVD/Weapon_SVD.et");
+		m_mWeaponPrefabs.Set("rpg7", "Prefabs/Weapons/Launchers/RPG7/Weapon_RPG7.et");
+		m_mWeaponPrefabs.Set("pkm", "Prefabs/Weapons/MachineGuns/PKM/Weapon_PKM.et");
 		PrintFormat("[RBL_Delivery] Weapon prefabs initialized");
 	}
 	
 	protected void InitializeVehiclePrefabs()
 	{
-		m_mVehiclePrefabs.Set("uaz", "{5E74787BB083789B}Prefabs/Vehicles/Wheeled/UAZ469/UAZ469.et");
-		m_mVehiclePrefabs.Set("ural", "{91B01E6C0D20E1D1}Prefabs/Vehicles/Wheeled/Ural4320/Ural4320.et");
-		m_mVehiclePrefabs.Set("btr70", "{D85A504DF4E2C128}Prefabs/Vehicles/Wheeled/BTR70/BTR70.et");
-		m_mVehiclePrefabs.Set("bmp1", "{BB0E7CE42F0F3E19}Prefabs/Vehicles/Tracked/BMP1/BMP1.et");
+		m_mVehiclePrefabs.Set("uaz", "Prefabs/Vehicles/Wheeled/UAZ469/UAZ469.et");
+		m_mVehiclePrefabs.Set("ural", "Prefabs/Vehicles/Wheeled/Ural4320/Ural4320.et");
+		m_mVehiclePrefabs.Set("btr70", "Prefabs/Vehicles/Wheeled/BTR70/BTR70.et");
+		m_mVehiclePrefabs.Set("bmp1", "Prefabs/Vehicles/Tracked/BMP1/BMP1.et");
 		PrintFormat("[RBL_Delivery] Vehicle prefabs initialized");
 	}
 	
@@ -138,7 +138,7 @@ class RBL_ItemDelivery
 		// Get GUIDs from Workbench by right-clicking prefab -> Copy Resource Name
 		
 		// Default fallback prefabs - US Army (vanilla)
-		string usRifleman = "{DCB41E1B7E697DE8}Prefabs/Characters/Factions/BLUFOR/US_Army/Character_US_Rifleman.et";
+		string usRifleman = "Prefabs/Characters/Factions/BLUFOR/US_Army/Character_US_Rifleman.et";
 		
 		m_mRecruitPrefabs.Set("rifleman", usRifleman);
 		m_mRecruitPrefabs.Set("medic", usRifleman);    // Fallback to rifleman
@@ -619,6 +619,11 @@ class RBL_ItemDelivery
 		IEntity vehicleEntity = SpawnVehicle(item.GetPrefabPath(), spawnPos, playerEntity.GetAngles()[1]);
 		if (!vehicleEntity)
 			return ERBLDeliveryResult.FAILED_SPAWN_ERROR;
+		
+		// Register vehicle with vehicle manager
+		RBL_VehicleManager vehicleMgr = RBL_VehicleManager.GetInstance();
+		if (vehicleMgr)
+			vehicleMgr.RegisterVehicle(vehicleEntity, item.GetID());
 		
 		PrintFormat("[RBL_Delivery] Vehicle %1 spawned at %2", item.GetDisplayName(), spawnPos.ToString());
 		
@@ -1156,7 +1161,7 @@ protected vector GetRecruitSpawnPosition(IEntity playerEntity, int index = 0)
 		params.TransformMode = ETransformMode.WORLD;
 		params.Transform[3] = playerPos;
 		
-		string wpPrefab = "{93291E72AC23930F}Prefabs/AI/Waypoints/AIWaypoint_Move.et";
+		string wpPrefab = "Prefabs/AI/Waypoints/AIWaypoint_Move.et";
 		Resource resource = Resource.Load(wpPrefab);
 		if (resource.IsValid())
 		{

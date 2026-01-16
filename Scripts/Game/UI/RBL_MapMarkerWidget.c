@@ -297,7 +297,9 @@ class RBL_MapMarkerManagerImpl : RBL_BaseWidget
 		
 		vector mat[4];
 		player.GetTransform(mat);
-		return mat[2]; // Forward vector
+		
+		// Forward vector is third element (Z axis)
+		return mat[2];
 	}
 	
 	protected bool IsInPlayerFOV(vector playerPos, vector playerForward, vector targetPos)
@@ -311,46 +313,83 @@ class RBL_MapMarkerManagerImpl : RBL_BaseWidget
 	
 	protected bool WorldToScreen(vector worldPos, out vector screenPos)
 	{
-		// Use the game's projection
 		WorkspaceWidget workspace = GetGame().GetWorkspace();
 		if (!workspace)
 			return false;
 		
-		// Adjust world position to be at eye level
-		vector adjustedPos = worldPos;
-		adjustedPos[1] = adjustedPos[1] + 2.0; // Slightly above ground
+		IEntity player = GetLocalPlayer();
+		if (!player)
+			return false;
 		
-		// Get camera
 		int screen_w = workspace.GetWidth();
 		int screen_h = workspace.GetHeight();
 		
-		// Simple projection (will be refined)
-		// This is a placeholder - actual implementation needs camera matrix
-		vector camPos = GetLocalPlayer().GetOrigin();
+		// Adjust world position to be at eye level
+		vector adjustedPos = worldPos;
+		adjustedPos[1] = adjustedPos[1] + 2.0;
+		
+		// Get camera position and direction from player transform
+		vector camPos = player.GetOrigin();
+		vector camForward = GetPlayerLookDirection(player);
+		vector camRight = GetPlayerRightDirection(player);
+		vector camUp = Vector(0, 1, 0);
+		
+		// Calculate vector from camera to target
 		vector toTarget = adjustedPos - camPos;
 		float dist = toTarget.Length();
 		
 		if (dist < 1)
 			return false;
 		
-		// Get player look direction
-		vector lookDir = GetPlayerLookDirection(GetLocalPlayer());
-		float dot = vector.Dot(lookDir, toTarget.Normalized());
+		vector toTargetNorm = toTarget.Normalized();
 		
-		// Behind camera check
-		if (dot < 0)
+		// Check if target is behind camera
+		float dotForward = vector.Dot(camForward, toTargetNorm);
+		if (dotForward < 0)
 			return false;
 		
-		// Simple screen projection (placeholder)
-		// Real implementation would use proper 3D to 2D projection
-		float angle = Math.Acos(dot);
-		float screenOffsetX = Math.Sin(angle) * (screen_w * 0.5) / dot;
+		// Calculate horizontal and vertical angles
+		float dotRight = vector.Dot(camRight, toTargetNorm);
+		float dotUp = vector.Dot(camUp, toTargetNorm);
 		
-		screenPos[0] = screen_w * 0.5 + screenOffsetX;
-		screenPos[1] = screen_h * 0.4; // Approximate vertical position
-		screenPos[2] = 0;
+		// Approximate FOV (typical FOV is around 70-90 degrees)
+		float fov = 75.0;
+		float fovRad = fov * Math.DEG2RAD;
+		float halfFov = fovRad * 0.5;
 		
-		return screenPos[0] > 0 && screenPos[0] < screen_w;
+		// Calculate screen position using perspective projection
+		// Horizontal angle from forward direction
+		float horizontalAngle = Math.Atan2(dotRight, dotForward);
+		float verticalAngle = Math.Atan2(dotUp, dotForward);
+		
+		// Project to screen coordinates
+		// Normalize angles to screen space (-1 to 1)
+		float screenX = Math.Tan(horizontalAngle) / Math.Tan(halfFov);
+		float screenY = -Math.Tan(verticalAngle) / Math.Tan(halfFov);
+		
+		// Convert to pixel coordinates
+		screenPos[0] = (screen_w * 0.5) + (screenX * screen_w * 0.5);
+		screenPos[1] = (screen_h * 0.5) + (screenY * screen_h * 0.5);
+		screenPos[2] = dist;
+		
+		// Check if on screen
+		bool onScreen = screenPos[0] >= 0 && screenPos[0] <= screen_w &&
+		                screenPos[1] >= 0 && screenPos[1] <= screen_h;
+		
+		return onScreen;
+	}
+	
+	protected vector GetPlayerRightDirection(IEntity player)
+	{
+		if (!player)
+			return Vector(1, 0, 0);
+		
+		// Get player transform matrix
+		vector mat[4];
+		player.GetTransform(mat);
+		
+		// Right vector is first element (X axis)
+		return mat[0];
 	}
 	
 	// Settings

@@ -81,8 +81,8 @@ class RBL_ExpectedInputActions
 	// Get expected key code for action
 	static int GetExpectedKeyCode(string actionName)
 	{
-		if (actionName == RBL_InputActions.TOGGLE_SHOP) return RBL_KeyCodes.KEY_J;
-		if (actionName == RBL_InputActions.TOGGLE_SETTINGS) return RBL_KeyCodes.KEY_K;
+		if (actionName == RBL_InputActions.TOGGLE_SHOP) return RBL_KeyCodes.KEY_F7;
+		if (actionName == RBL_InputActions.TOGGLE_SETTINGS) return RBL_KeyCodes.KEY_F8;
 		if (actionName == RBL_InputActions.TOGGLE_HUD) return RBL_KeyCodes.KEY_H;
 		if (actionName == RBL_InputActions.QUICK_SAVE) return RBL_KeyCodes.KEY_F5;
 		if (actionName == RBL_InputActions.QUICK_LOAD) return RBL_KeyCodes.KEY_F9;

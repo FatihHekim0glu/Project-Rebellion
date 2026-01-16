@@ -70,27 +70,27 @@ class RBL_ShopManager
 		
 		weapons.AddItem(RBL_ShopItemCatalog.CreateWeapon(
 			"makarov", "PM Makarov", "Compact 9mm pistol",
-			50, "{3E413771E1834D2E}Prefabs/Weapons/Handguns/PM/Weapon_PM.et"));
+			50, "Prefabs/Weapons/Handguns/PM/Weapon_PM.et"));
 		
 		weapons.AddItem(RBL_ShopItemCatalog.CreateWeapon(
 			"akm", "AKM", "Reliable 7.62mm assault rifle",
-			120, "{1BC151E0D4DE3D99}Prefabs/Weapons/Rifles/AKM/Weapon_AKM.et"));
+			120, "Prefabs/Weapons/Rifles/AKM/Weapon_AKM.et"));
 		
 		weapons.AddItem(RBL_ShopItemCatalog.CreateWeapon(
 			"ak74", "AK-74", "Standard 5.45mm assault rifle",
-			150, "{9B3DFBAE74363E7A}Prefabs/Weapons/Rifles/AK74/Weapon_AK74.et"));
+			150, "Prefabs/Weapons/Rifles/AK74/Weapon_AK74.et"));
 		
 		weapons.AddItem(RBL_ShopItemCatalog.CreateWeapon(
 			"svd", "SVD Dragunov", "Semi-auto marksman rifle",
-			400, "{3E36C5A1DDAE0CF8}Prefabs/Weapons/Rifles/SVD/Weapon_SVD.et", 3));
+			400, "Prefabs/Weapons/Rifles/SVD/Weapon_SVD.et", 3));
 		
 		weapons.AddItem(RBL_ShopItemCatalog.CreateWeapon(
 			"pkm", "PKM", "General purpose machine gun",
-			600, "{5C3AD3CD9F747118}Prefabs/Weapons/MachineGuns/PKM/Weapon_PKM.et", 4));
+			600, "Prefabs/Weapons/MachineGuns/PKM/Weapon_PKM.et", 4));
 		
 		weapons.AddItem(RBL_ShopItemCatalog.CreateWeapon(
 			"rpg7", "RPG-7", "Anti-tank rocket launcher",
-			800, "{519E924C1C8C5FB4}Prefabs/Weapons/Launchers/RPG7/Weapon_RPG7.et", 5));
+			800, "Prefabs/Weapons/Launchers/RPG7/Weapon_RPG7.et", 5));
 		
 		m_aCategories.Insert(weapons);
 		
@@ -157,11 +157,11 @@ class RBL_ShopManager
 		
 		vehicles.AddItem(RBL_ShopItemCatalog.CreateVehicle(
 			"uaz", "UAZ-469", "Light utility vehicle",
-			500, "{5E74787BB083789B}Prefabs/Vehicles/Wheeled/UAZ469/UAZ469.et"));
+			500, "Prefabs/Vehicles/Wheeled/UAZ469/UAZ469.et"));
 		
 		vehicles.AddItem(RBL_ShopItemCatalog.CreateVehicle(
 			"ural", "Ural Truck", "Heavy transport truck",
-			800, "{91B01E6C0D20E1D1}Prefabs/Vehicles/Wheeled/Ural4320/Ural4320.et", 2));
+			800, "Prefabs/Vehicles/Wheeled/Ural4320/Ural4320.et", 2));
 		
 		vehicles.AddItem(RBL_ShopItemCatalog.CreateVehicle(
 			"brdm", "BRDM-2", "Armored scout car",
@@ -169,11 +169,11 @@ class RBL_ShopManager
 		
 		vehicles.AddItem(RBL_ShopItemCatalog.CreateVehicle(
 			"btr70", "BTR-70", "Armored personnel carrier",
-			3000, "{D85A504DF4E2C128}Prefabs/Vehicles/Wheeled/BTR70/BTR70.et", 5));
+			3000, "Prefabs/Vehicles/Wheeled/BTR70/BTR70.et", 5));
 		
 		vehicles.AddItem(RBL_ShopItemCatalog.CreateVehicle(
 			"bmp1", "BMP-1", "Infantry fighting vehicle",
-			5000, "{BB0E7CE42F0F3E19}Prefabs/Vehicles/Tracked/BMP1/BMP1.et", 7));
+			5000, "Prefabs/Vehicles/Tracked/BMP1/BMP1.et", 7));
 		
 		m_aCategories.Insert(vehicles);
 		

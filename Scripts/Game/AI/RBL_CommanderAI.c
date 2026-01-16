@@ -613,20 +613,20 @@ class RBL_CommanderAI
 class RBL_QRFTemplates
 {
 	// USSR infantry prefabs
-	static const string PREFAB_USSR_RIFLEMAN = "{6D62B5D93627D}Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_Rifleman.et";
-	static const string PREFAB_USSR_MG = "{DCB41E1B7E697DE8}Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_MG.et";
-	static const string PREFAB_USSR_AT = "{2A79433F26F22D2D}Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_AT.et";
-	static const string PREFAB_USSR_MEDIC = "{6B5F3AE10AA0C35E}Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_Medic.et";
-	static const string PREFAB_USSR_OFFICER = "{E8C5ED3082B4D2A1}Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_Officer.et";
-	static const string PREFAB_USSR_SNIPER = "{DF25789F0CD75F22}Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_Sniper.et";
+	static const string PREFAB_USSR_RIFLEMAN = "Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_Rifleman.et";
+	static const string PREFAB_USSR_MG = "Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_MG.et";
+	static const string PREFAB_USSR_AT = "Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_AT.et";
+	static const string PREFAB_USSR_MEDIC = "Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_Medic.et";
+	static const string PREFAB_USSR_OFFICER = "Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_Officer.et";
+	static const string PREFAB_USSR_SNIPER = "Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_Sniper.et";
 	
 	// USSR vehicle prefabs
-	static const string PREFAB_UAZ = "{5E74787BB083789B}Prefabs/Vehicles/Wheeled/UAZ469/UAZ469.et";
-	static const string PREFAB_UAZ_MG = "{C38D37EE2C0E0888}Prefabs/Vehicles/Wheeled/UAZ469/UAZ469_MG.et";
-	static const string PREFAB_URAL = "{91B01E6C0D20E1D1}Prefabs/Vehicles/Wheeled/Ural4320/Ural4320.et";
-	static const string PREFAB_BTR70 = "{D85A504DF4E2C128}Prefabs/Vehicles/Wheeled/BTR70/BTR70.et";
-	static const string PREFAB_BMP1 = "{BB0E7CE42F0F3E19}Prefabs/Vehicles/Tracked/BMP1/BMP1.et";
-	static const string PREFAB_MI8 = "{3D2E5D6E8C5F9A1B}Prefabs/Vehicles/Helicopters/Mi8/Mi8MT.et";
+	static const string PREFAB_UAZ = "Prefabs/Vehicles/Wheeled/UAZ469/UAZ469.et";
+	static const string PREFAB_UAZ_MG = "Prefabs/Vehicles/Wheeled/UAZ469/UAZ469_MG.et";
+	static const string PREFAB_URAL = "Prefabs/Vehicles/Wheeled/Ural4320/Ural4320.et";
+	static const string PREFAB_BTR70 = "Prefabs/Vehicles/Wheeled/BTR70/BTR70.et";
+	static const string PREFAB_BMP1 = "Prefabs/Vehicles/Tracked/BMP1/BMP1.et";
+	static const string PREFAB_MI8 = "Prefabs/Vehicles/Helicopters/Mi8/Mi8MT.et";
 	
 	// Get infantry count for QRF type
 	static int GetInfantryCount(ERBLQRFType type, int warLevel)
@@ -760,6 +760,7 @@ class RBL_QRFTemplates
 // ============================================================================
 class RBL_QRFOperation
 {
+	protected static ref map<string, Resource> s_mPrefabCache;
 	protected string m_sOperationID;
 	protected ERBLQRFType m_eType;
 	protected ERBLFactionKey m_eFaction;
@@ -790,6 +791,9 @@ class RBL_QRFOperation
 		m_fTimeStarted = 0;
 		m_fTimeSinceUpdate = 0;
 		m_iWarLevel = 1;
+		
+		if (!s_mPrefabCache)
+			s_mPrefabCache = new map<string, Resource>();
 	}
 	
 	void InitializeFromVirtual(ERBLQRFType type, RBL_VirtualZone source, RBL_VirtualZone target, ERBLFactionKey faction)
@@ -917,14 +921,28 @@ class RBL_QRFOperation
 		Math3D.AnglesToMatrix(angles, params.Transform);
 		params.Transform[3] = position;
 		
-		Resource resource = Resource.Load(prefab);
-		if (!resource.IsValid())
+		Resource resource = GetCachedResource(prefab);
+		if (!resource || !resource.IsValid())
 		{
 			PrintFormat("[RBL_QRF] Invalid prefab: %1", prefab);
 			return null;
 		}
 		
 		return GetGame().SpawnEntityPrefab(resource, world, params);
+	}
+	
+	protected Resource GetCachedResource(string prefab)
+	{
+		if (prefab.IsEmpty())
+			return null;
+		
+		Resource resource;
+		if (s_mPrefabCache.Find(prefab, resource))
+			return resource;
+		
+		resource = Resource.Load(prefab);
+		s_mPrefabCache.Set(prefab, resource);
+		return resource;
 	}
 	
 	protected array<vector> GenerateSpawnPositions(vector center, float radius, int count)
@@ -1052,7 +1070,7 @@ class RBL_QRFOperation
 		params.Transform[3] = position;
 		
 		// Use move waypoint prefab
-		string wpPrefab = "{93291E72AC23930F}Prefabs/AI/Waypoints/AIWaypoint_Move.et";
+		string wpPrefab = "Prefabs/AI/Waypoints/AIWaypoint_Move.et";
 		Resource resource = Resource.Load(wpPrefab);
 		if (!resource.IsValid())
 		{

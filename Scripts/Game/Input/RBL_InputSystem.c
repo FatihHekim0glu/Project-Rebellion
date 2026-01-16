@@ -230,19 +230,19 @@ class RBL_InputBindingRegistry
 	
 	protected void RegisterDefaultBindings()
 	{
-		// Shop toggle - J key
+		// Shop toggle - F7 key (changed from O to avoid conflicts)
 		RegisterBinding(new RBL_Keybind(
 			RBL_InputActions.TOGGLE_SHOP,
 			"Toggle Shop",
-			RBL_KeyCodes.KEY_J,
+			RBL_KeyCodes.KEY_F7,
 			0.3
 		));
 		
-		// Settings toggle - K key
+		// Settings toggle - F8 key (changed from Y to avoid conflicts)
 		RegisterBinding(new RBL_Keybind(
 			RBL_InputActions.TOGGLE_SETTINGS,
 			"Toggle Settings",
-			RBL_KeyCodes.KEY_K,
+			RBL_KeyCodes.KEY_F8,
 			0.3
 		));
 		

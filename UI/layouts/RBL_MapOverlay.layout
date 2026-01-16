@@ -1,0 +1,78 @@
+WidgetLayout
+{
+	class CanvasWidgetClass
+	{
+		Name "RBL_MapOverlayRoot"
+		Position 0 0
+		Size 1 1
+		Visible 1
+		Enabled 1
+		handler "RBL_MapOverlayEventHandler"
+		
+		Widget
+		{
+			class ButtonWidgetClass
+			{
+				Name "ShopButton"
+				Position 0.02 0.16
+				Size 0.09 0.03
+				Enabled 1
+			}
+		}
+		
+		Widget
+		{
+			class TextWidgetClass
+			{
+				Name "ShopLabel"
+				Position 0.028 0.165
+				Size 0.09 0.02
+				Text "SHOP"
+			}
+		}
+		
+		Widget
+		{
+			class TextWidgetClass
+			{
+				Name "ShopHint"
+				Position 0.028 0.185
+				Size 0.12 0.02
+				Text "Press [F7]"
+			}
+		}
+		
+		Widget
+		{
+			class ButtonWidgetClass
+			{
+				Name "SettingsButton"
+				Position 0.02 0.205
+				Size 0.09 0.03
+				Enabled 1
+			}
+		}
+		
+		Widget
+		{
+			class TextWidgetClass
+			{
+				Name "SettingsLabel"
+				Position 0.028 0.21
+				Size 0.09 0.02
+				Text "SETTINGS"
+			}
+		}
+		
+		Widget
+		{
+			class TextWidgetClass
+			{
+				Name "SettingsHint"
+				Position 0.028 0.23
+				Size 0.12 0.02
+				Text "Press [F8]"
+			}
+		}
+	}
+}

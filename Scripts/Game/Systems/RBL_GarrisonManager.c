@@ -99,24 +99,25 @@ class RBL_GarrisonManager
 	
 	protected ref map<string, ref RBL_GarrisonData> m_mGarrisons;
 	protected ref array<ref RBL_GarrisonTemplate> m_aTemplates;
+	protected ref map<string, Resource> m_mPrefabCache;
 	
 	protected const float GARRISON_CHECK_INTERVAL = 10.0;
 	protected const float SPAWN_RADIUS_MULTIPLIER = 0.6;
 	protected const float MIN_SPAWN_DISTANCE = 5.0;
 	
 	// USSR faction prefabs (Arma Reforger default)
-	protected const string PREFAB_USSR_RIFLEMAN = "{6D62B5D93627D}Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_Rifleman.et";
-	protected const string PREFAB_USSR_MG = "{DCB41E1B7E697DE8}Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_MG.et";
-	protected const string PREFAB_USSR_AT = "{2A79433F26F22D2D}Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_AT.et";
-	protected const string PREFAB_USSR_MEDIC = "{6B5F3AE10AA0C35E}Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_Medic.et";
-	protected const string PREFAB_USSR_OFFICER = "{E8C5ED3082B4D2A1}Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_Officer.et";
-	protected const string PREFAB_USSR_SNIPER = "{DF25789F0CD75F22}Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_Sniper.et";
+	protected const string PREFAB_USSR_RIFLEMAN = "Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_Rifleman.et";
+	protected const string PREFAB_USSR_MG = "Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_MG.et";
+	protected const string PREFAB_USSR_AT = "Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_AT.et";
+	protected const string PREFAB_USSR_MEDIC = "Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_Medic.et";
+	protected const string PREFAB_USSR_OFFICER = "Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_Officer.et";
+	protected const string PREFAB_USSR_SNIPER = "Prefabs/Characters/Factions/OPFOR/USSR_Army/Character_USSR_Sniper.et";
 	
-	protected const string PREFAB_UAZ = "{5E74787BB083789B}Prefabs/Vehicles/Wheeled/UAZ469/UAZ469.et";
-	protected const string PREFAB_UAZ_MG = "{C38D37EE2C0E0888}Prefabs/Vehicles/Wheeled/UAZ469/UAZ469_MG.et";
-	protected const string PREFAB_URAL = "{91B01E6C0D20E1D1}Prefabs/Vehicles/Wheeled/Ural4320/Ural4320.et";
-	protected const string PREFAB_BTR70 = "{D85A504DF4E2C128}Prefabs/Vehicles/Wheeled/BTR70/BTR70.et";
-	protected const string PREFAB_BMP1 = "{BB0E7CE42F0F3E19}Prefabs/Vehicles/Tracked/BMP1/BMP1.et";
+	protected const string PREFAB_UAZ = "Prefabs/Vehicles/Wheeled/UAZ469/UAZ469.et";
+	protected const string PREFAB_UAZ_MG = "Prefabs/Vehicles/Wheeled/UAZ469/UAZ469_MG.et";
+	protected const string PREFAB_URAL = "Prefabs/Vehicles/Wheeled/Ural4320/Ural4320.et";
+	protected const string PREFAB_BTR70 = "Prefabs/Vehicles/Wheeled/BTR70/BTR70.et";
+	protected const string PREFAB_BMP1 = "Prefabs/Vehicles/Tracked/BMP1/BMP1.et";
 	
 	static RBL_GarrisonManager GetInstance()
 	{
@@ -129,6 +130,7 @@ class RBL_GarrisonManager
 	{
 		m_mGarrisons = new map<string, ref RBL_GarrisonData>();
 		m_aTemplates = new array<ref RBL_GarrisonTemplate>();
+		m_mPrefabCache = new map<string, Resource>();
 		InitializeTemplates();
 		
 		PrintFormat("[RBL_Garrison] Garrison Manager initialized with %1 templates", m_aTemplates.Count());
@@ -398,8 +400,8 @@ class RBL_GarrisonManager
 		Math3D.AnglesToMatrix(angles, params.Transform);
 		params.Transform[3] = position;
 		
-		Resource resource = Resource.Load(prefab);
-		if (!resource.IsValid())
+		Resource resource = GetCachedResource(prefab);
+		if (!resource || !resource.IsValid())
 		{
 			PrintFormat("[RBL_Garrison] Invalid prefab: %1", prefab);
 			return null;
@@ -432,8 +434,8 @@ class RBL_GarrisonManager
 		Math3D.AnglesToMatrix(angles, params.Transform);
 		params.Transform[3] = position;
 		
-		Resource resource = Resource.Load(prefab);
-		if (!resource.IsValid())
+		Resource resource = GetCachedResource(prefab);
+		if (!resource || !resource.IsValid())
 		{
 			PrintFormat("[RBL_Garrison] Invalid vehicle prefab: %1", prefab);
 			return null;
@@ -441,6 +443,20 @@ class RBL_GarrisonManager
 		
 		IEntity entity = GetGame().SpawnEntityPrefab(resource, world, params);
 		return entity;
+	}
+	
+	protected Resource GetCachedResource(string prefab)
+	{
+		if (prefab.IsEmpty())
+			return null;
+		
+		Resource resource;
+		if (m_mPrefabCache.Find(prefab, resource))
+			return resource;
+		
+		resource = Resource.Load(prefab);
+		m_mPrefabCache.Set(prefab, resource);
+		return resource;
 	}
 	
 	// ========================================================================
