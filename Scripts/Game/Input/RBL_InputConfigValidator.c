@@ -316,7 +316,10 @@ class RBL_InputConfigValidator
 		PrintFormat("\n========================================");
 		PrintFormat("   INPUT CONFIG VALIDATION RESULTS");
 		PrintFormat("========================================");
-		PrintFormat("  Status: %1", m_bIsValid ? "VALID" : "INVALID");
+		string statusText = "INVALID";
+		if (m_bIsValid)
+			statusText = "VALID";
+		PrintFormat("  Status: %1", statusText);
 		PrintFormat("  Errors: %1", errors);
 		PrintFormat("  Warnings: %1", warnings);
 		PrintFormat("========================================\n");
@@ -478,13 +481,16 @@ class RBL_InputValidatorCommands
 		
 		array<string> actions = RBL_ExpectedInputActions.GetRequiredActions();
 		
-		foreach (string actionName : actions)
+		for (int i = 0; i < actions.Count(); i++)
 		{
+			string actionName = actions[i];
 			int expectedKey = RBL_ExpectedInputActions.GetExpectedKeyCode(actionName);
 			RBL_Keybind binding = registry.GetBinding(actionName);
 			
 			string expectedKeyName = RBL_KeyCodes.GetKeyName(expectedKey);
-			string actualKeyName = binding ? binding.GetKeyDisplayName() : "NOT REGISTERED";
+			string actualKeyName = "NOT REGISTERED";
+			if (binding)
+				actualKeyName = binding.GetKeyDisplayName();
 			
 			string status = "OK";
 			if (!binding)

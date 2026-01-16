@@ -128,6 +128,30 @@ class RBL_NetworkUtils
 			return pm.GetPlayerControlledEntity(playerID);
 		return null;
 	}
+	
+	static int GetPlayerCount()
+	{
+		PlayerManager pm = GetGame().GetPlayerManager();
+		if (!pm)
+			return 0;
+		
+		array<int> players = new array<int>();
+		pm.GetPlayers(players);
+		return players.Count();
+	}
+	
+	static void PrintNetworkStatus()
+	{
+		string mode = "Multiplayer";
+		if (IsSinglePlayer())
+			mode = "Singleplayer";
+		string role = "Client";
+		if (IsServer())
+			role = "Server";
+		PrintFormat("[RBL] Network Mode: %1", mode);
+		PrintFormat("[RBL] Authority: %1", role);
+		PrintFormat("[RBL] Players: %1", GetPlayerCount());
+	}
 }
 
 // ============================================================================

@@ -65,8 +65,14 @@ class RBL_GameMode : SCR_BaseGameMode
 	protected void InitializeSystems()
 	{
 		PrintFormat("[RBL] Initializing Rebellion systems...");
-		PrintFormat("[RBL] Network Mode: %1", RBL_NetworkUtils.IsSinglePlayer() ? "Singleplayer" : "Multiplayer");
-		PrintFormat("[RBL] Authority: %1", RBL_NetworkUtils.IsServer() ? "Server" : "Client");
+		string networkMode = "Multiplayer";
+		if (RBL_NetworkUtils.IsSinglePlayer())
+			networkMode = "Singleplayer";
+		PrintFormat("[RBL] Network Mode: %1", networkMode);
+		string authority = "Client";
+		if (RBL_NetworkUtils.IsServer())
+			authority = "Server";
+		PrintFormat("[RBL] Authority: %1", authority);
 		
 		if (m_bAutoInitialize)
 		{
@@ -130,8 +136,14 @@ class RBL_GameMode : SCR_BaseGameMode
 	{
 		PrintFormat("[RBL] ========================================");
 		PrintFormat("[RBL] NETWORK STATUS");
-		PrintFormat("[RBL] Mode: %1", RBL_NetworkUtils.IsSinglePlayer() ? "Singleplayer" : "Multiplayer");
-		PrintFormat("[RBL] Role: %1", RBL_NetworkUtils.IsServer() ? "Server/Host" : "Client");
+		string mode = "Multiplayer";
+		if (RBL_NetworkUtils.IsSinglePlayer())
+			mode = "Singleplayer";
+		PrintFormat("[RBL] Mode: %1", mode);
+		string role = "Client";
+		if (RBL_NetworkUtils.IsServer())
+			role = "Server/Host";
+		PrintFormat("[RBL] Role: %1", role);
 		PrintFormat("[RBL] Players: %1", RBL_NetworkUtils.GetPlayerCount());
 		PrintFormat("[RBL] ========================================");
 	}
@@ -259,7 +271,7 @@ class RBL_GameMode : SCR_BaseGameMode
 		// Input
 		RBL_InputHandler input = RBL_InputHandler.GetInstance();
 		if (input)
-			input.Update();
+			input.Update(timeSlice);
 	}
 
 	protected void PrintZoneInfo()
@@ -376,8 +388,14 @@ class RBL_GameModeAddon
 	{
 		PrintFormat("[RBL] ========================================");
 		PrintFormat("[RBL] PROJECT REBELLION - ACTIVE");
-		PrintFormat("[RBL] Network Mode: %1", RBL_NetworkUtils.IsSinglePlayer() ? "Singleplayer" : "Multiplayer");
-		PrintFormat("[RBL] Authority: %1", RBL_NetworkUtils.IsServer() ? "Server" : "Client");
+		string netMode = "Multiplayer";
+		if (RBL_NetworkUtils.IsSinglePlayer())
+			netMode = "Singleplayer";
+		PrintFormat("[RBL] Network Mode: %1", netMode);
+		string auth = "Client";
+		if (RBL_NetworkUtils.IsServer())
+			auth = "Server";
+		PrintFormat("[RBL] Authority: %1", auth);
 		PrintFormat("[RBL] ========================================");
 		
 		// Initialize Input System FIRST
@@ -576,7 +594,7 @@ class RBL_GameModeAddon
 		// Input
 		RBL_InputHandler input = RBL_InputHandler.GetInstance();
 		if (input)
-			input.Update();
+			input.Update(timeSlice);
 	}
 }
 
@@ -623,7 +641,6 @@ class RBL_UIInputHandler
 // ============================================================================
 class RBL_UIDebugCommands
 {
-	[ConsoleCmd("rbl_shop", "Toggle shop menu")]
 	static void ToggleShop()
 	{
 		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
@@ -634,7 +651,6 @@ class RBL_UIDebugCommands
 		}
 	}
 	
-	[ConsoleCmd("rbl_hud", "Toggle HUD visibility")]
 	static void ToggleHUD()
 	{
 		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
@@ -645,7 +661,6 @@ class RBL_UIDebugCommands
 		}
 	}
 	
-	[ConsoleCmd("rbl_notify", "Show test notification")]
 	static void TestNotify()
 	{
 		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
@@ -656,7 +671,6 @@ class RBL_UIDebugCommands
 		}
 	}
 	
-	[ConsoleCmd("rbl_ui_test", "Run all UI tests")]
 	static void RunUITests()
 	{
 		RBL_UITests.RunAllTests();
@@ -668,25 +682,21 @@ class RBL_UIDebugCommands
 // ============================================================================
 class RBL_MissionDebugCommands
 {
-	[ConsoleCmd("rbl_missions", "List all available and active missions")]
 	static void ListMissions()
 	{
 		RBL_MissionCommands.ListMissions();
 	}
 	
-	[ConsoleCmd("rbl_mission_status", "Print mission system status")]
 	static void PrintMissionStatus()
 	{
 		RBL_MissionCommands.PrintStatus();
 	}
 	
-	[ConsoleCmd("rbl_mission_start", "Start a mission by ID")]
 	static void StartMission(string missionID)
 	{
 		RBL_MissionCommands.StartMission(missionID);
 	}
 	
-	[ConsoleCmd("rbl_mission_refresh", "Refresh available missions")]
 	static void RefreshMissions()
 	{
 		RBL_MissionCommands.RefreshMissions();

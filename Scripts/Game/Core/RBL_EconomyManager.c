@@ -13,9 +13,19 @@ class RBL_EconomyManager
 
 	protected int m_iMoney;
 	protected int m_iHumanResources;
+	protected int m_iFuel;
+	protected int m_iAmmo;
+	protected int m_iMoneyPerMinute;
+	protected int m_iHRPerMinute;
+	protected int m_iTotalMoneyEarned;
+	protected int m_iTotalMoneySpent;
+	protected int m_iTotalItemsBought;
+	protected int m_iTotalItemsSold;
 
 	protected ref map<string, int> m_mArsenalInventory;
 	protected ref set<string> m_sUnlockedItems;
+	protected ref map<int, int> m_mPlayerMoney;
+	protected ref map<int, int> m_mPlayerHR;
 
 	protected ref ScriptInvoker m_OnMoneyChanged;
 	protected ref ScriptInvoker m_OnHRChanged;
@@ -36,6 +46,8 @@ class RBL_EconomyManager
 	{
 		m_mArsenalInventory = new map<string, int>();
 		m_sUnlockedItems = new set<string>();
+		m_mPlayerMoney = new map<int, int>();
+		m_mPlayerHR = new map<int, int>();
 
 		m_OnMoneyChanged = new ScriptInvoker();
 		m_OnHRChanged = new ScriptInvoker();
@@ -44,6 +56,14 @@ class RBL_EconomyManager
 
 		m_iMoney = 0;
 		m_iHumanResources = 0;
+		m_iFuel = 100;
+		m_iAmmo = 100;
+		m_iMoneyPerMinute = 0;
+		m_iHRPerMinute = 0;
+		m_iTotalMoneyEarned = 0;
+		m_iTotalMoneySpent = 0;
+		m_iTotalItemsBought = 0;
+		m_iTotalItemsSold = 0;
 		m_bAllowLocalUpdate = false;
 	}
 	
@@ -96,6 +116,8 @@ class RBL_EconomyManager
 			return;
 		}
 		SetMoney(m_iMoney + amount);
+		if (amount > 0)
+			m_iTotalMoneyEarned += amount;
 	}
 
 	bool SpendMoney(int amount)
@@ -110,6 +132,7 @@ class RBL_EconomyManager
 			return false;
 
 		SetMoney(m_iMoney - amount);
+		m_iTotalMoneySpent += amount;
 		return true;
 	}
 
@@ -167,6 +190,68 @@ class RBL_EconomyManager
 	}
 
 	int GetHR() { return m_iHumanResources; }
+	
+	int GetFuel() { return m_iFuel; }
+	int GetAmmo() { return m_iAmmo; }
+	
+	void SetFuel(int amount)
+	{
+		if (!CanModifyState())
+			return;
+		m_iFuel = Math.Max(0, amount);
+	}
+	
+	void SetAmmo(int amount)
+	{
+		if (!CanModifyState())
+			return;
+		m_iAmmo = Math.Max(0, amount);
+	}
+	
+	int GetMoneyIncomeRate() { return m_iMoneyPerMinute; }
+	int GetHRIncomeRate() { return m_iHRPerMinute; }
+	
+	void SetMoneyIncomeRate(int rate) { m_iMoneyPerMinute = rate; }
+	void SetHRIncomeRate(int rate) { m_iHRPerMinute = rate; }
+	
+	int GetTotalMoneyEarned() { return m_iTotalMoneyEarned; }
+	int GetTotalMoneySpent() { return m_iTotalMoneySpent; }
+	int GetTotalItemsBought() { return m_iTotalItemsBought; }
+	int GetTotalItemsSold() { return m_iTotalItemsSold; }
+	
+	void SetTradeHistory(int earned, int spent, int itemsBought, int itemsSold)
+	{
+		m_iTotalMoneyEarned = earned;
+		m_iTotalMoneySpent = spent;
+		m_iTotalItemsBought = itemsBought;
+		m_iTotalItemsSold = itemsSold;
+	}
+	
+	int GetPlayerMoney(int playerId)
+	{
+		int value;
+		if (m_mPlayerMoney.Find(playerId, value))
+			return value;
+		return 0;
+	}
+	
+	int GetPlayerHR(int playerId)
+	{
+		int value;
+		if (m_mPlayerHR.Find(playerId, value))
+			return value;
+		return 0;
+	}
+	
+	void SetPlayerMoney(int playerId, int amount)
+	{
+		m_mPlayerMoney.Set(playerId, Math.Max(0, amount));
+	}
+	
+	void SetPlayerHR(int playerId, int amount)
+	{
+		m_mPlayerHR.Set(playerId, Math.Max(0, amount));
+	}
 
 	void DepositItem(string itemPrefab, int count)
 	{
@@ -242,6 +327,65 @@ class RBL_EconomyManager
 
 		if (count >= RBL_Config.ARSENAL_UNLOCK_THRESHOLD)
 			m_sUnlockedItems.Insert(itemPrefab);
+	}
+	
+	array<string> GetArsenalItemIDs()
+	{
+		array<string> keys = new array<string>();
+		for (int i = 0; i < m_mArsenalInventory.Count(); i++)
+		{
+			keys.Insert(m_mArsenalInventory.GetKey(i));
+		}
+		return keys;
+	}
+	
+	int GetArsenalItemQuantity(string itemID)
+	{
+		return GetItemCount(itemID);
+	}
+	
+	array<string> GetUnlockedItems()
+	{
+		array<string> items = new array<string>();
+		foreach (string item : m_sUnlockedItems)
+		{
+			items.Insert(item);
+		}
+		return items;
+	}
+	
+	void ClearArsenal()
+	{
+		m_mArsenalInventory.Clear();
+	}
+	
+	void AddToArsenal(string itemID, int quantity)
+	{
+		if (quantity <= 0)
+			return;
+		DepositItem(itemID, quantity);
+	}
+	
+	void ClearUnlocks()
+	{
+		m_sUnlockedItems.Clear();
+	}
+	
+	void UnlockItem(string itemID)
+	{
+		if (itemID.IsEmpty())
+			return;
+		
+		if (!m_sUnlockedItems.Contains(itemID))
+		{
+			m_sUnlockedItems.Insert(itemID);
+			m_OnItemUnlocked.Invoke(itemID);
+		}
+	}
+	
+	void RecalculateIncome()
+	{
+		// Placeholder for future income recalculation logic.
 	}
 
 	map<string, int> GetArsenalInventory() { return m_mArsenalInventory; }
@@ -362,19 +506,15 @@ class RBL_EconomyManager
 	string SerializeArsenalToString()
 	{
 		string result = "";
-		
-		array<string> keys = new array<string>();
-		m_mArsenalInventory.GetKeyArray(keys);
-		
-		for (int i = 0; i < keys.Count(); i++)
+		for (int i = 0; i < m_mArsenalInventory.Count(); i++)
 		{
-			int count;
-			m_mArsenalInventory.Find(keys[i], count);
+			string key = m_mArsenalInventory.GetKey(i);
+			int count = m_mArsenalInventory.Get(key);
 			
 			if (result.Length() > 0)
 				result += ";";
 			
-			result += keys[i] + ":" + count.ToString();
+			result += key + ":" + count.ToString();
 		}
 		
 		return result;

@@ -179,6 +179,11 @@ class RBL_ZoneManager
 		return m_aAllZones.Count() + m_aVirtualZones.Count();
 	}
 
+	void RefreshZoneStates()
+	{
+		// Placeholder for re-syncing zone state after load.
+	}
+
 	array<RBL_CampaignZone> GetZonesByFaction(ERBLFactionKey faction)
 	{
 		array<RBL_CampaignZone> result = new array<RBL_CampaignZone>();

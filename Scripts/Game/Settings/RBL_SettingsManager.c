@@ -197,6 +197,13 @@ class RBL_SettingsManager
 			ERBLSettingsCategory.DISPLAY, ERBLSettingType.TOGGLE
 		));
 		
+		// Zone info panel
+		m_aSettingItems.Insert(new RBL_SettingItem(
+			"zone_info", "Show Zone Info",
+			"Display detailed zone information panel",
+			ERBLSettingsCategory.DISPLAY, ERBLSettingType.TOGGLE
+		));
+		
 		// Notifications
 		m_aSettingItems.Insert(new RBL_SettingItem(
 			"notifications", "Show Notifications",
@@ -217,6 +224,13 @@ class RBL_SettingsManager
 		m_aSettingItems.Insert(new RBL_SettingItem(
 			"keybind_hints", "Show Keybind Hints",
 			"Display keybind reminders",
+			ERBLSettingsCategory.DISPLAY, ERBLSettingType.TOGGLE
+		));
+		
+		// Undercover status
+		m_aSettingItems.Insert(new RBL_SettingItem(
+			"undercover_status", "Show Undercover Status",
+			"Display undercover/suspicion indicator",
 			ERBLSettingsCategory.DISPLAY, ERBLSettingType.TOGGLE
 		));
 		
@@ -353,9 +367,11 @@ class RBL_SettingsManager
 			case "hud_enabled": return m_PendingSettings.m_bHUDEnabled;
 			case "map_markers": return m_PendingSettings.m_bShowMapMarkers;
 			case "zone_names": return m_PendingSettings.m_bShowZoneNames;
+			case "zone_info": return m_PendingSettings.m_bShowZoneInfo;
 			case "notifications": return m_PendingSettings.m_bShowNotifications;
 			case "keybind_hints": return m_PendingSettings.m_bShowKeybindHints;
 			case "capture_bar": return m_PendingSettings.m_bShowCaptureBar;
+			case "undercover_status": return m_PendingSettings.m_bShowUndercoverStatus;
 			case "mute_unfocused": return m_PendingSettings.m_bMuteWhenUnfocused;
 			case "invert_y": return m_PendingSettings.m_bInvertY;
 			case "toggle_ads": return m_PendingSettings.m_bToggleADS;
@@ -431,9 +447,11 @@ class RBL_SettingsManager
 			case "hud_enabled": m_PendingSettings.m_bHUDEnabled = value; break;
 			case "map_markers": m_PendingSettings.m_bShowMapMarkers = value; break;
 			case "zone_names": m_PendingSettings.m_bShowZoneNames = value; break;
+			case "zone_info": m_PendingSettings.m_bShowZoneInfo = value; break;
 			case "notifications": m_PendingSettings.m_bShowNotifications = value; break;
 			case "keybind_hints": m_PendingSettings.m_bShowKeybindHints = value; break;
 			case "capture_bar": m_PendingSettings.m_bShowCaptureBar = value; break;
+			case "undercover_status": m_PendingSettings.m_bShowUndercoverStatus = value; break;
 			case "mute_unfocused": m_PendingSettings.m_bMuteWhenUnfocused = value; break;
 			case "invert_y": m_PendingSettings.m_bInvertY = value; break;
 			case "toggle_ads": m_PendingSettings.m_bToggleADS = value; break;
@@ -523,6 +541,11 @@ class RBL_SettingsManager
 		ApplyControlSettings();
 	}
 	
+	void ApplyDisplaySettingsToUI()
+	{
+		ApplyDisplaySettings();
+	}
+	
 	protected void ApplyGameplaySettings()
 	{
 		// Apply autosave settings
@@ -569,6 +592,51 @@ class RBL_SettingsManager
 		if (uiMgr)
 		{
 			uiMgr.SetVisible(m_CurrentSettings.m_bHUDEnabled);
+			
+			RBL_ZoneInfoWidgetImpl zoneInfo = uiMgr.GetZoneInfo();
+			if (zoneInfo)
+			{
+				if (m_CurrentSettings.m_bShowZoneInfo)
+					zoneInfo.Show();
+				else
+					zoneInfo.Hide();
+			}
+			
+			RBL_UndercoverWidgetImpl undercover = uiMgr.GetUndercoverIndicator();
+			if (undercover)
+			{
+				if (m_CurrentSettings.m_bShowUndercoverStatus)
+					undercover.Show();
+				else
+					undercover.Hide();
+			}
+			
+			RBL_CaptureBarWidgetImpl captureBar = uiMgr.GetCaptureBar();
+			if (captureBar)
+			{
+				if (m_CurrentSettings.m_bShowCaptureBar)
+					captureBar.Show();
+				else
+					captureBar.Hide();
+			}
+			
+			RBL_NotificationManagerImpl notifications = uiMgr.GetNotifications();
+			if (notifications)
+			{
+				if (m_CurrentSettings.m_bShowNotifications)
+					notifications.Show();
+				else
+					notifications.Hide();
+			}
+			
+			RBL_KeybindHintsWidgetImpl keybindHints = uiMgr.GetKeybindHints();
+			if (keybindHints)
+			{
+				if (m_CurrentSettings.m_bShowKeybindHints)
+					keybindHints.Show();
+				else
+					keybindHints.Hide();
+			}
 		}
 		
 		PrintFormat("[RBL_Settings] Applied display settings");

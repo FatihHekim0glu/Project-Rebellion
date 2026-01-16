@@ -361,8 +361,11 @@ class RBL_InputBindingRegistry
 	
 	void UpdateCooldowns(float timeSlice)
 	{
-		foreach (string actionName, float cooldown : m_mCooldowns)
+		for (int i = 0; i < m_mCooldowns.Count(); i++)
 		{
+			string actionName = m_mCooldowns.GetKey(i);
+			float cooldown = m_mCooldowns.Get(actionName);
+			
 			if (cooldown > 0)
 				m_mCooldowns.Set(actionName, cooldown - timeSlice);
 		}
@@ -386,9 +389,12 @@ class RBL_InputBindingRegistry
 	// Get all registered bindings for UI display
 	void GetAllBindings(notnull array<ref RBL_Keybind> outBindings)
 	{
-		foreach (string actionName, RBL_Keybind binding : m_mBindings)
+		for (int i = 0; i < m_mBindings.Count(); i++)
 		{
-			outBindings.Insert(binding);
+			string key = m_mBindings.GetKey(i);
+			RBL_Keybind binding = m_mBindings.Get(key);
+			if (binding)
+				outBindings.Insert(binding);
 		}
 	}
 	

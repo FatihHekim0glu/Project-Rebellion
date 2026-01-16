@@ -55,6 +55,10 @@ class RBL_UIManager
 		// Initialize settings manager
 		RBL_SettingsManager.GetInstance().Initialize();
 		
+		RBL_SettingsManager settingsMgr = RBL_SettingsManager.GetInstance();
+		if (settingsMgr && settingsMgr.IsInitialized())
+			settingsMgr.ApplyDisplaySettingsToUI();
+		
 		m_bInitialized = true;
 		PrintFormat("[RBL_UI] UI Manager initialized");
 	}
@@ -203,6 +207,7 @@ class RBL_UIManager
 	RBL_UndercoverWidgetImpl GetUndercoverIndicator() { return m_UndercoverIndicator; }
 	RBL_NotificationManagerImpl GetNotifications() { return m_Notifications; }
 	RBL_ShopMenuWidgetImpl GetShopMenu() { return m_ShopMenu; }
+	RBL_KeybindHintsWidgetImpl GetKeybindHints() { return m_KeybindHints; }
 	RBL_SettingsMenuWidget GetSettingsMenu() { return m_SettingsMenu; }
 }
 
@@ -403,7 +408,7 @@ void DrawRect(float x, float y, float w, float h, int color)
 	// Use DbgUI for now - will be replaced with Canvas when available
 	// This is a placeholder that creates visual output
 	DbgUI.Begin("RBL_Rect_" + x.ToString() + "_" + y.ToString(), x, y);
-	DbgUI.Panel(color, w, h);
+	DbgUI.Text(" ");
 	DbgUI.End();
 }
 

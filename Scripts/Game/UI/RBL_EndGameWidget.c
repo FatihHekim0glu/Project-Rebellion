@@ -317,8 +317,9 @@ class RBL_EndGameWidget : RBL_PanelWidget
 	{
 		int totalSeconds = Math.Floor(seconds);
 		int hours = totalSeconds / 3600;
-		int minutes = (totalSeconds % 3600) / 60;
-		int secs = totalSeconds % 60;
+		int remaining = totalSeconds - (hours * 3600);
+		int minutes = remaining / 60;
+		int secs = remaining - (minutes * 60);
 		
 		string result = "";
 		if (hours > 0)
@@ -392,7 +393,7 @@ class RBL_CampaignSummaryWidget : RBL_PanelWidget
 	{
 		int totalSeconds = Math.Floor(seconds);
 		int minutes = totalSeconds / 60;
-		int secs = totalSeconds % 60;
+		int secs = totalSeconds - (minutes * 60);
 		
 		string secPad = "";
 		if (secs < 10)

@@ -60,7 +60,7 @@ class RBL_PlayerPersistence
 		RBL_PlayerSaveData data = new RBL_PlayerSaveData();
 		
 		// Identity
-		data.m_sPlayerUID = pm.GetPlayerUID(playerId);
+		data.m_sPlayerUID = playerId.ToString();
 		data.m_sPlayerName = pm.GetPlayerName(playerId);
 		
 		// Resources (from economy manager)
@@ -346,7 +346,17 @@ class RBL_PlayerPersistence
 			return;
 		
 		// Clear current inventory
-		invMgr.ClearAll();
+		array<IEntity> currentItems = new array<IEntity>();
+		invMgr.GetItems(currentItems);
+		
+		for (int i = 0; i < currentItems.Count(); i++)
+		{
+			IEntity item = currentItems[i];
+			if (!item)
+				continue;
+			
+			invMgr.TryDeleteItem(item);
+		}
 		
 		// Add saved items
 		for (int i = 0; i < items.Count(); i++)
@@ -411,7 +421,7 @@ class RBL_PlayerPersistence
 		if (!pm)
 			return false;
 		
-		string uid = pm.GetPlayerUID(playerId);
+		string uid = playerId.ToString();
 		if (uid.IsEmpty())
 			return false;
 		
@@ -453,7 +463,7 @@ class RBL_PlayerPersistence
 		
 		for (int i = 0; i < playerIds.Count(); i++)
 		{
-			if (pm.GetPlayerUID(playerIds[i]) == uid)
+			if (playerIds[i].ToString() == uid)
 				return playerIds[i];
 		}
 		

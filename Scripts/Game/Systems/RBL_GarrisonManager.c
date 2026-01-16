@@ -463,9 +463,7 @@ class RBL_GarrisonManager
 		array<string> zoneIDs = new array<string>();
 		for (int i = 0; i < m_mGarrisons.Count(); i++)
 		{
-			string key;
-			m_mGarrisons.GetKeyByIndex(i, key);
-			zoneIDs.Insert(key);
+			zoneIDs.Insert(m_mGarrisons.GetKey(i));
 		}
 		
 		for (int i = 0; i < zoneIDs.Count(); i++)
@@ -502,10 +500,8 @@ class RBL_GarrisonManager
 	{
 		for (int i = 0; i < m_mGarrisons.Count(); i++)
 		{
-			string key;
-			RBL_GarrisonData data;
-			m_mGarrisons.GetKeyByIndex(i, key);
-			m_mGarrisons.Find(key, data);
+			string key = m_mGarrisons.GetKey(i);
+			RBL_GarrisonData data = m_mGarrisons.Get(key);
 			
 			if (!data || !data.IsSpawned)
 				continue;
@@ -571,10 +567,8 @@ class RBL_GarrisonManager
 		int total = 0;
 		for (int i = 0; i < m_mGarrisons.Count(); i++)
 		{
-			string key;
-			RBL_GarrisonData data;
-			m_mGarrisons.GetKeyByIndex(i, key);
-			m_mGarrisons.Find(key, data);
+			string key = m_mGarrisons.GetKey(i);
+			RBL_GarrisonData data = m_mGarrisons.Get(key);
 			if (data)
 				total += data.SpawnedUnits.Count();
 		}
@@ -586,10 +580,8 @@ class RBL_GarrisonManager
 		int total = 0;
 		for (int i = 0; i < m_mGarrisons.Count(); i++)
 		{
-			string key;
-			RBL_GarrisonData data;
-			m_mGarrisons.GetKeyByIndex(i, key);
-			m_mGarrisons.Find(key, data);
+			string key = m_mGarrisons.GetKey(i);
+			RBL_GarrisonData data = m_mGarrisons.Get(key);
 			if (data)
 				total += data.SpawnedVehicles.Count();
 		}

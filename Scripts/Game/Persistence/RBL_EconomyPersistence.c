@@ -397,15 +397,40 @@ class RBL_EconomyDiff
 	string GetSummary()
 	{
 		string summary = "";
+		string sign;
 		
 		if (m_iMoneyDiff != 0)
-			summary += string.Format("Money: %1%2, ", (m_iMoneyDiff > 0 ? "+" : ""), m_iMoneyDiff);
+		{
+			if (m_iMoneyDiff > 0)
+				sign = "+";
+			else
+				sign = "";
+			summary += string.Format("Money: %1%2, ", sign, m_iMoneyDiff);
+		}
 		if (m_iHRDiff != 0)
-			summary += string.Format("HR: %1%2, ", (m_iHRDiff > 0 ? "+" : ""), m_iHRDiff);
+		{
+			if (m_iHRDiff > 0)
+				sign = "+";
+			else
+				sign = "";
+			summary += string.Format("HR: %1%2, ", sign, m_iHRDiff);
+		}
 		if (m_iArsenalItemsDiff != 0)
-			summary += string.Format("Items: %1%2, ", (m_iArsenalItemsDiff > 0 ? "+" : ""), m_iArsenalItemsDiff);
+		{
+			if (m_iArsenalItemsDiff > 0)
+				sign = "+";
+			else
+				sign = "";
+			summary += string.Format("Items: %1%2, ", sign, m_iArsenalItemsDiff);
+		}
 		if (m_iVehiclesDiff != 0)
-			summary += string.Format("Vehicles: %1%2", (m_iVehiclesDiff > 0 ? "+" : ""), m_iVehiclesDiff);
+		{
+			if (m_iVehiclesDiff > 0)
+				sign = "+";
+			else
+				sign = "";
+			summary += string.Format("Vehicles: %1%2", sign, m_iVehiclesDiff);
+		}
 		
 		if (summary.IsEmpty())
 			return "No changes";

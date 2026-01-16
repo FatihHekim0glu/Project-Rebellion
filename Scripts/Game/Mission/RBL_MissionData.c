@@ -147,7 +147,11 @@ class RBL_MissionObjective
 	float GetProgress()
 	{
 		if (m_iTargetCount <= 0)
-			return m_bCompleted ? 1.0 : 0.0;
+		{
+			if (m_bCompleted)
+				return 1.0;
+			return 0.0;
+		}
 		return m_iCurrentCount / m_iTargetCount;
 	}
 	
@@ -495,7 +499,11 @@ class RBL_Mission
 	{
 		int total = m_aObjectives.Count();
 		if (total == 0)
-			return m_eStatus == ERBLMissionStatus.COMPLETED ? 1.0 : 0.0;
+		{
+			if (m_eStatus == ERBLMissionStatus.COMPLETED)
+				return 1.0;
+			return 0.0;
+		}
 		
 		return GetCompletedObjectiveCount() / total;
 	}

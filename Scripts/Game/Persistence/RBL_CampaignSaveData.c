@@ -87,7 +87,7 @@ class RBL_PersistenceManager
 			array<RBL_CampaignZone> zones = zoneMgr.GetAllZones();
 			foreach (RBL_CampaignZone zone : zones)
 			{
-				RBL_ZoneState zoneData = new RBL_ZoneState();
+				RBL_ZoneSaveData zoneData = new RBL_ZoneSaveData();
 				zoneData.m_sZoneID = zone.GetZoneID();
 				zoneData.m_iOwnerFaction = zone.GetOwnerFaction();
 				zoneData.m_iGarrisonStrength = zone.GetGarrisonStrength();
@@ -115,7 +115,7 @@ class RBL_PersistenceManager
 	
 	protected bool WriteToFile(string jsonData)
 	{
-		if (!FileIO.FileExist(SAVE_FOLDER))
+		if (!FileIO.FileExists(SAVE_FOLDER))
 			FileIO.MakeDirectory(SAVE_FOLDER);
 		
 		string fullPath = SAVE_FOLDER + SAVE_FILE_NAME;
@@ -137,7 +137,7 @@ class RBL_PersistenceManager
 		PrintFormat("[RBL_Persistence] Loading campaign...");
 		
 		string fullPath = SAVE_FOLDER + SAVE_FILE_NAME;
-		if (!FileIO.FileExist(fullPath))
+		if (!FileIO.FileExists(fullPath))
 		{
 			PrintFormat("[RBL_Persistence] No save file found");
 			return false;
@@ -261,11 +261,11 @@ class RBL_PersistenceManager
 	}
 	
 	void TriggerAutoSave() { SaveCampaign(); }
-	bool HasExistingSave() { return FileIO.FileExist(SAVE_FOLDER + SAVE_FILE_NAME); }
+	bool HasExistingSave() { return FileIO.FileExists(SAVE_FOLDER + SAVE_FILE_NAME); }
 	void DeleteSave() 
 	{ 
 		string path = SAVE_FOLDER + SAVE_FILE_NAME;
-		if (FileIO.FileExist(path))
+		if (FileIO.FileExists(path))
 			FileIO.DeleteFile(path);
 	}
 	

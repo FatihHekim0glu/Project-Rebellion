@@ -386,7 +386,9 @@ class RBL_AutoSaveManager
 	protected string GetAutoSaveFilename()
 	{
 		// Rotating autosave names
-		int slot = m_iAutoSaveCount % m_iMaxAutoSaves;
+		int slot = 0;
+		if (m_iMaxAutoSaves > 0)
+			slot = m_iAutoSaveCount - (m_iAutoSaveCount / m_iMaxAutoSaves) * m_iMaxAutoSaves;
 		return "autosave_" + slot.ToString();
 	}
 	
@@ -410,21 +412,15 @@ class RBL_AutoSaveManager
 	
 	protected string GetHostPlayerUID()
 	{
-		PlayerManager pm = GetGame().GetPlayerManager();
-		if (!pm)
+		int hostId = RBL_NetworkUtils.GetLocalPlayerID();
+		if (hostId < 0)
 			return "";
-		
-		// Get host/server player
-		int hostId = pm.GetPlayerIdFromControlledEntity(GetGame().GetPlayerController().GetControlledEntity());
-		return pm.GetPlayerUID(hostId);
+		return hostId.ToString();
 	}
 	
 	protected string GetWorldName()
 	{
-		BaseWorld world = GetGame().GetWorld();
-		if (!world)
-			return "";
-		return world.GetName();
+		return "";
 	}
 	
 	// ========================================================================

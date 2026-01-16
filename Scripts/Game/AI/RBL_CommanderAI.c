@@ -49,6 +49,12 @@ class RBL_CommanderAI
 		}
 	}
 	
+	// Re-evaluate threats and plans immediately (used after load)
+	void ReassessSituation()
+	{
+		MakeStrategicDecision();
+	}
+	
 	protected void MakeStrategicDecision()
 	{
 		// Check virtual zones for threats (primary zone type used in game)
@@ -585,7 +591,10 @@ class RBL_CommanderAI
 			data.MissionType = qrf.GetQRFType();
 			data.TargetZoneID = qrf.GetTargetZoneID();
 			data.SourceZoneID = qrf.GetSourceZoneID();
-			data.CurrentPosition = qrf.GetCurrentPosition();
+			vector currentPos = qrf.GetCurrentPosition();
+			data.PosX = currentPos[0];
+			data.PosY = currentPos[1];
+			data.PosZ = currentPos[2];
 			data.TimeStarted = qrf.GetTimeStarted();
 			result.Insert(data);
 		}
@@ -688,7 +697,7 @@ class RBL_QRFTemplates
 			prefabs.Insert(PREFAB_USSR_SNIPER);
 			for (int i = 2; i < count; i++)
 			{
-				if (i % 2 == 0)
+				if ((i - (i / 2) * 2) == 0)
 					prefabs.Insert(PREFAB_USSR_AT);
 				else
 					prefabs.Insert(PREFAB_USSR_MG);
@@ -701,7 +710,7 @@ class RBL_QRFTemplates
 		
 		for (int i = 1; i < count; i++)
 		{
-			int role = i % 5;
+			int role = i - (i / 5) * 5;
 			switch (role)
 			{
 				case 0: prefabs.Insert(PREFAB_USSR_RIFLEMAN); break;
@@ -957,16 +966,62 @@ class RBL_QRFOperation
 		if (!agent)
 			return;
 		
-		// Create group if needed
+		AIGroup agentGroup = agent.GetParentGroup();
+		
 		if (!m_AIGroup)
 		{
-			AIWorld aiWorld = GetGame().GetAIWorld();
-			if (aiWorld)
-				m_AIGroup = aiWorld.CreateGroup();
+			if (agentGroup)
+				m_AIGroup = agentGroup;
+			else
+				m_AIGroup = CreateFactionGroup();
 		}
 		
 		if (m_AIGroup)
-			m_AIGroup.AddAgent(agent);
+		{
+			if (agentGroup != m_AIGroup)
+				m_AIGroup.AddAgent(agent);
+		}
+	}
+	
+	protected AIGroup CreateFactionGroup()
+	{
+		if (!RBL_NetworkUtils.IsServer())
+			return null;
+		
+		SCR_GroupsManagerComponent groupsMgr = SCR_GroupsManagerComponent.GetInstance();
+		if (!groupsMgr)
+			return null;
+		
+		Faction faction = GetGroupFaction();
+		if (!faction)
+			return null;
+		
+		SCR_AIGroup group = groupsMgr.TryFindEmptyGroup(faction);
+		if (!group)
+			group = groupsMgr.CreateNewPlayableGroup(faction);
+		
+		return group;
+	}
+	
+	protected Faction GetGroupFaction()
+	{
+		FactionManager factionMgr = GetGame().GetFactionManager();
+		if (!factionMgr)
+			return null;
+		
+		switch (m_eFaction)
+		{
+			case ERBLFactionKey.FIA:
+				return factionMgr.GetFactionByKey("FIA");
+			case ERBLFactionKey.USSR:
+				return factionMgr.GetFactionByKey("USSR");
+			case ERBLFactionKey.US:
+				return factionMgr.GetFactionByKey("US");
+			case ERBLFactionKey.CIVILIAN:
+				return factionMgr.GetFactionByKey("CIV");
+		}
+		
+		return null;
 	}
 	
 	protected void CreateMoveWaypoint()
@@ -1176,7 +1231,6 @@ class RBL_QRFOperation
 		// Delete AI group
 		if (m_AIGroup)
 		{
-			m_AIGroup.Delete();
 			m_AIGroup = null;
 		}
 	}

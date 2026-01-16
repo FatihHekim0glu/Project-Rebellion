@@ -177,8 +177,9 @@ class RBL_UIStrings
 	// Time format (seconds to MM:SS)
 	static string FormatTime(float seconds)
 	{
-		int mins = seconds / 60;
-		int secs = seconds % 60;
+		int totalSecs = seconds;
+		int mins = totalSecs / 60;
+		int secs = totalSecs - (mins * 60);
 		
 		string minStr = mins.ToString();
 		string secStr = secs.ToString();

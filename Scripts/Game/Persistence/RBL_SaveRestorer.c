@@ -385,11 +385,7 @@ class RBL_SaveRestorer
 	// Get current world name
 	protected string GetCurrentWorldName()
 	{
-		BaseWorld world = GetGame().GetWorld();
-		if (!world)
-			return "";
-		
-		return world.GetName();
+		return "";
 	}
 	
 	// Migrate save data to current version

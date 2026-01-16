@@ -562,8 +562,13 @@ class RBL_ShopManager
 	void PrintShopToConsole()
 	{
 		RBL_EconomyManager econMgr = RBL_EconomyManager.GetInstance();
-		int money = econMgr ? econMgr.GetMoney() : 0;
-		int hr = econMgr ? econMgr.GetHR() : 0;
+		int money = 0;
+		int hr = 0;
+		if (econMgr)
+		{
+			money = econMgr.GetMoney();
+			hr = econMgr.GetHR();
+		}
 		
 		int warLevel = 1;
 		RBL_CampaignManager campMgr = RBL_CampaignManager.GetInstance();

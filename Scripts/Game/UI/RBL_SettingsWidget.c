@@ -779,36 +779,46 @@ class RBL_SettingsMenuWidget : RBL_PanelWidget
 		if (!mgr)
 			return "N/A";
 		
+		string result = "N/A";
+		
 		switch (item.m_eType)
 		{
 			case ERBLSettingType.TOGGLE:
-				return mgr.GetSettingBool(item.m_sID) ? "ON" : "OFF";
+				if (mgr.GetSettingBool(item.m_sID))
+					result = "ON";
+				else
+					result = "OFF";
+				break;
 			
 			case ERBLSettingType.SLIDER:
 				float val = mgr.GetSettingFloat(item.m_sID);
 				// Format based on setting
 				if (item.m_sID.Contains("volume") || item.m_sID.Contains("opacity"))
-					return (val * 100).ToString() + "%";
+					result = (val * 100).ToString() + "%";
 				else if (item.m_sID.Contains("interval"))
-					return val.ToString() + " min";
+					result = val.ToString() + " min";
 				else if (item.m_sID.Contains("duration"))
-					return val.ToString() + " sec";
+					result = val.ToString() + " sec";
 				else if (item.m_sID.Contains("scale"))
-					return (val * 100).ToString() + "%";
+					result = (val * 100).ToString() + "%";
 				else
-					return val.ToString();
+					result = val.ToString();
+				break;
 			
 			case ERBLSettingType.DROPDOWN:
 				int idx = mgr.GetSettingInt(item.m_sID);
 				if (idx >= 0 && idx < item.m_aOptions.Count())
-					return item.m_aOptions[idx];
-				return "Unknown";
+					result = item.m_aOptions[idx];
+				else
+					result = "Unknown";
+				break;
 			
 			case ERBLSettingType.INTEGER:
-				return mgr.GetSettingInt(item.m_sID).ToString();
+				result = mgr.GetSettingInt(item.m_sID).ToString();
+				break;
 		}
 		
-		return "N/A";
+		return result;
 	}
 	
 	// ========================================================================

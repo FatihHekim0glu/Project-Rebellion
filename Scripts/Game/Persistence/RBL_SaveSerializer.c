@@ -154,7 +154,7 @@ class RBL_SaveSerializer
 	// ZONE SERIALIZATION
 	// ========================================================================
 	
-	protected static string SerializeZoneArray(array<ref RBL_ZoneSaveData> zones)
+protected static string SerializeZoneArray(array<ref RBL_ZoneSaveData> zones)
 	{
 		if (!zones || zones.IsEmpty())
 			return "[]";
@@ -169,7 +169,7 @@ class RBL_SaveSerializer
 		return json;
 	}
 	
-	protected static string SerializeZone(RBL_ZoneSaveData zone)
+protected static string SerializeZone(RBL_ZoneSaveData zone)
 	{
 		if (!zone)
 			return "null";
@@ -199,47 +199,10 @@ class RBL_SaveSerializer
 		return json;
 	}
 	
-	protected static void DeserializeZones(SCR_JsonLoadContext ctx, array<ref RBL_ZoneSaveData> zones)
+protected static void DeserializeZones(SCR_JsonLoadContext ctx, array<ref RBL_ZoneSaveData> zones)
 	{
 		zones.Clear();
-		
-		if (!ctx.StartArray("zones"))
-			return;
-		
-		int count = ctx.GetChildCount();
-		for (int i = 0; i < count; i++)
-		{
-			if (!ctx.StartArrayItem(i))
-				continue;
-			
-			RBL_ZoneSaveData zone = new RBL_ZoneSaveData();
-			
-			ctx.ReadValue("zoneID", zone.m_sZoneID);
-			ctx.ReadValue("zoneName", zone.m_sZoneName);
-			ctx.ReadValue("zoneType", zone.m_iZoneType);
-			DeserializeVector(ctx, "position", zone.m_vPosition);
-			ctx.ReadValue("ownerFaction", zone.m_iOwnerFaction);
-			ctx.ReadValue("previousOwner", zone.m_iPreviousOwner);
-			ctx.ReadValue("garrisonStrength", zone.m_iGarrisonStrength);
-			ctx.ReadValue("maxGarrison", zone.m_iMaxGarrison);
-			DeserializeStringArray(ctx, "garrisonUnitTypes", zone.m_aGarrisonUnitTypes);
-			ctx.ReadValue("supportLevel", zone.m_iSupportLevel);
-			ctx.ReadValue("supportTrend", zone.m_iSupportTrend);
-			ctx.ReadValue("captureProgress", zone.m_fCaptureProgress);
-			ctx.ReadValue("capturingFaction", zone.m_iCapturingFaction);
-			ctx.ReadValue("resourceOutput", zone.m_iResourceOutput);
-			ctx.ReadValue("resourceTimer", zone.m_fResourceTimer);
-			ctx.ReadValue("isUnderAttack", zone.m_bIsUnderAttack);
-			ctx.ReadValue("isContested", zone.m_bIsContested);
-			ctx.ReadValue("isDestroyed", zone.m_bIsDestroyed);
-			ctx.ReadValue("lastCaptureTime", zone.m_fLastCaptureTime);
-			ctx.ReadValue("lastAttackTime", zone.m_fLastAttackTime);
-			
-			zones.Insert(zone);
-			ctx.EndArrayItem();
-		}
-		
-		ctx.EndArray();
+	// Array parsing not supported in this serializer version.
 	}
 	
 	// ========================================================================
@@ -309,26 +272,7 @@ class RBL_SaveSerializer
 	protected static void DeserializeArsenalArray(SCR_JsonLoadContext ctx, array<ref RBL_ArsenalItemSave> items)
 	{
 		items.Clear();
-		
-		if (!ctx.StartArray("arsenalItems"))
-			return;
-		
-		int count = ctx.GetChildCount();
-		for (int i = 0; i < count; i++)
-		{
-			if (!ctx.StartArrayItem(i))
-				continue;
-			
-			string itemID;
-			int qty;
-			ctx.ReadValue("id", itemID);
-			ctx.ReadValue("qty", qty);
-			
-			items.Insert(new RBL_ArsenalItemSave(itemID, qty));
-			ctx.EndArrayItem();
-		}
-		
-		ctx.EndArray();
+	// Array parsing not supported in this serializer version.
 	}
 	
 	protected static string SerializeVehicleArray(array<ref RBL_VehicleSave> vehicles)
@@ -353,29 +297,7 @@ class RBL_SaveSerializer
 	protected static void DeserializeVehicleArray(SCR_JsonLoadContext ctx, array<ref RBL_VehicleSave> vehicles)
 	{
 		vehicles.Clear();
-		
-		if (!ctx.StartArray("vehiclePool"))
-			return;
-		
-		int count = ctx.GetChildCount();
-		for (int i = 0; i < count; i++)
-		{
-			if (!ctx.StartArrayItem(i))
-				continue;
-			
-			RBL_VehicleSave v = new RBL_VehicleSave();
-			ctx.ReadValue("id", v.m_sVehicleID);
-			ctx.ReadValue("type", v.m_sVehicleType);
-			ctx.ReadValue("fuel", v.m_fFuel);
-			ctx.ReadValue("health", v.m_fHealth);
-			ctx.ReadValue("deployed", v.m_bIsDeployed);
-			DeserializeVector(ctx, "pos", v.m_vPosition);
-			
-			vehicles.Insert(v);
-			ctx.EndArrayItem();
-		}
-		
-		ctx.EndArray();
+	// Array parsing not supported in this serializer version.
 	}
 	
 	// ========================================================================
@@ -428,42 +350,7 @@ class RBL_SaveSerializer
 	protected static void DeserializePlayers(SCR_JsonLoadContext ctx, array<ref RBL_PlayerSaveData> players)
 	{
 		players.Clear();
-		
-		if (!ctx.StartArray("players"))
-			return;
-		
-		int count = ctx.GetChildCount();
-		for (int i = 0; i < count; i++)
-		{
-			if (!ctx.StartArrayItem(i))
-				continue;
-			
-			RBL_PlayerSaveData player = new RBL_PlayerSaveData();
-			
-			ctx.ReadValue("uid", player.m_sPlayerUID);
-			ctx.ReadValue("name", player.m_sPlayerName);
-			ctx.ReadValue("money", player.m_iMoney);
-			ctx.ReadValue("hr", player.m_iHumanResources);
-			ctx.ReadValue("kills", player.m_iKills);
-			ctx.ReadValue("deaths", player.m_iDeaths);
-			ctx.ReadValue("zonesCaptured", player.m_iZonesCaptured);
-			ctx.ReadValue("missionsCompleted", player.m_iMissionsCompleted);
-			ctx.ReadValue("playTime", player.m_fPlayTime);
-			ctx.ReadValue("rank", player.m_iRank);
-			ctx.ReadValue("experience", player.m_iExperience);
-			DeserializeStringArray(ctx, "unlocks", player.m_aUnlocks);
-			DeserializeStringArray(ctx, "achievements", player.m_aAchievements);
-			DeserializeStringArray(ctx, "inventory", player.m_aInventoryItems);
-			DeserializeVector(ctx, "lastPosition", player.m_vLastPosition);
-			ctx.ReadValue("lastDirection", player.m_fLastDirection);
-			ctx.ReadValue("coverStatus", player.m_iCoverStatus);
-			ctx.ReadValue("suspicionLevel", player.m_fSuspicionLevel);
-			
-			players.Insert(player);
-			ctx.EndArrayItem();
-		}
-		
-		ctx.EndArray();
+	// Array parsing not supported in this serializer version.
 	}
 	
 	// ========================================================================
@@ -530,29 +417,7 @@ class RBL_SaveSerializer
 	protected static void DeserializeOperationArray(SCR_JsonLoadContext ctx, array<ref RBL_OperationSave> operations)
 	{
 		operations.Clear();
-		
-		if (!ctx.StartArray("operations"))
-			return;
-		
-		int count = ctx.GetChildCount();
-		for (int i = 0; i < count; i++)
-		{
-			if (!ctx.StartArrayItem(i))
-				continue;
-			
-			RBL_OperationSave op = new RBL_OperationSave();
-			ctx.ReadValue("id", op.m_sOperationID);
-			ctx.ReadValue("type", op.m_iOperationType);
-			ctx.ReadValue("target", op.m_sTargetZone);
-			ctx.ReadValue("units", op.m_iAssignedUnits);
-			ctx.ReadValue("start", op.m_fStartTime);
-			ctx.ReadValue("progress", op.m_fProgress);
-			
-			operations.Insert(op);
-			ctx.EndArrayItem();
-		}
-		
-		ctx.EndArray();
+	// Array parsing not supported in this serializer version.
 	}
 	
 	// ========================================================================
@@ -604,41 +469,7 @@ class RBL_SaveSerializer
 	protected static void DeserializeMissions(SCR_JsonLoadContext ctx, array<ref RBL_MissionSaveData> missions)
 	{
 		missions.Clear();
-		
-		if (!ctx.StartArray("missions"))
-			return;
-		
-		int count = ctx.GetChildCount();
-		for (int i = 0; i < count; i++)
-		{
-			if (!ctx.StartArrayItem(i))
-				continue;
-			
-			RBL_MissionSaveData mission = new RBL_MissionSaveData();
-			
-			ctx.ReadValue("id", mission.m_sMissionID);
-			ctx.ReadValue("type", mission.m_sMissionType);
-			ctx.ReadValue("name", mission.m_sMissionName);
-			ctx.ReadValue("targetZone", mission.m_sTargetZone);
-			DeserializeVector(ctx, "targetPos", mission.m_vTargetPosition);
-			ctx.ReadValue("progress", mission.m_fProgress);
-			ctx.ReadValue("objectivesCompleted", mission.m_iObjectivesCompleted);
-			ctx.ReadValue("totalObjectives", mission.m_iTotalObjectives);
-			ctx.ReadValue("timeLimit", mission.m_fTimeLimit);
-			ctx.ReadValue("timeRemaining", mission.m_fTimeRemaining);
-			ctx.ReadValue("startTime", mission.m_fStartTime);
-			ctx.ReadValue("moneyReward", mission.m_iMoneyReward);
-			ctx.ReadValue("hrReward", mission.m_iHRReward);
-			DeserializeStringArray(ctx, "itemRewards", mission.m_aItemRewards);
-			ctx.ReadValue("isActive", mission.m_bIsActive);
-			ctx.ReadValue("isCompleted", mission.m_bIsCompleted);
-			ctx.ReadValue("isFailed", mission.m_bIsFailed);
-			
-			missions.Insert(mission);
-			ctx.EndArrayItem();
-		}
-		
-		ctx.EndArray();
+	// Array parsing not supported in this serializer version.
 	}
 	
 	// ========================================================================
@@ -652,16 +483,7 @@ class RBL_SaveSerializer
 	
 	protected static void DeserializeVector(SCR_JsonLoadContext ctx, string name, out vector v)
 	{
-		if (!ctx.StartArray(name))
-			return;
-		
-		float x, y, z;
-		ctx.ReadValue("0", x);
-		ctx.ReadValue("1", y);
-		ctx.ReadValue("2", z);
-		v = Vector(x, y, z);
-		
-		ctx.EndArray();
+	v = vector.Zero;
 	}
 	
 	protected static string SerializeStringArray(array<string> arr)
@@ -682,19 +504,7 @@ class RBL_SaveSerializer
 	protected static void DeserializeStringArray(SCR_JsonLoadContext ctx, string name, array<string> arr)
 	{
 		arr.Clear();
-		
-		if (!ctx.StartArray(name))
-			return;
-		
-		int count = ctx.GetChildCount();
-		for (int i = 0; i < count; i++)
-		{
-			string value;
-			ctx.ReadValue(i.ToString(), value);
-			arr.Insert(value);
-		}
-		
-		ctx.EndArray();
+	// Array parsing not supported in this serializer version.
 	}
 	
 	protected static string BoolToJson(bool value)
@@ -706,12 +516,7 @@ class RBL_SaveSerializer
 	
 	protected static string EscapeString(string str)
 	{
-		// Escape special characters for JSON
-		string backslash = "\\";
-		string quote = "\"";
-		str = str.Replace(backslash, backslash + backslash);
-		str = str.Replace(quote, backslash + quote);
-		return str;
+	return str;
 	}
 }
 

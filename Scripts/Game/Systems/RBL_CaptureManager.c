@@ -80,14 +80,10 @@ class RBL_CaptureManager
 		if (!netMgr)
 			return;
 		
-		array<string> zoneIDs = new array<string>();
-		m_mCaptureProgress.GetKeyArray(zoneIDs);
-		
-		for (int i = 0; i < zoneIDs.Count(); i++)
+		for (int i = 0; i < m_mCaptureProgress.Count(); i++)
 		{
-			string zoneID = zoneIDs[i];
-			float progress = 0;
-			m_mCaptureProgress.Find(zoneID, progress);
+			string zoneID = m_mCaptureProgress.GetKey(i);
+			float progress = m_mCaptureProgress.Get(zoneID);
 			
 			if (progress > 0)
 			{

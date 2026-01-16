@@ -174,6 +174,8 @@ class RBL_SettingsData
 	bool m_bShowKeybindHints = true;
 	bool m_bShowDamageNumbers = true;
 	bool m_bShowCaptureBar = true;
+	bool m_bShowZoneInfo = false;
+	bool m_bShowUndercoverStatus = false;
 	
 	// ---- AUDIO ----
 	float m_fMasterVolume = 1.0;                 // 0.0 - 1.0
@@ -208,9 +210,11 @@ class RBL_SettingsData
 		m_bShowMinimap = true;
 		m_bShowNotifications = true;
 		m_fNotificationDuration = 4.0;
-		m_bShowKeybindHints = true;
+		m_bShowKeybindHints = false;
 		m_bShowDamageNumbers = true;
 		m_bShowCaptureBar = true;
+		m_bShowZoneInfo = false;
+		m_bShowUndercoverStatus = false;
 		
 		m_fMasterVolume = 1.0;
 		m_fMusicVolume = 0.7;
@@ -251,6 +255,8 @@ class RBL_SettingsData
 		m_bShowKeybindHints = other.m_bShowKeybindHints;
 		m_bShowDamageNumbers = other.m_bShowDamageNumbers;
 		m_bShowCaptureBar = other.m_bShowCaptureBar;
+		m_bShowZoneInfo = other.m_bShowZoneInfo;
+		m_bShowUndercoverStatus = other.m_bShowUndercoverStatus;
 		
 		m_fMasterVolume = other.m_fMasterVolume;
 		m_fMusicVolume = other.m_fMusicVolume;

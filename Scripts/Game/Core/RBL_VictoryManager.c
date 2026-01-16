@@ -249,7 +249,17 @@ class RBL_VictoryManager
 	// STATE CHANGES
 	// ========================================================================
 	
-	protected void TriggerVictory(ERBLVictoryCondition condition)
+	void TriggerVictory()
+	{
+		TriggerVictory(ERBLVictoryCondition.NONE);
+	}
+	
+	void TriggerDefeat()
+	{
+		TriggerDefeat(ERBLDefeatCondition.NONE);
+	}
+	
+	void TriggerVictory(ERBLVictoryCondition condition)
 	{
 		if (m_eCampaignState != ERBLCampaignState.ACTIVE)
 			return;
@@ -274,7 +284,7 @@ class RBL_VictoryManager
 			campMgr.EndCampaign(true);
 	}
 	
-	protected void TriggerDefeat(ERBLDefeatCondition condition)
+	void TriggerDefeat(ERBLDefeatCondition condition)
 	{
 		if (m_eCampaignState != ERBLCampaignState.ACTIVE)
 			return;

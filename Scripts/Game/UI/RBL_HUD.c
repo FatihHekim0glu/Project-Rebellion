@@ -49,10 +49,6 @@ class RBL_HUDManager
 		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
 		if (uiMgr)
 			uiMgr.SetVisible(m_bVisible);
-		
-		RBL_ScreenHUD screenHUD = RBL_ScreenHUD.GetInstance();
-		if (screenHUD)
-			screenHUD.SetEnabled(m_bVisible);
 	}
 	
 	void SetVisible(bool visible)
@@ -62,10 +58,6 @@ class RBL_HUDManager
 		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
 		if (uiMgr)
 			uiMgr.SetVisible(visible);
-		
-		RBL_ScreenHUD screenHUD = RBL_ScreenHUD.GetInstance();
-		if (screenHUD)
-			screenHUD.SetEnabled(visible);
 	}
 	
 	bool IsVisible() { return m_bVisible; }

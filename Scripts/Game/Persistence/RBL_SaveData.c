@@ -7,7 +7,7 @@ const int RBL_SAVE_VERSION = 1;
 const string RBL_SAVE_MAGIC = "RBL_SAVE";
 
 // Legacy class for backward compatibility
-class RBL_ZoneSaveData
+class RBL_LegacyZoneSaveData
 {
 	string ZoneID;
 	int Owner;
@@ -15,7 +15,7 @@ class RBL_ZoneSaveData
 	int AlertState;
 	ref array<string> GarrisonUnits;
 	
-	void RBL_ZoneSaveData()
+	void RBL_LegacyZoneSaveData()
 	{
 		GarrisonUnits = new array<string>();
 	}
@@ -51,12 +51,12 @@ class RBL_SaveData
 	string m_sPlayerId;
 	string m_sWorldName;
 	
-	ref RBL_CampaignState m_Campaign;
-	ref array<ref RBL_ZoneState> m_aZones;
-	ref RBL_EconomyState m_Economy;
-	ref array<ref RBL_PlayerState> m_aPlayers;
-	ref RBL_CommanderState m_Commander;
-	ref array<ref RBL_MissionState> m_aMissions;
+	ref RBL_CampaignSaveData m_Campaign;
+	ref array<ref RBL_ZoneSaveData> m_aZones;
+	ref RBL_EconomySaveData m_Economy;
+	ref array<ref RBL_PlayerSaveData> m_aPlayers;
+	ref RBL_CommanderSaveData m_Commander;
+	ref array<ref RBL_MissionSaveData> m_aMissions;
 	
 	void RBL_SaveData()
 	{
@@ -66,12 +66,12 @@ class RBL_SaveData
 		m_sPlayerId = "";
 		m_sWorldName = "";
 		
-		m_Campaign = new RBL_CampaignState();
-		m_aZones = new array<ref RBL_ZoneState>();
-		m_Economy = new RBL_EconomyState();
-		m_aPlayers = new array<ref RBL_PlayerState>();
-		m_Commander = new RBL_CommanderState();
-		m_aMissions = new array<ref RBL_MissionState>();
+		m_Campaign = new RBL_CampaignSaveData();
+		m_aZones = new array<ref RBL_ZoneSaveData>();
+		m_Economy = new RBL_EconomySaveData();
+		m_aPlayers = new array<ref RBL_PlayerSaveData>();
+		m_Commander = new RBL_CommanderSaveData();
+		m_aMissions = new array<ref RBL_MissionSaveData>();
 	}
 	
 	bool IsValid()
@@ -86,9 +86,9 @@ class RBL_SaveData
 }
 
 // ============================================================================
-// CAMPAIGN STATE
+// CAMPAIGN SAVE DATA
 // ============================================================================
-class RBL_CampaignState
+class RBL_CampaignSaveData
 {
 	int m_iWarLevel;
 	int m_iAggression;
@@ -105,7 +105,7 @@ class RBL_CampaignState
 	string m_sStartDate;
 	string m_sLastPlayDate;
 	
-	void RBL_CampaignState()
+	void RBL_CampaignSaveData()
 	{
 		m_iWarLevel = 1;
 		m_iAggression = 0;
@@ -125,9 +125,9 @@ class RBL_CampaignState
 }
 
 // ============================================================================
-// ZONE STATE
+// ZONE SAVE DATA
 // ============================================================================
-class RBL_ZoneState
+class RBL_ZoneSaveData
 {
 	string m_sZoneID;
 	string m_sZoneName;
@@ -150,7 +150,7 @@ class RBL_ZoneState
 	float m_fLastCaptureTime;
 	float m_fLastAttackTime;
 	
-	void RBL_ZoneState()
+	void RBL_ZoneSaveData()
 	{
 		m_sZoneID = "";
 		m_sZoneName = "";
@@ -176,9 +176,9 @@ class RBL_ZoneState
 }
 
 // ============================================================================
-// ECONOMY STATE
+// ECONOMY SAVE DATA
 // ============================================================================
-class RBL_EconomyState
+class RBL_EconomySaveData
 {
 	int m_iFIAMoney;
 	int m_iFIAHumanResources;
@@ -194,7 +194,7 @@ class RBL_EconomyState
 	int m_iTotalItemsBought;
 	int m_iTotalItemsSold;
 	
-	void RBL_EconomyState()
+	void RBL_EconomySaveData()
 	{
 		m_iFIAMoney = 500;
 		m_iFIAHumanResources = 10;
@@ -217,10 +217,10 @@ class RBL_ArsenalItemSave
 	string m_sItemID;
 	int m_iQuantity;
 	
-	void RBL_ArsenalItemSave()
+	void RBL_ArsenalItemSave(string itemID = "", int quantity = 0)
 	{
-		m_sItemID = "";
-		m_iQuantity = 0;
+		m_sItemID = itemID;
+		m_iQuantity = quantity;
 	}
 }
 
@@ -245,9 +245,9 @@ class RBL_VehicleSave
 }
 
 // ============================================================================
-// PLAYER STATE
+// PLAYER SAVE DATA
 // ============================================================================
-class RBL_PlayerState
+class RBL_PlayerSaveData
 {
 	string m_sPlayerUID;
 	string m_sPlayerName;
@@ -268,7 +268,7 @@ class RBL_PlayerState
 	int m_iCoverStatus;
 	float m_fSuspicionLevel;
 	
-	void RBL_PlayerState()
+	void RBL_PlayerSaveData()
 	{
 		m_sPlayerUID = "";
 		m_sPlayerName = "";
@@ -292,9 +292,9 @@ class RBL_PlayerState
 }
 
 // ============================================================================
-// COMMANDER AI STATE
+// COMMANDER AI SAVE DATA
 // ============================================================================
-class RBL_CommanderState
+class RBL_CommanderSaveData
 {
 	int m_iCommanderResources;
 	int m_iReinforcementPool;
@@ -307,7 +307,7 @@ class RBL_CommanderState
 	ref array<string> m_aKnownPlayerPositions;
 	ref array<string> m_aRecentlyAttackedZones;
 	
-	void RBL_CommanderState()
+	void RBL_CommanderSaveData()
 	{
 		m_iCommanderResources = 100;
 		m_iReinforcementPool = 50;
@@ -343,9 +343,9 @@ class RBL_OperationSave
 }
 
 // ============================================================================
-// MISSION STATE
+// MISSION SAVE DATA
 // ============================================================================
-class RBL_MissionState
+class RBL_MissionSaveData
 {
 	string m_sMissionID;
 	string m_sMissionType;
@@ -365,7 +365,7 @@ class RBL_MissionState
 	bool m_bIsCompleted;
 	bool m_bIsFailed;
 	
-	void RBL_MissionState()
+	void RBL_MissionSaveData()
 	{
 		m_sMissionID = "";
 		m_sMissionType = "";
@@ -434,7 +434,7 @@ class RBL_SaveSlotInfo
 	{
 		int totalSecs = seconds;
 		int hours = totalSecs / 3600;
-		int mins = RBL_Mod(totalSecs, 3600) / 60;
+		int mins = (totalSecs - (hours * 3600)) / 60;
 		return string.Format("%1h %2m", hours, mins);
 	}
 }

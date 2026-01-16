@@ -41,6 +41,7 @@ class RBL_UndercoverSystem
 	protected ref array<string> m_aRestrictedZoneTypes;
 	
 	protected ref map<int, ref RBL_PlayerCoverState> m_mPlayerStates;
+	protected bool m_bEnabled;
 	
 	// Events
 	protected ref ScriptInvoker m_OnStatusChanged;
@@ -59,6 +60,7 @@ class RBL_UndercoverSystem
 		m_OnStatusChanged = new ScriptInvoker();
 		m_OnCoverBlown = new ScriptInvoker();
 		m_fTimeSinceCheck = 0;
+		m_bEnabled = true;
 		
 		InitializeIllegalItems();
 		InitializeRestrictedZones();
@@ -116,6 +118,9 @@ class RBL_UndercoverSystem
 	// ========================================================================
 	void Update(float timeSlice)
 	{
+		if (!m_bEnabled)
+			return;
+		
 		m_fTimeSinceCheck += timeSlice;
 		
 		if (m_fTimeSinceCheck < CHECK_INTERVAL)
@@ -561,6 +566,50 @@ class RBL_UndercoverSystem
 			return state.m_fSuspicionLevel;
 		return 0;
 	}
+	
+	// Persistence-friendly wrappers
+	int GetCoverStatus(int playerID)
+	{
+		return GetPlayerCoverStatus(playerID);
+	}
+	
+	float GetSuspicionLevel(int playerID)
+	{
+		return GetPlayerSuspicionLevel(playerID);
+	}
+	
+	void SetCoverStatus(int playerID, int status)
+	{
+		RBL_PlayerCoverState state = GetOrCreatePlayerState(playerID);
+		if (!state)
+			return;
+		
+		ERBLCoverStatus statusEnum = ERBLCoverStatus.HIDDEN;
+		switch (status)
+		{
+			case 1: statusEnum = ERBLCoverStatus.SUSPICIOUS; break;
+			case 2: statusEnum = ERBLCoverStatus.SPOTTED; break;
+			case 3: statusEnum = ERBLCoverStatus.COMPROMISED; break;
+			case 4: statusEnum = ERBLCoverStatus.HOSTILE; break;
+			default: statusEnum = ERBLCoverStatus.HIDDEN; break;
+		}
+		
+		state.SetStatus(statusEnum);
+	}
+	
+	void SetSuspicionLevel(int playerID, float level)
+	{
+		RBL_PlayerCoverState state = GetOrCreatePlayerState(playerID);
+		if (state)
+			state.m_fSuspicionLevel = Math.Clamp(level, 0, 1);
+	}
+	
+	void SetEnabled(bool enabled)
+	{
+		m_bEnabled = enabled;
+	}
+	
+	bool IsEnabled() { return m_bEnabled; }
 	
 	bool IsPlayerUndercover(int playerID)
 	{

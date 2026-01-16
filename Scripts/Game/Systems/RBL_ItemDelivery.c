@@ -385,13 +385,13 @@ class RBL_ItemDelivery
 		ERBLDeliveryResult result;
 		
 		// Route to appropriate delivery method
-		if (item.Category == "Weapons")
+		if (item.GetCategory() == "Weapons")
 			result = DeliverWeapon(playerEntity, item);
-		else if (item.Category == "Equipment")
+		else if (item.GetCategory() == "Equipment")
 			result = DeliverEquipment(playerEntity, item);
-		else if (item.Category == "Vehicles")
+		else if (item.GetCategory() == "Vehicles")
 			result = DeliverVehicle(playerEntity, item);
-		else if (item.Category == "Recruits")
+		else if (item.GetCategory() == "Recruits")
 			result = DeliverRecruit(playerEntity, item, playerID);
 		else
 			result = ERBLDeliveryResult.FAILED_NO_PREFAB;
@@ -405,25 +405,25 @@ class RBL_ItemDelivery
 		// Fire events
 		RBL_DeliveryEventData eventData = new RBL_DeliveryEventData();
 		eventData.PlayerID = playerID;
-		eventData.ItemID = item.ID;
-		eventData.Category = item.Category;
+		eventData.ItemID = item.GetID();
+		eventData.Category = item.GetCategory();
 		eventData.Result = result;
 		
 		if (result == ERBLDeliveryResult.SUCCESS)
 		{
 			m_OnItemDelivered.Invoke(eventData);
-			PrintFormat("[RBL_Delivery] Delivered %1 to player %2", item.DisplayName, playerID);
+			PrintFormat("[RBL_Delivery] Delivered %1 to player %2", item.GetDisplayName(), playerID);
 			
 			// Show category-specific notifications
-			NotifyDeliverySuccess(item.DisplayName, item.Category);
+			NotifyDeliverySuccess(item.GetDisplayName(), item.GetCategory());
 		}
 		else
 		{
 			m_OnDeliveryFailed.Invoke(eventData);
-			PrintFormat("[RBL_Delivery] Failed to deliver %1: %2", item.DisplayName, typename.EnumToString(ERBLDeliveryResult, result));
+			PrintFormat("[RBL_Delivery] Failed to deliver %1: %2", item.GetDisplayName(), typename.EnumToString(ERBLDeliveryResult, result));
 			
 			// Show failure notification
-			RBL_Notifications.DeliveryFailed(item.DisplayName);
+			RBL_Notifications.DeliveryFailed(item.GetDisplayName());
 		}
 		
 		return result;
@@ -434,7 +434,7 @@ class RBL_ItemDelivery
 	// ========================================================================
 	ERBLDeliveryResult DeliverWeapon(IEntity playerEntity, RBL_ShopItem item)
 	{
-		if (!playerEntity || item.PrefabPath.IsEmpty())
+		if (!playerEntity || item.GetPrefabPath().IsEmpty())
 			return ERBLDeliveryResult.FAILED_NO_PREFAB;
 		
 		// Check if valid target
@@ -443,7 +443,7 @@ class RBL_ItemDelivery
 		
 		// Spawn the weapon near player (not exactly at origin to avoid collision)
 		vector spawnPos = playerEntity.GetOrigin() + Vector(0, 1, 0);
-		IEntity weaponEntity = SpawnEntity(item.PrefabPath, spawnPos);
+		IEntity weaponEntity = SpawnEntity(item.GetPrefabPath(), spawnPos);
 		if (!weaponEntity)
 			return ERBLDeliveryResult.FAILED_SPAWN_ERROR;
 		
@@ -452,7 +452,7 @@ class RBL_ItemDelivery
 		
 		if (added)
 		{
-			PrintFormat("[RBL_Delivery] Weapon %1 added to inventory", item.DisplayName);
+			PrintFormat("[RBL_Delivery] Weapon %1 added to inventory", item.GetDisplayName());
 			
 			// Try to equip the weapon
 			TryEquipWeapon(playerEntity, weaponEntity);
@@ -462,7 +462,7 @@ class RBL_ItemDelivery
 			// If can't add to inventory, drop at player's feet
 			vector dropPos = GetWeaponDropPosition(playerEntity);
 			weaponEntity.SetOrigin(dropPos);
-			PrintFormat("[RBL_Delivery] Weapon %1 dropped at player's feet", item.DisplayName);
+			PrintFormat("[RBL_Delivery] Weapon %1 dropped at player's feet", item.GetDisplayName());
 		}
 		
 		return ERBLDeliveryResult.SUCCESS;
@@ -517,7 +517,7 @@ class RBL_ItemDelivery
 	// ========================================================================
 	ERBLDeliveryResult DeliverEquipment(IEntity playerEntity, RBL_ShopItem item)
 	{
-		if (!playerEntity || item.PrefabPath.IsEmpty())
+		if (!playerEntity || item.GetPrefabPath().IsEmpty())
 			return ERBLDeliveryResult.FAILED_NO_PREFAB;
 		
 		// Check if valid target
@@ -526,7 +526,7 @@ class RBL_ItemDelivery
 		
 		// Spawn the equipment near player
 		vector spawnPos = playerEntity.GetOrigin() + Vector(0, 1, 0);
-		IEntity equipEntity = SpawnEntity(item.PrefabPath, spawnPos);
+		IEntity equipEntity = SpawnEntity(item.GetPrefabPath(), spawnPos);
 		if (!equipEntity)
 			return ERBLDeliveryResult.FAILED_SPAWN_ERROR;
 		
@@ -535,7 +535,7 @@ class RBL_ItemDelivery
 		
 		if (added)
 		{
-			PrintFormat("[RBL_Delivery] Equipment %1 added to inventory", item.DisplayName);
+			PrintFormat("[RBL_Delivery] Equipment %1 added to inventory", item.GetDisplayName());
 		}
 		else
 		{
@@ -547,7 +547,7 @@ class RBL_ItemDelivery
 				// Drop at player's feet as last resort
 				vector dropPos = GetEquipmentDropPosition(playerEntity);
 				equipEntity.SetOrigin(dropPos);
-				PrintFormat("[RBL_Delivery] Equipment %1 dropped at player's feet", item.DisplayName);
+				PrintFormat("[RBL_Delivery] Equipment %1 dropped at player's feet", item.GetDisplayName());
 			}
 		}
 		
@@ -598,7 +598,7 @@ class RBL_ItemDelivery
 	// ========================================================================
 	ERBLDeliveryResult DeliverVehicle(IEntity playerEntity, RBL_ShopItem item)
 	{
-		if (!playerEntity || item.PrefabPath.IsEmpty())
+		if (!playerEntity || item.GetPrefabPath().IsEmpty())
 			return ERBLDeliveryResult.FAILED_NO_PREFAB;
 		
 		// Check if valid target
@@ -616,11 +616,11 @@ class RBL_ItemDelivery
 		}
 		
 		// Spawn the vehicle
-		IEntity vehicleEntity = SpawnVehicle(item.PrefabPath, spawnPos, playerEntity.GetAngles()[1]);
+		IEntity vehicleEntity = SpawnVehicle(item.GetPrefabPath(), spawnPos, playerEntity.GetAngles()[1]);
 		if (!vehicleEntity)
 			return ERBLDeliveryResult.FAILED_SPAWN_ERROR;
 		
-		PrintFormat("[RBL_Delivery] Vehicle %1 spawned at %2", item.DisplayName, spawnPos.ToString());
+		PrintFormat("[RBL_Delivery] Vehicle %1 spawned at %2", item.GetDisplayName(), spawnPos.ToString());
 		
 		return ERBLDeliveryResult.SUCCESS;
 	}
@@ -717,7 +717,7 @@ class RBL_ItemDelivery
 			return ERBLDeliveryResult.FAILED_NO_PLAYER;
 		
 		// Get recruit prefab
-		string prefab = GetRecruitPrefab(item.ID);
+		string prefab = GetRecruitPrefab(item.GetID());
 		if (prefab.IsEmpty())
 			return ERBLDeliveryResult.FAILED_NO_PREFAB;
 		
@@ -725,7 +725,7 @@ class RBL_ItemDelivery
 		vector baseSpawnPos = GetRecruitSpawnPosition(playerEntity);
 		
 		// Spawn recruit(s) based on HR cost
-		int recruitCount = item.HRCost;
+		int recruitCount = item.GetHRCost();
 		if (recruitCount <= 0)
 			recruitCount = 1;
 		
@@ -756,7 +756,9 @@ class RBL_ItemDelivery
 			PrintFormat("[RBL_Delivery] %1 recruits added to player's group", successCount);
 		}
 		
-		return (successCount > 0) ? ERBLDeliveryResult.SUCCESS : ERBLDeliveryResult.FAILED_SPAWN_ERROR;
+		if (successCount > 0)
+			return ERBLDeliveryResult.SUCCESS;
+		return ERBLDeliveryResult.FAILED_SPAWN_ERROR;
 	}
 	
 	// Get prefab for recruit type
@@ -817,7 +819,7 @@ class RBL_ItemDelivery
 		// Create a line formation behind player
 		float spacing = 2.0;
 		int row = index / 3;
-		int col = index % 3;
+		int col = index - (index / 3) * 3;
 		
 		float offsetX = (col - 1) * spacing;
 		float offsetZ = -row * spacing;
@@ -971,7 +973,7 @@ class RBL_ItemDelivery
 		return spawnPos;
 	}
 	
-	protected vector GetRecruitSpawnPosition(IEntity playerEntity)
+protected vector GetRecruitSpawnPosition(IEntity playerEntity, int index = 0)
 	{
 		vector playerPos = playerEntity.GetOrigin();
 		vector playerForward = playerEntity.GetAngles();
@@ -980,7 +982,15 @@ class RBL_ItemDelivery
 		float yaw = playerForward[1] * Math.DEG2RAD;
 		vector backward = Vector(-Math.Sin(yaw), 0, -Math.Cos(yaw));
 		
-		vector spawnPos = playerPos + backward * RECRUIT_SPAWN_DISTANCE;
+	vector spawnPos = playerPos + backward * RECRUIT_SPAWN_DISTANCE;
+	
+	// Offset multiple recruits so they don't stack
+	if (index > 0)
+	{
+		float angle = (index * 45) * Math.DEG2RAD;
+		vector offset = Vector(Math.Cos(angle), 0, Math.Sin(angle)) * 1.5;
+		spawnPos = spawnPos + offset;
+	}
 		
 		// Adjust to terrain
 		BaseWorld world = GetGame().GetWorld();
@@ -1058,12 +1068,38 @@ class RBL_ItemDelivery
 	// Get or create an AI group for the player
 	protected AIGroup GetOrCreatePlayerAIGroup(IEntity playerEntity)
 	{
-		AIWorld aiWorld = GetGame().GetAIWorld();
-		if (!aiWorld)
+		if (!playerEntity || !RBL_NetworkUtils.IsServer())
 			return null;
 		
-		// Create a new group
-		AIGroup group = aiWorld.CreateGroup();
+		AIControlComponent aiControl = AIControlComponent.Cast(playerEntity.FindComponent(AIControlComponent));
+		if (aiControl)
+		{
+			AIAgent agent = aiControl.GetAIAgent();
+			if (agent)
+			{
+				AIGroup agentGroup = agent.GetParentGroup();
+				if (agentGroup)
+					return agentGroup;
+			}
+		}
+		
+		FactionAffiliationComponent factionComp = FactionAffiliationComponent.Cast(
+			playerEntity.FindComponent(FactionAffiliationComponent));
+		
+		Faction faction = null;
+		if (factionComp)
+			faction = factionComp.GetAffiliatedFaction();
+		if (!faction)
+			return null;
+		
+		SCR_GroupsManagerComponent groupsMgr = SCR_GroupsManagerComponent.GetInstance();
+		if (!groupsMgr)
+			return null;
+		
+		SCR_AIGroup group = groupsMgr.TryFindEmptyGroup(faction);
+		if (!group)
+			group = groupsMgr.CreateNewPlayableGroup(faction);
+		
 		return group;
 	}
 	
@@ -1083,14 +1119,29 @@ class RBL_ItemDelivery
 		
 		// Get agent's group
 		AIGroup group = agent.GetParentGroup();
-		if (!group)
+		if (!group && RBL_NetworkUtils.IsServer())
 		{
-			// Create group for this agent
-			AIWorld aiWorld = GetGame().GetAIWorld();
-			if (aiWorld)
+			FactionAffiliationComponent factionComp = FactionAffiliationComponent.Cast(
+				recruitEntity.FindComponent(FactionAffiliationComponent));
+			
+			Faction faction = null;
+			if (factionComp)
+				faction = factionComp.GetAffiliatedFaction();
+			if (faction)
 			{
-				group = aiWorld.CreateGroup();
-				group.AddAgent(agent);
+				SCR_GroupsManagerComponent groupsMgr = SCR_GroupsManagerComponent.GetInstance();
+				if (groupsMgr)
+				{
+					SCR_AIGroup newGroup = groupsMgr.TryFindEmptyGroup(faction);
+					if (!newGroup)
+						newGroup = groupsMgr.CreateNewPlayableGroup(faction);
+					
+					if (newGroup)
+					{
+						group = newGroup;
+						group.AddAgent(agent);
+					}
+				}
 			}
 		}
 		
@@ -1211,7 +1262,17 @@ class RBL_ItemDelivery
 			PrintFormat("[RBL_Delivery] FAILED: %1", message);
 		
 		// Try to show HUD notification
-		SCR_HintUIInfo hint = SCR_HintUIInfo.CreateInfo(message, success ? "Delivery" : "Error", 3.0);
+		string hintTitle = "Error";
+		if (success)
+			hintTitle = "Delivery";
+		SCR_HintUIInfo hint = SCR_HintUIInfo.CreateInfo(
+			message,
+			hintTitle,
+			3.0,
+			EHint.UNDEFINED,
+			EFieldManualEntryId.NONE,
+			false
+		);
 		if (hint)
 		{
 			SCR_HintManagerComponent hintMgr = SCR_HintManagerComponent.GetInstance();

@@ -248,7 +248,7 @@ class RBL_Notifications
 	// CORE NOTIFICATION METHOD
 	// ========================================================================
 	
-	protected static void ShowNotification(string message, int color, float duration)
+static void ShowNotification(string message, int color, float duration)
 	{
 		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
 		if (uiMgr)

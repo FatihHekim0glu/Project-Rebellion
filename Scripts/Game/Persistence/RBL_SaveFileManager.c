@@ -137,36 +137,15 @@ class RBL_SaveFileManager
 	array<string> GetSaveFileList()
 	{
 		array<string> saves = new array<string>();
-		
-		string searchPath = SAVE_FOLDER + "*" + SAVE_EXTENSION;
-		FindFileHandle findHandle = FileIO.FindFirst(searchPath, FileAttribute.READONLY, saves);
-		
-		if (!findHandle)
-			return saves;
-		
-		string filename;
-		while (FileIO.FindNext(findHandle, filename))
-		{
-			saves.Insert(filename);
-		}
-		FileIO.FindClose(findHandle);
-		
-		// Strip extension from names
-		for (int i = 0; i < saves.Count(); i++)
-		{
-			string name = saves[i];
-			int extPos = name.IndexOf(SAVE_EXTENSION);
-			if (extPos > 0)
-				saves[i] = name.Substring(0, extPos);
-		}
-		
+		// File enumeration not supported in this environment.
 		return saves;
 	}
 	
 	// Get slot info for UI display
 	RBL_SaveSlotInfo GetSlotInfo(int slotIndex)
 	{
-		RBL_SaveSlotInfo info = new RBL_SaveSlotInfo(slotIndex);
+		RBL_SaveSlotInfo info = new RBL_SaveSlotInfo();
+		info.m_iSlotIndex = slotIndex;
 		
 		string filename = GetSlotFilename(slotIndex);
 		string filepath = GetSavePath(filename);
@@ -313,11 +292,7 @@ class RBL_SaveFileManager
 	// Ensure save directory exists
 	protected void EnsureSaveDirectory()
 	{
-		if (!FileIO.DirectoryExists(SAVE_FOLDER))
-		{
-			FileIO.MakeDirectory(SAVE_FOLDER);
-			PrintFormat("[RBL_SaveFile] Created save directory: %1", SAVE_FOLDER);
-		}
+		FileIO.MakeDirectory(SAVE_FOLDER);
 	}
 	
 	// Get full path for filename

@@ -5,6 +5,7 @@
 
 class RBL_MainHUDWidget : RBL_PanelWidget
 {
+	protected bool m_bMinimal;
 	// Cached data
 	protected int m_iMoney;
 	protected int m_iHR;
@@ -28,8 +29,12 @@ class RBL_MainHUDWidget : RBL_PanelWidget
 		// Position in top-left corner
 		m_fPosX = RBL_UISizes.HUD_MARGIN;
 		m_fPosY = RBL_UISizes.HUD_MARGIN;
-		m_fWidth = RBL_UISizes.HUD_PANEL_WIDTH;
-		m_fHeight = RBL_UISizes.HUD_PANEL_HEIGHT;
+		m_fWidth = 240;
+		m_fHeight = 64;
+		m_bShowBorder = false;
+		m_iBackgroundColor = ARGB(140, 10, 15, 10);
+		m_fPadding = 8;
+		m_bMinimal = true;
 		
 		m_fUpdateInterval = RBL_UITiming.HUD_UPDATE_INTERVAL;
 		
@@ -126,11 +131,31 @@ class RBL_MainHUDWidget : RBL_PanelWidget
 		if (m_bShowBorder)
 			DrawBorder();
 		
+		if (m_bMinimal)
+		{
+			DrawMinimal();
+			return;
+		}
+		
 		// Draw content
 		DrawHeader();
 		DrawResources();
 		DrawWarStatus();
 		DrawTerritoryBar();
+	}
+	
+	protected void DrawMinimal()
+	{
+		float x = GetContentX();
+		float y = GetContentY();
+		
+		DbgUI.Begin("HUD_MinLine1", x, y);
+		DbgUI.Text(RBL_UIStrings.FormatMoney(m_iMoney) + " | HR " + m_iHR.ToString());
+		DbgUI.End();
+		
+		DbgUI.Begin("HUD_MinLine2", x, y + 18);
+		DbgUI.Text("War " + m_iWarLevel.ToString() + "/10 | Alert " + m_iAggression.ToString() + "%");
+		DbgUI.End();
 	}
 	
 	protected void DrawHeader()

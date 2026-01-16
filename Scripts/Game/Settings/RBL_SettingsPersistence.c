@@ -165,6 +165,8 @@ class RBL_SettingsPersistence
 		json += "\"uiScale\":" + settings.m_fUIScale.ToString() + ",";
 		json += "\"showMapMarkers\":" + BoolToString(settings.m_bShowMapMarkers) + ",";
 		json += "\"showZoneNames\":" + BoolToString(settings.m_bShowZoneNames) + ",";
+		json += "\"showZoneInfo\":" + BoolToString(settings.m_bShowZoneInfo) + ",";
+		json += "\"showUndercoverStatus\":" + BoolToString(settings.m_bShowUndercoverStatus) + ",";
 		json += "\"showMinimap\":" + BoolToString(settings.m_bShowMinimap) + ",";
 		json += "\"showNotifications\":" + BoolToString(settings.m_bShowNotifications) + ",";
 		json += "\"notificationDuration\":" + settings.m_fNotificationDuration.ToString() + ",";
@@ -219,10 +221,12 @@ class RBL_SettingsPersistence
 		outSettings.m_fUIScale = ParseFloatValue(json, "uiScale", 1.0);
 		outSettings.m_bShowMapMarkers = ParseBoolValue(json, "showMapMarkers", true);
 		outSettings.m_bShowZoneNames = ParseBoolValue(json, "showZoneNames", true);
+		outSettings.m_bShowZoneInfo = ParseBoolValue(json, "showZoneInfo", false);
+		outSettings.m_bShowUndercoverStatus = ParseBoolValue(json, "showUndercoverStatus", false);
 		outSettings.m_bShowMinimap = ParseBoolValue(json, "showMinimap", true);
 		outSettings.m_bShowNotifications = ParseBoolValue(json, "showNotifications", true);
 		outSettings.m_fNotificationDuration = ParseFloatValue(json, "notificationDuration", 4.0);
-		outSettings.m_bShowKeybindHints = ParseBoolValue(json, "showKeybindHints", true);
+		outSettings.m_bShowKeybindHints = ParseBoolValue(json, "showKeybindHints", false);
 		outSettings.m_bShowDamageNumbers = ParseBoolValue(json, "showDamageNumbers", true);
 		outSettings.m_bShowCaptureBar = ParseBoolValue(json, "showCaptureBar", true);
 		
@@ -415,11 +419,7 @@ class RBL_SettingsPersistence
 	
 	protected void EnsureSettingsDirectory()
 	{
-		if (!FileIO.DirectoryExists(RBL_SettingsConstants.SETTINGS_FOLDER))
-		{
-			FileIO.MakeDirectory(RBL_SettingsConstants.SETTINGS_FOLDER);
-			PrintFormat("[RBL_SettingsPersistence] Created settings directory");
-		}
+		FileIO.MakeDirectory(RBL_SettingsConstants.SETTINGS_FOLDER);
 	}
 	
 	string GetSettingsFilePath()

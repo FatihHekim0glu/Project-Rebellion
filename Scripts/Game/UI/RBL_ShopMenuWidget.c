@@ -613,5 +613,10 @@ class RBL_ShopMenuWidgetImpl : RBL_PanelWidget
 	// Getters for testing
 	int GetSelectedCategoryIndex() { return m_iSelectedCategoryIndex; }
 	int GetSelectedItemIndex() { return m_iSelectedItemIndex; }
-	int GetCategoryCount() { return m_aCategories ? m_aCategories.Count() : 0; }
+	int GetCategoryCount()
+	{
+		if (m_aCategories)
+			return m_aCategories.Count();
+		return 0;
+	}
 }

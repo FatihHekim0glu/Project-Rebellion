@@ -568,6 +568,7 @@ class RBL_MissionGenerator
 			default:
 				return 1;
 		}
+		return 1;
 	}
 }
 

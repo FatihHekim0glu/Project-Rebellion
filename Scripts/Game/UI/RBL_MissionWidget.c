@@ -141,8 +141,9 @@ class RBL_MissionListWidget : RBL_PanelWidget
 			if (mission.HasTimeLimit())
 			{
 				float timeLeft = mission.GetTimeRemaining();
-				int mins = timeLeft / 60;
-				int secs = timeLeft % 60;
+				int totalSecs = timeLeft;
+				int mins = totalSecs / 60;
+				int secs = totalSecs - (mins * 60);
 				string secPad1 = "";
 				if (secs < 10) secPad1 = "0";
 				statusText += " [" + mins.ToString() + ":" + secPad1 + secs.ToString() + "]";
@@ -283,8 +284,9 @@ class RBL_ObjectiveTrackerWidget : RBL_PanelWidget
 			if (timeLeft < 60) timeColor = RBL_UIColors.COLOR_ACCENT_RED;
 			timeColor = ApplyAlpha(timeColor, m_fAlpha);
 			
-			int mins = timeLeft / 60;
-			int secs = timeLeft % 60;
+			int totalSecs = timeLeft;
+			int mins = totalSecs / 60;
+			int secs = totalSecs - (mins * 60);
 			string secPad2 = "";
 			if (secs < 10) secPad2 = "0";
 			string timeStr = mins.ToString() + ":" + secPad2 + secs.ToString();

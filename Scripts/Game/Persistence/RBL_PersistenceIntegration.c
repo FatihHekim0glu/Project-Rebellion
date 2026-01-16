@@ -328,24 +328,15 @@ class RBL_PersistenceIntegration
 	
 	protected string GetHostPlayerUID()
 	{
-		PlayerManager pm = GetGame().GetPlayerManager();
-		if (!pm)
+		int playerId = RBL_NetworkUtils.GetLocalPlayerID();
+		if (playerId < 0)
 			return "";
-		
-		IEntity controlled = GetGame().GetPlayerController().GetControlledEntity();
-		if (!controlled)
-			return "";
-		
-		int playerId = pm.GetPlayerIdFromControlledEntity(controlled);
-		return pm.GetPlayerUID(playerId);
+		return playerId.ToString();
 	}
 	
 	protected string GetWorldName()
 	{
-		BaseWorld world = GetGame().GetWorld();
-		if (!world)
-			return "";
-		return world.GetName();
+		return "";
 	}
 	
 	// ========================================================================
@@ -363,37 +354,31 @@ class RBL_PersistenceIntegration
 // ============================================================================
 class RBL_SaveCommands
 {
-	[ConsoleCmd("rbl_save", "Save game to current slot")]
 	static void Save()
 	{
 		RBL_PersistenceIntegration.GetInstance().SaveGame();
 	}
 	
-	[ConsoleCmd("rbl_save_slot", "Save game to specific slot")]
 	static void SaveSlot(int slot)
 	{
 		RBL_PersistenceIntegration.GetInstance().SaveToSlot(slot);
 	}
 	
-	[ConsoleCmd("rbl_load", "Load game from current slot")]
 	static void Load()
 	{
 		RBL_PersistenceIntegration.GetInstance().LoadGame();
 	}
 	
-	[ConsoleCmd("rbl_load_slot", "Load game from specific slot")]
 	static void LoadSlot(int slot)
 	{
 		RBL_PersistenceIntegration.GetInstance().LoadFromSlot(slot);
 	}
 	
-	[ConsoleCmd("rbl_continue", "Continue most recent game")]
 	static void Continue()
 	{
 		RBL_PersistenceIntegration.GetInstance().ContinueGame();
 	}
 	
-	[ConsoleCmd("rbl_slot_info", "Show all save slot info")]
 	static void SlotInfo()
 	{
 		RBL_SaveSlotManager slotMgr = RBL_SaveSlotManager.GetInstance();
@@ -406,15 +391,16 @@ class RBL_SaveCommands
 		}
 	}
 	
-	[ConsoleCmd("rbl_autosave_toggle", "Toggle autosave")]
 	static void ToggleAutoSave()
 	{
 		RBL_AutoSaveManager autoSave = RBL_AutoSaveManager.GetInstance();
 		autoSave.SetAutoSaveEnabled(!autoSave.IsAutoSaveEnabled());
-		PrintFormat("[RBL] AutoSave: %1", autoSave.IsAutoSaveEnabled() ? "Enabled" : "Disabled");
+		string enabledStr = "Disabled";
+		if (autoSave.IsAutoSaveEnabled())
+			enabledStr = "Enabled";
+		PrintFormat("[RBL] AutoSave: %1", enabledStr);
 	}
 	
-	[ConsoleCmd("rbl_autosave_interval", "Set autosave interval in seconds")]
 	static void SetAutoSaveInterval(int seconds)
 	{
 		RBL_AutoSaveManager.GetInstance().SetAutoSaveInterval(seconds);
