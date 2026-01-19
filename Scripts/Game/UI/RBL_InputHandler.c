@@ -250,6 +250,7 @@ class RBL_DebugCommands
 		PrintFormat("\n========================================");
 		PrintFormat("\n=== DEBUG COMMANDS ===");
 		PrintFormat("RBL_DebugCommands.TeleportToZone(\"zoneid\")");
+		PrintFormat("RBL_DebugCommands.PrintPlayerPos()");
 		PrintFormat("RBL_DebugCommands.TestResourceTick()");
 		PrintFormat("RBL_DebugCommands.PrintKeybinds()");
 		PrintFormat("\n========================================");
@@ -398,6 +399,30 @@ class RBL_DebugCommands
 
 		playerEntity.SetOrigin(zonePos);
 		PrintFormat("[RBL_Debug] Teleported to zone: %1", zoneID);
+	}
+
+	static void PrintPlayerPos()
+	{
+		PlayerController playerController = GetGame().GetPlayerController();
+		if (!playerController)
+		{
+			PrintFormat("[RBL_Debug] No player controller found");
+			return;
+		}
+
+		IEntity playerEntity = playerController.GetControlledEntity();
+		if (!playerEntity)
+		{
+			PrintFormat("[RBL_Debug] No controlled entity found");
+			return;
+		}
+
+		vector pos = playerEntity.GetOrigin();
+		float x = Math.Round(pos[0]);
+		float z = Math.Round(pos[2]);
+
+		PrintFormat("[RBL_Debug] PlayerPos: %1", pos.ToString());
+		PrintFormat("[RBL_Debug] AddZone(\"ZONE_ID\", %1, %2, ERBLZoneType.Town, ERBLFactionKey.USSR, 10, 50, 100);", x, z);
 	}
 
 	static void TestResourceTick()

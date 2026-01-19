@@ -1,8 +1,11 @@
 GameProject {
  ID "NewEnfusionProject"
  GUID "685F68F508FD0CAE"
- TITLE "New Enfusion Project"
+ TITLE "Project Rebellion"
  Dependencies {
   "58D0FB3206B6F859"
+  "5D6EA74A94173EDF"
+  "5D6EBC81EB1842EF"
+  "5965550F24A0C152"
  }
 }

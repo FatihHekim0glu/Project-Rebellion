@@ -105,6 +105,7 @@ class RBL_AutoInitializer
 class RBL_VirtualZone
 {
 	protected string m_sZoneID;
+	protected string m_sDisplayName;
 	protected vector m_vPosition;
 	protected ERBLZoneType m_eZoneType;
 	protected ERBLFactionKey m_eOwnerFaction;
@@ -112,6 +113,9 @@ class RBL_VirtualZone
 	protected int m_iCurrentGarrison;
 	protected int m_iCivilianSupport;
 	protected float m_fCaptureRadius;
+	protected int m_iResourceValue;
+	protected int m_iVehicleSpawns;
+	protected int m_iLootTier;
 	protected ERBLAlertState m_eAlertState;
 	protected bool m_bIsUnderAttack;
 
@@ -120,17 +124,24 @@ class RBL_VirtualZone
 		m_eAlertState = ERBLAlertState.RELAXED;
 		m_bIsUnderAttack = false;
 		m_iCurrentGarrison = 0;
+		m_iResourceValue = 100;
+		m_iVehicleSpawns = 0;
+		m_iLootTier = 1;
 	}
 
 	void InitFromDefinition(RBL_ZoneDefinition def)
 	{
 		m_sZoneID = def.ZoneID;
+		m_sDisplayName = def.DisplayName;
 		m_vPosition = def.Position;
 		m_eZoneType = def.Type;
 		m_eOwnerFaction = def.StartingOwner;
 		m_iMaxGarrison = def.MaxGarrison;
 		m_iCivilianSupport = def.CivilianSupport;
 		m_fCaptureRadius = def.CaptureRadius;
+		m_iResourceValue = def.ResourceValue;
+		m_iVehicleSpawns = def.VehicleSpawns;
+		m_iLootTier = def.LootTier;
 
 		// Start with partial garrison
 		m_iCurrentGarrison = m_iMaxGarrison / 2;
@@ -138,7 +149,7 @@ class RBL_VirtualZone
 
 	// Getters matching RBL_CampaignZone interface
 	string GetZoneID() { return m_sZoneID; }
-	string GetZoneName() { return m_sZoneID; }
+	string GetZoneName() { return m_sDisplayName; }
 	vector GetZonePosition() { return m_vPosition; }
 	vector GetOrigin() { return m_vPosition; }
 	ERBLZoneType GetZoneType() { return m_eZoneType; }
@@ -149,6 +160,16 @@ class RBL_VirtualZone
 	float GetCaptureRadius() { return m_fCaptureRadius; }
 	ERBLAlertState GetAlertState() { return m_eAlertState; }
 	bool IsUnderAttack() { return m_bIsUnderAttack; }
+	int GetResourceValue() { return m_iResourceValue; }
+	int GetVehicleSpawns() { return m_iVehicleSpawns; }
+	int GetLootTier() { return m_iLootTier; }
+	string GetDisplayName() { return m_sDisplayName; }
+	
+	bool HasVehicleType(int vehicleType) { return (m_iVehicleSpawns & vehicleType) != 0; }
+	bool HasAPCs() { return HasVehicleType(RBL_VehicleSpawnType.APCS); }
+	bool HasHelicopters() { return HasVehicleType(RBL_VehicleSpawnType.HELICOPTERS); }
+	bool HasBoats() { return HasVehicleType(RBL_VehicleSpawnType.BOATS); }
+	bool HasTrucks() { return HasVehicleType(RBL_VehicleSpawnType.TRUCKS); }
 
 	void SetOwnerFaction(ERBLFactionKey faction) { m_eOwnerFaction = faction; }
 	void SetUnderAttack(bool attacked) { m_bIsUnderAttack = attacked; }

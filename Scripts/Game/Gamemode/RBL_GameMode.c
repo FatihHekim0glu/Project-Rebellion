@@ -114,6 +114,14 @@ class RBL_GameMode : SCR_BaseGameMode
 			PrintFormat("[RBL] UI System initialized");
 		}
 		
+		// Initialize Map Zone Markers
+		RBL_MapZoneMarkers mapMarkers = RBL_MapZoneMarkers.GetInstance();
+		if (mapMarkers)
+		{
+			mapMarkers.Initialize();
+			PrintFormat("[RBL] Map Zone Markers initialized");
+		}
+		
 		// Legacy systems (for compatibility) - Input handler uses new system
 		RBL_ScreenHUD.GetInstance();
 		RBL_InputHandler inputHandler = RBL_InputHandler.GetInstance();
@@ -261,6 +269,14 @@ class RBL_GameMode : SCR_BaseGameMode
 				uiMgr.Update(timeSlice);
 				uiMgr.Draw();
 			}
+		}
+		
+		// Map Overlay (shows zone list when map is open)
+		RBL_MapOverlayDebug mapOverlay = RBL_MapOverlayDebug.GetInstance();
+		if (mapOverlay)
+		{
+			mapOverlay.Update(timeSlice);
+			mapOverlay.Draw();
 		}
 		
 		// Legacy HUD (for compatibility)
@@ -432,6 +448,11 @@ class RBL_GameModeAddon
 		RBL_UIManager uiMgr = RBL_UIManager.GetInstance();
 		uiMgr.Initialize();
 		
+		// Initialize Map Zone Markers
+		RBL_MapZoneMarkers mapMarkers = RBL_MapZoneMarkers.GetInstance();
+		if (mapMarkers)
+			mapMarkers.Initialize();
+		
 		// Legacy systems - Input handler uses new system
 		RBL_ScreenHUD.GetInstance();
 		RBL_InputHandler inputHandler = RBL_InputHandler.GetInstance();
@@ -584,6 +605,14 @@ class RBL_GameModeAddon
 		{
 			uiMgr.Update(timeSlice);
 			uiMgr.Draw();
+		}
+		
+		// Map Overlay (shows zone list when map is open)
+		RBL_MapOverlayDebug mapOverlay = RBL_MapOverlayDebug.GetInstance();
+		if (mapOverlay)
+		{
+			mapOverlay.Update(timeSlice);
+			mapOverlay.Draw();
 		}
 		
 		// Legacy HUD

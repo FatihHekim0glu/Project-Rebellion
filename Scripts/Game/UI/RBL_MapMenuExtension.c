@@ -1,8 +1,10 @@
 // ============================================================================
 // PROJECT REBELLION - Map Menu Extension
 // Injects shop/settings buttons into the map menu hierarchy
+// TODO: Re-enable when SCR_MapMenu class name is verified
 // ============================================================================
 
+/* DISABLED - SCR_MapMenu class not found in current Arma Reforger version
 modded class SCR_MapMenu
 {
 	protected Widget m_RBLOverlayRoot;
@@ -112,3 +114,4 @@ protected const ResourceName LAYOUT_PATH_RELATIVE = "UI/layouts/RBL_MapOverlay.l
 		return root;
 	}
 }
+*/

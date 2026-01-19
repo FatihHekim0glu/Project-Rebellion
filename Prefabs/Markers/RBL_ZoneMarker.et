@@ -1,0 +1,9 @@
+GenericEntity : "{94C044AE16EC805B}Prefabs/World/Locations/Common/Natural/LocationNaturalGeneric.et" {
+ ID "5278CCE99D8927EE"
+ components {
+  SCR_MapDescriptorComponent "{527892B6ED748CEB}" {
+   MainType "Military Base"
+   Scale 1
+  }
+ }
+}
